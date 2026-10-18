@@ -1,0 +1,18 @@
+{
+  "gopls": {
+    "buildFlags": ["-tags=play"],
+    "standaloneTags": ["ignore"],
+    "staticcheck": true,
+    "analyses": {
+      "SA4017": false
+    },
+    "gofumpt": false
+  },
+  "[go]": {
+    "editor.defaultFormatter": "golang.go",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit"
+    }
+  }
+}

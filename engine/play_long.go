@@ -57,6 +57,7 @@ type PlayLongHead struct {
 	Loop           sonolus.LoopedEffectHandle      `archetype:"memory"`
 	Keep           sonolus.ParticleHandle          `archetype:"memory"`
 	KeepPlane      sonolus.ParticleHandle          `archetype:"memory"`
+	KeepPlane2     sonolus.ParticleHandle          `archetype:"memory"`
 }
 
 func (n *PlayLongHead) Preprocess() {
@@ -133,8 +134,7 @@ func (n *PlayLongHead) Touch() {
 		if Config.NoteEffects {
 			// a Long hold uses the TapKeep of its width (HABAHIRO)
 			w := int(sonolus.Clamp(n.Width, 1, 7))
-			n.Keep = pickW(Particles.Keep, Particles.KeepW, w).Spawn(particleQuad(laneX(lane), 1), durKeep, true)
-			n.KeepPlane = pickW(Particles.KeepPlane, Particles.KeepPlaneW, w).Spawn(particleQuad(laneX(lane), planeCos48), durKeepPlane, true)
+			n.Keep, n.KeepPlane, n.KeepPlane2 = spawnKeep(w, laneX(lane))
 		}
 	}
 	if n.State != stHold {
@@ -207,11 +207,8 @@ func (n *PlayLongHead) stopFeedback() {
 		releaseHoldLoop(n.Loop)
 		n.Loop.ID = 0
 	}
-	if n.Keep.ID > 0 {
-		n.Keep.Destroy()
-		n.KeepPlane.Destroy()
-		n.Keep.ID, n.KeepPlane.ID = 0, 0
-	}
+	destroyFx(n.Keep, n.KeepPlane, n.KeepPlane2)
+	n.Keep.ID, n.KeepPlane.ID, n.KeepPlane2.ID = 0, 0, 0
 }
 
 func (n *PlayLongHead) finishTail(grade, err float64) {

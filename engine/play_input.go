@@ -18,9 +18,11 @@ type InputState struct {
 	sonolus.LevelMemoryResource
 	Candidates sonolus.VarArray[candidate]
 	TouchLane  sonolus.ArrayMap[float64, float64]
-	// Live hold loops (handle IDs, 0 = free) and their start order.
-	Loops     [holdLoopLimit]float64
-	LoopOrder [holdLoopLimit]float64
+	// Live hold sounds (main and intro handle IDs, 0 = free) and their
+	// start order.
+	Loops     [holdSlots]float64
+	LoopIntro [holdSlots]float64
+	LoopOrder [holdSlots]float64
 	LoopSeq   float64
 }
 
@@ -169,7 +171,7 @@ func (*PlayInputManager) Touch() {
 				Effects.EmptyTap.Play(0)
 			}
 			if Config.NoteEffects {
-				Particles.Tap.Spawn(particleQuad(laneX(lane), 1), durTap, false)
+				spawnFx(fxTap, laneX(lane), durTap, durTap, false)
 			}
 			continue
 		}

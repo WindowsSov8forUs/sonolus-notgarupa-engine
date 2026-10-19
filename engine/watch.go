@@ -41,6 +41,8 @@ func (n *WatchInitialization) Preprocess() {
 		laneChange = watch.Time.BeatToTime(n.LaneChangeBeat)
 	}
 	initLayout(watch.Screen.Rect(), Config.NoteSpeed, Config.NoteSize, Config.Mirror, n.Habahiro, laneChange)
+	initHoldSE()
+	initFx()
 	initHud(n.NoteCount)
 	watch.Background.Set(backgroundQuad())
 	// Sonolus' arcade score (Level Score starts at 0); the HUD computes the

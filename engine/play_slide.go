@@ -146,6 +146,7 @@ type PlaySlideBase struct {
 	Loop         sonolus.LoopedEffectHandle           `archetype:"memory"`
 	Keep         sonolus.ParticleHandle               `archetype:"memory"`
 	KeepPlane    sonolus.ParticleHandle               `archetype:"memory"`
+	KeepPlane2   sonolus.ParticleHandle               `archetype:"memory"`
 }
 
 type PlaySlideHead struct {
@@ -436,10 +437,9 @@ func (n *PlaySlideBase) startFeedback(now float64) {
 	if Config.SFX && !Config.AutoSFX && n.Loop.ID <= 0 {
 		n.Loop = startHoldLoop()
 	}
-	if Config.NoteEffects && n.Keep.ID <= 0 {
-		x := laneX(n.contactOr(n.Lane))
-		n.Keep = Particles.Keep.Spawn(particleQuad(x, 1), durKeep, true)
-		n.KeepPlane = Particles.KeepPlane.Spawn(particleQuad(x, planeCos48), durKeepPlane, true)
+	if Config.NoteEffects && !fxAlive(n.Keep, n.KeepPlane, n.KeepPlane2) {
+		// a Slide's TapKeep is always the base one
+		n.Keep, n.KeepPlane, n.KeepPlane2 = spawnFx(fxKeep, laneX(n.contactOr(n.Lane)), durKeep, durKeepPlane, true)
 	}
 }
 
@@ -449,11 +449,8 @@ func (n *PlaySlideBase) stopFeedback() {
 		releaseHoldLoop(n.Loop)
 		n.Loop.ID = 0
 	}
-	if n.Keep.ID > 0 {
-		n.Keep.Destroy()
-		n.KeepPlane.Destroy()
-		n.Keep.ID, n.KeepPlane.ID = 0, 0
-	}
+	destroyFx(n.Keep, n.KeepPlane, n.KeepPlane2)
+	n.Keep.ID, n.KeepPlane.ID, n.KeepPlane2.ID = 0, 0, 0
 }
 
 func (n *PlaySlideBase) contactOr(lane float64) float64 {
@@ -820,10 +817,7 @@ func (n *PlaySlideBase) UpdateParallel() {
 		p := heldPos(lane)
 		body, flash, px := slideHoldSprites(n.Width, lane)
 		drawHoldFlash(body, flash, p, px, !n.Hidden, now-n.FlashStart, n.z())
-		if n.Keep.ID > 0 {
-			n.Keep.Move(particleQuad(p.X, 1))
-			n.KeepPlane.Move(particleQuad(p.X, planeCos48))
-		}
+		moveFx(fxKeep, p.X, n.Keep, n.KeepPlane, n.KeepPlane2)
 	}
 }
 
@@ -889,6 +883,8 @@ type PlaySimLine struct {
 	BLane          float64                         `archetype:"imported,name=bLane,default=-1000"`
 	SpeedMin       float64                         `archetype:"imported,name=speedMin,default=0"` // note speeds (tenths) the line exists at
 	SpeedMax       float64                         `archetype:"imported,name=speedMax,default=1000"`
+	ANoMargin      bool                            `archetype:"imported,name=aNoMargin"` // directional-note end: no edge margin
+	BNoMargin      bool                            `archetype:"imported,name=bNoMargin"`
 	SpawnTime      float64                         `archetype:"data"`
 	EndTime        float64                         `archetype:"data"`
 }
@@ -922,7 +918,7 @@ func (l *PlaySimLine) UpdateParallel() {
 	if pa < 0 || pb < 0 || pa > 1 || pb > 1 {
 		return
 	}
-	drawSimLine(notePos(l.ALane, curveOf(pa)), notePos(l.BLane, curveOf(pb)), math.Min(a.Time, b.Time))
+	drawSimLine(notePos(l.ALane, curveOf(pa)), notePos(l.BLane, curveOf(pb)), math.Min(a.Time, b.Time), l.ANoMargin, l.BNoMargin)
 }
 
 // headLane is where the head's judgement plays: a directional gesture head at

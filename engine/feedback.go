@@ -235,16 +235,18 @@ func fxRestart(k int) {
 	Hud.Fx0[k].ID, Hud.Fx1[k].ID, Hud.Fx2[k].ID = 0, 0, 0
 }
 
-// pickW selects a HABAHIRO width variant for a note of width w.
-func pickW(base sonolus.Effect, variants [6]sonolus.Effect, w int) sonolus.Effect {
-	if Layout.HabaFx && w >= 2 {
-		return variants[w-2]
-	}
-	return base
+// habaW: a note of width w plays the HABAHIRO width variant of its effect.
+func habaW(w int) bool { return Layout.HabaFx && w >= 2 }
+
+// playFx spawns the one-shot family f into feedback slot k.
+func playFx(k, f int, x, dur float64) {
+	Hud.Fx0[k], Hud.Fx1[k], Hud.Fx2[k] = spawnFx(f, x, dur, dur, false)
 }
 
 // playJudgementParticles follows GamePlayButton.PlayAnimation: Bad and Miss
 // play nothing; skill notes first, then directional, flick, normal routes.
+// A HABAHIRO note of width w ≥ 2 plays the width variants (view part and
+// their fixed-tilt plane parts) of the HABAHIRO tap effect.
 func playJudgementParticles(j judgement) {
 	g := j.Grade
 	if g < gradeGood || Hud.GameOver {
@@ -259,18 +261,30 @@ func playJudgementParticles(j judgement) {
 		case gradePerfect:
 			k := fxKey(j.Lane, 3)
 			fxRestart(k)
-			Hud.Fx0[k] = pickW(Particles.SkillPerfect, Particles.SkillPerfectW, w).Spawn(q1, durPerfect, false)
-			Hud.Fx1[k] = pickW(Particles.SkillPerfectPlane, Particles.SkillPerfectPlaneW, w).Spawn(particleQuad(x, planeCos46), durPerfect, false)
-			Hud.Fx2[k] = pickW(Particles.SkillPerfectPlane2, Particles.SkillPerfectPlane2W, w).Spawn(particleQuad(x, planeCos50), durPerfect, false)
+			if habaW(w) {
+				Hud.Fx0[k] = Particles.SkillPerfectW[w-2].Spawn(q1, durPerfect, false)
+				Hud.Fx1[k] = Particles.SkillPerfectPlaneW[w-2].Spawn(particleQuad(x, planeCos46), durPerfect, false)
+				Hud.Fx2[k] = Particles.SkillPerfectPlane2W[w-2].Spawn(particleQuad(x, planeCos50), durPerfect, false)
+			} else {
+				playFx(k, fxSkillPerfect, x, durPerfect)
+			}
 		case gradeGreat:
 			k := fxKey(j.Lane, 4)
 			fxRestart(k)
-			Hud.Fx0[k] = pickW(Particles.SkillGreat, Particles.SkillGreatW, w).Spawn(q1, durGreat, false)
-			Hud.Fx1[k] = pickW(Particles.SkillGreatPlane, Particles.SkillGreatPlaneW, w).Spawn(particleQuad(x, planeCos46), durGreat, false)
+			if habaW(w) {
+				Hud.Fx0[k] = Particles.SkillGreatW[w-2].Spawn(q1, durGreat, false)
+				Hud.Fx1[k] = Particles.SkillGreatPlaneW[w-2].Spawn(particleQuad(x, planeCos46), durGreat, false)
+			} else {
+				playFx(k, fxSkillGreat, x, durGreat)
+			}
 		default:
 			k := fxKey(j.Lane, 5)
 			fxRestart(k)
-			Hud.Fx0[k] = pickW(Particles.SkillGood, Particles.SkillGoodW, w).Spawn(q1, durGood, false)
+			if habaW(w) {
+				Hud.Fx0[k] = Particles.SkillGoodW[w-2].Spawn(q1, durGood, false)
+			} else {
+				playFx(k, fxSkillGood, x, durGood)
+			}
 		}
 	case j.Type == jtLongEndDir || j.Type == jtLongEndMulti || j.Type == jtDirectional || j.Type == jtMultiDir:
 		idx := 0
@@ -287,40 +301,55 @@ func playJudgementParticles(j judgement) {
 		if j.HasFinger {
 			fx = j.FingerX
 		}
+		// the finger family has at most one plane part
 		if j.Direction < 0 {
 			k := fxKey(j.Lane, 7)
 			fxRestart(k)
 			Hud.Fx0[k] = Particles.DirL[idx].Spawn(q1, dur, false)
-			Hud.Fx1[k] = Particles.FingerL.Spawn(particleQuad(fx, 1), durFinger, false)
-			Hud.Fx2[k] = Particles.FingerLPlane.Spawn(particleQuad(fx, planeCos46), durFinger, false)
+			Hud.Fx1[k], Hud.Fx2[k], _ = spawnFx(fxFingerL, fx, durFinger, durFinger, false)
 		} else {
 			k := fxKey(j.Lane, 8)
 			fxRestart(k)
 			Hud.Fx0[k] = Particles.DirR[idx].Spawn(q1, dur, false)
-			Hud.Fx1[k] = Particles.FingerR.Spawn(particleQuad(fx, 1), durFinger, false)
-			Hud.Fx2[k] = Particles.FingerRPlane.Spawn(particleQuad(fx, planeCos46), durFinger, false)
+			Hud.Fx1[k], Hud.Fx2[k], _ = spawnFx(fxFingerR, fx, durFinger, durFinger, false)
 		}
 	case j.Type == jtFlick || j.Type == jtLongEndFlick:
 		k := fxKey(j.Lane, 6)
 		fxRestart(k)
-		Hud.Fx0[k] = pickW(Particles.Swipe, Particles.SwipeW, w).Spawn(q1, durSwipe, false)
-		Hud.Fx1[k] = pickW(Particles.SwipePlane, Particles.SwipePlaneW, w).Spawn(particleQuad(x, planeCos46), durSwipe, false)
+		if habaW(w) {
+			Hud.Fx0[k] = Particles.SwipeW[w-2].Spawn(q1, durSwipe, false)
+			Hud.Fx1[k] = Particles.SwipePlaneW[w-2].Spawn(particleQuad(x, planeCos46), durSwipe, false)
+		} else {
+			playFx(k, fxSwipe, x, durSwipe)
+		}
 	default:
 		switch g {
 		case gradePerfect:
 			k := fxKey(j.Lane, 0)
 			fxRestart(k)
-			Hud.Fx0[k] = pickW(Particles.Perfect, Particles.PerfectW, w).Spawn(q1, durPerfect, false)
-			Hud.Fx1[k] = pickW(Particles.PerfectPlane, Particles.PerfectPlaneW, w).Spawn(particleQuad(x, planeCos46), durPerfect, false)
+			if habaW(w) {
+				Hud.Fx0[k] = Particles.PerfectW[w-2].Spawn(q1, durPerfect, false)
+				Hud.Fx1[k] = Particles.PerfectPlaneW[w-2].Spawn(particleQuad(x, planeCos46), durPerfect, false)
+			} else {
+				playFx(k, fxPerfect, x, durPerfect)
+			}
 		case gradeGreat:
 			k := fxKey(j.Lane, 1)
 			fxRestart(k)
-			Hud.Fx0[k] = pickW(Particles.Great, Particles.GreatW, w).Spawn(q1, durGreat, false)
-			Hud.Fx1[k] = pickW(Particles.GreatPlane, Particles.GreatPlaneW, w).Spawn(particleQuad(x, planeCos50), durGreat, false)
+			if habaW(w) {
+				Hud.Fx0[k] = Particles.GreatW[w-2].Spawn(q1, durGreat, false)
+				Hud.Fx1[k] = Particles.GreatPlaneW[w-2].Spawn(particleQuad(x, planeCos50), durGreat, false)
+			} else {
+				playFx(k, fxGreat, x, durGreat)
+			}
 		default:
 			k := fxKey(j.Lane, 2)
 			fxRestart(k)
-			Hud.Fx0[k] = pickW(Particles.Good, Particles.GoodW, w).Spawn(q1, durGood, false)
+			if habaW(w) {
+				Hud.Fx0[k] = Particles.GoodW[w-2].Spawn(q1, durGood, false)
+			} else {
+				playFx(k, fxGood, x, durGood)
+			}
 		}
 	}
 }
@@ -417,31 +446,28 @@ func speakerClip(side int, j judgement, now float64) {
 	Hud.SpeakerStart[side] = now
 }
 
-// holdLoopLimit is the SE_RHYTHM_TAP_LONG cue limit: the original keeps at
-// most 4 playbacks of the cue, a new start stopping the oldest
-// (GarupaEditor originalCueLimitProfile, newest-replaces-oldest).
-const holdLoopLimit = 4
-
-// holdLoopSchedule applies the cue limit to scheduled hold loops, fed in
-// start order (the scoring chain). A loop that ends normally stops and plays
-// its release; a loop the limit steals stops at the new start, silently.
+// holdLoopSchedule applies the cue limit to scheduled hold sounds, fed in
+// start order (the scoring chain). A sound that ends normally stops and
+// plays its release; a sound the limit steals stops at the new start,
+// silently.
 type holdLoopSchedule struct {
-	Loops [holdLoopLimit]sonolus.ScheduledLoopedEffectHandle
-	End   [holdLoopLimit]float64
-	Order [holdLoopLimit]float64
-	Live  [holdLoopLimit]bool
+	Loops [holdSlots]float64 // main handle IDs
+	Intro [holdSlots]float64 // intro handle IDs
+	End   [holdSlots]float64
+	Order [holdSlots]float64
+	Live  [holdSlots]bool
 	Seq   float64
 }
 
 func (s *holdLoopSchedule) retire(i int) {
-	s.Loops[i].Stop(s.End[i])
-	Effects.HoldRelease.PlayScheduled(s.End[i], 0)
+	releaseHoldSound(s.Loops[i], s.Intro[i], s.End[i], false)
 	s.Live[i] = false
 }
 
 func (s *holdLoopSchedule) start(t, end float64) {
+	limit := int(HoldSE.Limit)
 	slot := -1
-	for i := 0; i < holdLoopLimit; i++ {
+	for i := 0; i < limit; i++ {
 		if s.Live[i] && s.End[i] <= t {
 			s.retire(i)
 		}
@@ -451,20 +477,20 @@ func (s *holdLoopSchedule) start(t, end float64) {
 	}
 	if slot < 0 {
 		slot = 0
-		for i := 1; i < holdLoopLimit; i++ {
+		for i := 1; i < limit; i++ {
 			if s.Order[i] < s.Order[slot] {
 				slot = i
 			}
 		}
-		s.Loops[slot].Stop(t)
+		stopHoldSound(s.Loops[slot], s.Intro[slot], t, false)
 	}
-	s.Loops[slot] = Effects.HoldLoop.PlayLoopedScheduled(t)
+	s.Loops[slot], s.Intro[slot] = startHoldSound(t, false)
 	s.Seq++
 	s.End[slot], s.Order[slot], s.Live[slot] = end, s.Seq, true
 }
 
 func (s *holdLoopSchedule) finish() {
-	for i := 0; i < holdLoopLimit; i++ {
+	for i := 0; i < int(HoldSE.Limit); i++ {
 		if s.Live[i] {
 			s.retire(i)
 		}

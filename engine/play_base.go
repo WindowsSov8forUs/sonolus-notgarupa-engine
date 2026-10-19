@@ -250,32 +250,32 @@ func scheduleAuto(code, t float64, skill bool) {
 	clipOf(code).PlayScheduled(t, frameSeconds)
 }
 
-// startHoldLoop starts a hold loop, stopping the oldest live one when the
-// cue is full (holdLoopLimit).
+// startHoldLoop starts a hold sound now, stopping the oldest live one when
+// the cue is full (HoldSE.Limit). The handle's ID identifies its slot.
 func startHoldLoop() sonolus.LoopedEffectHandle {
+	now := play.Time.Now()
 	slot := 0
-	for i := 1; i < holdLoopLimit; i++ {
+	for i := 1; i < int(HoldSE.Limit); i++ {
 		if Input.Loops[slot] > 0 && (Input.Loops[i] <= 0 || Input.LoopOrder[i] < Input.LoopOrder[slot]) {
 			slot = i
 		}
 	}
 	if Input.Loops[slot] > 0 {
-		sonolus.LoopedEffectHandle{ID: Input.Loops[slot]}.Stop()
+		stopHoldSound(Input.Loops[slot], Input.LoopIntro[slot], now, true)
 	}
-	loop := Effects.HoldLoop.PlayLooped()
+	main, intro := startHoldSound(now, true)
 	Input.LoopSeq++
-	Input.Loops[slot], Input.LoopOrder[slot] = loop.ID, Input.LoopSeq
-	return loop
+	Input.Loops[slot], Input.LoopIntro[slot], Input.LoopOrder[slot] = main, intro, Input.LoopSeq
+	return sonolus.LoopedEffectHandle{ID: main}
 }
 
-// releaseHoldLoop stops a hold loop and plays its release, unless the cue
+// releaseHoldLoop stops a hold sound and plays its release, unless the cue
 // limit already stopped it (its owner's later commands are then no-ops).
 func releaseHoldLoop(loop sonolus.LoopedEffectHandle) {
-	for i := 0; i < holdLoopLimit; i++ {
+	for i := 0; i < int(HoldSE.Limit); i++ {
 		if Input.Loops[i] == loop.ID {
-			Input.Loops[i] = 0
-			loop.Stop()
-			Effects.HoldRelease.Play(0)
+			releaseHoldSound(Input.Loops[i], Input.LoopIntro[i], play.Time.Now(), true)
+			Input.Loops[i], Input.LoopIntro[i] = 0, 0
 		}
 	}
 }
@@ -296,7 +296,5 @@ func autoHold(n *PlayNoteBase, start, end float64) {
 		n.HoldUntil = end
 		return
 	}
-	loop := Effects.HoldLoop.PlayLoopedScheduled(start)
-	loop.Stop(end)
-	Effects.HoldRelease.PlayScheduled(end, 0)
+	scheduleHoldSound(start, end)
 }

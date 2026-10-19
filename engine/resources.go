@@ -5,10 +5,18 @@ import "github.com/WindowsSov8forUs/sonolus-go/v2/sonolus"
 // Effect clips (original cue names, RESOURCE_CONTRACT.md).
 type EffectsData struct {
 	sonolus.EffectResource
-	Perfect, Great, Good, Flick  sonolus.Clip
-	Directional                  [3]sonolus.Clip
-	EmptyTap                     sonolus.Clip
-	HoldLoop, HoldRelease        sonolus.Clip
+	Perfect, Great, Good, Flick sonolus.Clip
+	Directional                 [3]sonolus.Clip
+	EmptyTap                    sonolus.Clip
+	// Hold sound: the whole cue, its release fade, and the optional parts
+	// (see hold_se.go): #loop when the cue loops, #intro when the loop does
+	// not start at 0, and the marker clips of the item's hold profile.
+	HoldWhole, HoldRelease       sonolus.Clip
+	HoldLoopOpt                  sonolus.Clip
+	HoldIntroOpt                 sonolus.Clip
+	IntroUsBitOpt                [holdMarkerBits]sonolus.Clip
+	OnceUsBitOpt                 [holdMarkerBits]sonolus.Clip
+	NoCueLimitOpt                sonolus.Clip
 	Skill                        sonolus.Clip
 	FullCombo, Clear, ClearVoice sonolus.Clip
 }
@@ -18,22 +26,23 @@ var Effects = &EffectsData{
 	Flick:       sonolus.EffectClip("flick"),
 	Directional: [3]sonolus.Clip{sonolus.EffectClip("directional_fl"), sonolus.EffectClip("directional_fl_2"), sonolus.EffectClip("directional_fl_3")},
 	EmptyTap:    sonolus.EffectClip("game_button"),
-	HoldLoop:    sonolus.EffectClip("SE_RHYTHM_TAP_LONG#loop"), HoldRelease: sonolus.EffectClip("SE_RHYTHM_TAP_LONG#release"),
-	Skill:     sonolus.EffectClip("SE_RHYTHM_TAP_SKILL"),
-	FullCombo: sonolus.EffectClip("SE_RHYTHM_FULLCOMBO"), Clear: sonolus.EffectClip("SE_RHYTHM_CLEAR"), ClearVoice: sonolus.EffectClip("SE_RHYTHM_CLEAR_VO"),
+	HoldWhole:   sonolus.EffectClip("SE_RHYTHM_TAP_LONG"), HoldRelease: sonolus.EffectClip("SE_RHYTHM_TAP_LONG#release"),
+	HoldLoopOpt: sonolus.EffectClip("SE_RHYTHM_TAP_LONG#loop"), HoldIntroOpt: sonolus.EffectClip("SE_RHYTHM_TAP_LONG#intro"),
+	IntroUsBitOpt: [holdMarkerBits]sonolus.Clip{sonolus.EffectClip("notgarupa/hold/introUsBit0"), sonolus.EffectClip("notgarupa/hold/introUsBit1"), sonolus.EffectClip("notgarupa/hold/introUsBit2"), sonolus.EffectClip("notgarupa/hold/introUsBit3"), sonolus.EffectClip("notgarupa/hold/introUsBit4"), sonolus.EffectClip("notgarupa/hold/introUsBit5"), sonolus.EffectClip("notgarupa/hold/introUsBit6"), sonolus.EffectClip("notgarupa/hold/introUsBit7"), sonolus.EffectClip("notgarupa/hold/introUsBit8"), sonolus.EffectClip("notgarupa/hold/introUsBit9"), sonolus.EffectClip("notgarupa/hold/introUsBit10"), sonolus.EffectClip("notgarupa/hold/introUsBit11"), sonolus.EffectClip("notgarupa/hold/introUsBit12"), sonolus.EffectClip("notgarupa/hold/introUsBit13"), sonolus.EffectClip("notgarupa/hold/introUsBit14"), sonolus.EffectClip("notgarupa/hold/introUsBit15"), sonolus.EffectClip("notgarupa/hold/introUsBit16"), sonolus.EffectClip("notgarupa/hold/introUsBit17"), sonolus.EffectClip("notgarupa/hold/introUsBit18"), sonolus.EffectClip("notgarupa/hold/introUsBit19"), sonolus.EffectClip("notgarupa/hold/introUsBit20"), sonolus.EffectClip("notgarupa/hold/introUsBit21"), sonolus.EffectClip("notgarupa/hold/introUsBit22"), sonolus.EffectClip("notgarupa/hold/introUsBit23")},
+	OnceUsBitOpt:  [holdMarkerBits]sonolus.Clip{sonolus.EffectClip("notgarupa/hold/onceUsBit0"), sonolus.EffectClip("notgarupa/hold/onceUsBit1"), sonolus.EffectClip("notgarupa/hold/onceUsBit2"), sonolus.EffectClip("notgarupa/hold/onceUsBit3"), sonolus.EffectClip("notgarupa/hold/onceUsBit4"), sonolus.EffectClip("notgarupa/hold/onceUsBit5"), sonolus.EffectClip("notgarupa/hold/onceUsBit6"), sonolus.EffectClip("notgarupa/hold/onceUsBit7"), sonolus.EffectClip("notgarupa/hold/onceUsBit8"), sonolus.EffectClip("notgarupa/hold/onceUsBit9"), sonolus.EffectClip("notgarupa/hold/onceUsBit10"), sonolus.EffectClip("notgarupa/hold/onceUsBit11"), sonolus.EffectClip("notgarupa/hold/onceUsBit12"), sonolus.EffectClip("notgarupa/hold/onceUsBit13"), sonolus.EffectClip("notgarupa/hold/onceUsBit14"), sonolus.EffectClip("notgarupa/hold/onceUsBit15"), sonolus.EffectClip("notgarupa/hold/onceUsBit16"), sonolus.EffectClip("notgarupa/hold/onceUsBit17"), sonolus.EffectClip("notgarupa/hold/onceUsBit18"), sonolus.EffectClip("notgarupa/hold/onceUsBit19"), sonolus.EffectClip("notgarupa/hold/onceUsBit20"), sonolus.EffectClip("notgarupa/hold/onceUsBit21"), sonolus.EffectClip("notgarupa/hold/onceUsBit22"), sonolus.EffectClip("notgarupa/hold/onceUsBit23")},
+	NoCueLimitOpt: sonolus.EffectClip("notgarupa/hold/noCueLimit"),
+	Skill:         sonolus.EffectClip("SE_RHYTHM_TAP_SKILL"),
+	FullCombo:     sonolus.EffectClip("SE_RHYTHM_FULLCOMBO"), Clear: sonolus.EffectClip("SE_RHYTHM_CLEAR"), ClearVoice: sonolus.EffectClip("SE_RHYTHM_CLEAR_VO"),
 }
 
 // Particle effects: one per original prefab, plus its lane-plane part.
 type ParticlesData struct {
 	sonolus.ParticleResource
-	Tap                                                 sonolus.Effect
-	Good, Great, GreatPlane, Perfect, PerfectPlane      sonolus.Effect
-	SkillGood, SkillGreat, SkillGreatPlane              sonolus.Effect
-	SkillPerfect, SkillPerfectPlane, SkillPerfectPlane2 sonolus.Effect
-	Swipe, SwipePlane                                   sonolus.Effect
-	Keep, KeepPlane                                     sonolus.Effect
-	DirL, DirR                                          [3]sonolus.Effect
-	FingerL, FingerLPlane, FingerR, FingerRPlane        sonolus.Effect
+	// The prefab families of fx.go: the view part and the lane-plane parts at
+	// every tilt any tap effect skin uses; an item has only some of them.
+	BaseOpt    [fxFamilies]sonolus.Effect
+	PlaneOpt   [fxFamilies * fxPlanes]sonolus.Effect
+	DirL, DirR [3]sonolus.Effect
 	// Clear fireworks: GameClearParticle roots in spawn order, then the
 	// Full Combo / All Perfect systems (fireworkStart / fireworkAnchor).
 	Firework   [11]sonolus.Effect
@@ -58,19 +67,23 @@ type ParticlesData struct {
 }
 
 var Particles = &ParticlesData{
-	Tap:  sonolus.ParticleEffect("effect_tap"),
-	Good: sonolus.ParticleEffect("effect_tap_good"), Great: sonolus.ParticleEffect("effect_tap_great"), GreatPlane: sonolus.ParticleEffect("effect_tap_great#plane50"),
-	Perfect: sonolus.ParticleEffect("effect_tap_perfect"), PerfectPlane: sonolus.ParticleEffect("effect_tap_perfect#plane46"),
-	SkillGood: sonolus.ParticleEffect("effect_tap_skill_good"), SkillGreat: sonolus.ParticleEffect("effect_tap_skill_great"),
-	SkillGreatPlane: sonolus.ParticleEffect("effect_tap_skill_great#plane46"),
-	SkillPerfect:    sonolus.ParticleEffect("effect_tap_skill_perfect"), SkillPerfectPlane: sonolus.ParticleEffect("effect_tap_skill_perfect#plane46"),
-	SkillPerfectPlane2: sonolus.ParticleEffect("effect_tap_skill_perfect#plane50"),
-	Swipe:              sonolus.ParticleEffect("effect_tap_swipe"), SwipePlane: sonolus.ParticleEffect("effect_tap_swipe#plane46"),
-	Keep: sonolus.ParticleEffect("effect_TapKeep"), KeepPlane: sonolus.ParticleEffect("effect_TapKeep#plane48"),
-	DirL:    [3]sonolus.Effect{sonolus.ParticleEffect("effect_tap_directional_flick_l"), sonolus.ParticleEffect("effect_tap_directional_flick_l_2"), sonolus.ParticleEffect("effect_tap_directional_flick_l_3")},
-	DirR:    [3]sonolus.Effect{sonolus.ParticleEffect("effect_tap_directional_flick_r"), sonolus.ParticleEffect("effect_tap_directional_flick_r_2"), sonolus.ParticleEffect("effect_tap_directional_flick_r_3")},
-	FingerL: sonolus.ParticleEffect("effect_tap_directional_flick_l_finger"), FingerLPlane: sonolus.ParticleEffect("effect_tap_directional_flick_l_finger#plane46"),
-	FingerR: sonolus.ParticleEffect("effect_tap_directional_flick_r_finger"), FingerRPlane: sonolus.ParticleEffect("effect_tap_directional_flick_r_finger#plane46"), Firework: [11]sonolus.Effect{sonolus.ParticleEffect("GameClearParticle/effect_par_firework_star_pink1"), sonolus.ParticleEffect("GameClearParticle/effect_par_firework_star_green1 (1)"), sonolus.ParticleEffect("GameClearParticle/effect_par_firework_star_yellow1 (1)"), sonolus.ParticleEffect("GameClearParticle/effect_par_firework_star_blue1 (1)"), sonolus.ParticleEffect("GameClearParticle/effect_par_firework_star_purple1 (1)"), sonolus.ParticleEffect("GameClearParticle/effect_par_firework_star_green1#effect_gameclear_firework_star_a"), sonolus.ParticleEffect("GameClearParticle/effect_par_firework_star_green1#effect_gameclear_firework_star_b"), sonolus.ParticleEffect("GameClearParticle/effect_par_firework_star_pink1 (1)"), sonolus.ParticleEffect("GameClearParticle/effect_par_firework_star_blue1"), sonolus.ParticleEffect("GameClearParticle/effect_par_firework_star_yellow1"), sonolus.ParticleEffect("GameClearParticle/effect_par_firework_star_purple1")},
+	BaseOpt: [fxFamilies]sonolus.Effect{sonolus.ParticleEffect("effect_tap"), sonolus.ParticleEffect("effect_tap_good"), sonolus.ParticleEffect("effect_tap_great"), sonolus.ParticleEffect("effect_tap_perfect"), sonolus.ParticleEffect("effect_tap_skill_good"), sonolus.ParticleEffect("effect_tap_skill_great"), sonolus.ParticleEffect("effect_tap_skill_perfect"), sonolus.ParticleEffect("effect_tap_swipe"), sonolus.ParticleEffect("effect_TapKeep"), sonolus.ParticleEffect("effect_tap_directional_flick_l_finger"), sonolus.ParticleEffect("effect_tap_directional_flick_r_finger")},
+	PlaneOpt: [fxFamilies * fxPlanes]sonolus.Effect{
+		sonolus.ParticleEffect("effect_tap#plane-65"), sonolus.ParticleEffect("effect_tap#plane44"), sonolus.ParticleEffect("effect_tap#plane46"), sonolus.ParticleEffect("effect_tap#plane48"), sonolus.ParticleEffect("effect_tap#plane50"), sonolus.ParticleEffect("effect_tap#plane52"), sonolus.ParticleEffect("effect_tap#plane53"), sonolus.ParticleEffect("effect_tap#plane55"), sonolus.ParticleEffect("effect_tap#plane58"), sonolus.ParticleEffect("effect_tap#plane60"), sonolus.ParticleEffect("effect_tap#plane62"), sonolus.ParticleEffect("effect_tap#plane64"),
+		sonolus.ParticleEffect("effect_tap_good#plane-65"), sonolus.ParticleEffect("effect_tap_good#plane44"), sonolus.ParticleEffect("effect_tap_good#plane46"), sonolus.ParticleEffect("effect_tap_good#plane48"), sonolus.ParticleEffect("effect_tap_good#plane50"), sonolus.ParticleEffect("effect_tap_good#plane52"), sonolus.ParticleEffect("effect_tap_good#plane53"), sonolus.ParticleEffect("effect_tap_good#plane55"), sonolus.ParticleEffect("effect_tap_good#plane58"), sonolus.ParticleEffect("effect_tap_good#plane60"), sonolus.ParticleEffect("effect_tap_good#plane62"), sonolus.ParticleEffect("effect_tap_good#plane64"),
+		sonolus.ParticleEffect("effect_tap_great#plane-65"), sonolus.ParticleEffect("effect_tap_great#plane44"), sonolus.ParticleEffect("effect_tap_great#plane46"), sonolus.ParticleEffect("effect_tap_great#plane48"), sonolus.ParticleEffect("effect_tap_great#plane50"), sonolus.ParticleEffect("effect_tap_great#plane52"), sonolus.ParticleEffect("effect_tap_great#plane53"), sonolus.ParticleEffect("effect_tap_great#plane55"), sonolus.ParticleEffect("effect_tap_great#plane58"), sonolus.ParticleEffect("effect_tap_great#plane60"), sonolus.ParticleEffect("effect_tap_great#plane62"), sonolus.ParticleEffect("effect_tap_great#plane64"),
+		sonolus.ParticleEffect("effect_tap_perfect#plane-65"), sonolus.ParticleEffect("effect_tap_perfect#plane44"), sonolus.ParticleEffect("effect_tap_perfect#plane46"), sonolus.ParticleEffect("effect_tap_perfect#plane48"), sonolus.ParticleEffect("effect_tap_perfect#plane50"), sonolus.ParticleEffect("effect_tap_perfect#plane52"), sonolus.ParticleEffect("effect_tap_perfect#plane53"), sonolus.ParticleEffect("effect_tap_perfect#plane55"), sonolus.ParticleEffect("effect_tap_perfect#plane58"), sonolus.ParticleEffect("effect_tap_perfect#plane60"), sonolus.ParticleEffect("effect_tap_perfect#plane62"), sonolus.ParticleEffect("effect_tap_perfect#plane64"),
+		sonolus.ParticleEffect("effect_tap_skill_good#plane-65"), sonolus.ParticleEffect("effect_tap_skill_good#plane44"), sonolus.ParticleEffect("effect_tap_skill_good#plane46"), sonolus.ParticleEffect("effect_tap_skill_good#plane48"), sonolus.ParticleEffect("effect_tap_skill_good#plane50"), sonolus.ParticleEffect("effect_tap_skill_good#plane52"), sonolus.ParticleEffect("effect_tap_skill_good#plane53"), sonolus.ParticleEffect("effect_tap_skill_good#plane55"), sonolus.ParticleEffect("effect_tap_skill_good#plane58"), sonolus.ParticleEffect("effect_tap_skill_good#plane60"), sonolus.ParticleEffect("effect_tap_skill_good#plane62"), sonolus.ParticleEffect("effect_tap_skill_good#plane64"),
+		sonolus.ParticleEffect("effect_tap_skill_great#plane-65"), sonolus.ParticleEffect("effect_tap_skill_great#plane44"), sonolus.ParticleEffect("effect_tap_skill_great#plane46"), sonolus.ParticleEffect("effect_tap_skill_great#plane48"), sonolus.ParticleEffect("effect_tap_skill_great#plane50"), sonolus.ParticleEffect("effect_tap_skill_great#plane52"), sonolus.ParticleEffect("effect_tap_skill_great#plane53"), sonolus.ParticleEffect("effect_tap_skill_great#plane55"), sonolus.ParticleEffect("effect_tap_skill_great#plane58"), sonolus.ParticleEffect("effect_tap_skill_great#plane60"), sonolus.ParticleEffect("effect_tap_skill_great#plane62"), sonolus.ParticleEffect("effect_tap_skill_great#plane64"),
+		sonolus.ParticleEffect("effect_tap_skill_perfect#plane-65"), sonolus.ParticleEffect("effect_tap_skill_perfect#plane44"), sonolus.ParticleEffect("effect_tap_skill_perfect#plane46"), sonolus.ParticleEffect("effect_tap_skill_perfect#plane48"), sonolus.ParticleEffect("effect_tap_skill_perfect#plane50"), sonolus.ParticleEffect("effect_tap_skill_perfect#plane52"), sonolus.ParticleEffect("effect_tap_skill_perfect#plane53"), sonolus.ParticleEffect("effect_tap_skill_perfect#plane55"), sonolus.ParticleEffect("effect_tap_skill_perfect#plane58"), sonolus.ParticleEffect("effect_tap_skill_perfect#plane60"), sonolus.ParticleEffect("effect_tap_skill_perfect#plane62"), sonolus.ParticleEffect("effect_tap_skill_perfect#plane64"),
+		sonolus.ParticleEffect("effect_tap_swipe#plane-65"), sonolus.ParticleEffect("effect_tap_swipe#plane44"), sonolus.ParticleEffect("effect_tap_swipe#plane46"), sonolus.ParticleEffect("effect_tap_swipe#plane48"), sonolus.ParticleEffect("effect_tap_swipe#plane50"), sonolus.ParticleEffect("effect_tap_swipe#plane52"), sonolus.ParticleEffect("effect_tap_swipe#plane53"), sonolus.ParticleEffect("effect_tap_swipe#plane55"), sonolus.ParticleEffect("effect_tap_swipe#plane58"), sonolus.ParticleEffect("effect_tap_swipe#plane60"), sonolus.ParticleEffect("effect_tap_swipe#plane62"), sonolus.ParticleEffect("effect_tap_swipe#plane64"),
+		sonolus.ParticleEffect("effect_TapKeep#plane-65"), sonolus.ParticleEffect("effect_TapKeep#plane44"), sonolus.ParticleEffect("effect_TapKeep#plane46"), sonolus.ParticleEffect("effect_TapKeep#plane48"), sonolus.ParticleEffect("effect_TapKeep#plane50"), sonolus.ParticleEffect("effect_TapKeep#plane52"), sonolus.ParticleEffect("effect_TapKeep#plane53"), sonolus.ParticleEffect("effect_TapKeep#plane55"), sonolus.ParticleEffect("effect_TapKeep#plane58"), sonolus.ParticleEffect("effect_TapKeep#plane60"), sonolus.ParticleEffect("effect_TapKeep#plane62"), sonolus.ParticleEffect("effect_TapKeep#plane64"),
+		sonolus.ParticleEffect("effect_tap_directional_flick_l_finger#plane-65"), sonolus.ParticleEffect("effect_tap_directional_flick_l_finger#plane44"), sonolus.ParticleEffect("effect_tap_directional_flick_l_finger#plane46"), sonolus.ParticleEffect("effect_tap_directional_flick_l_finger#plane48"), sonolus.ParticleEffect("effect_tap_directional_flick_l_finger#plane50"), sonolus.ParticleEffect("effect_tap_directional_flick_l_finger#plane52"), sonolus.ParticleEffect("effect_tap_directional_flick_l_finger#plane53"), sonolus.ParticleEffect("effect_tap_directional_flick_l_finger#plane55"), sonolus.ParticleEffect("effect_tap_directional_flick_l_finger#plane58"), sonolus.ParticleEffect("effect_tap_directional_flick_l_finger#plane60"), sonolus.ParticleEffect("effect_tap_directional_flick_l_finger#plane62"), sonolus.ParticleEffect("effect_tap_directional_flick_l_finger#plane64"),
+		sonolus.ParticleEffect("effect_tap_directional_flick_r_finger#plane-65"), sonolus.ParticleEffect("effect_tap_directional_flick_r_finger#plane44"), sonolus.ParticleEffect("effect_tap_directional_flick_r_finger#plane46"), sonolus.ParticleEffect("effect_tap_directional_flick_r_finger#plane48"), sonolus.ParticleEffect("effect_tap_directional_flick_r_finger#plane50"), sonolus.ParticleEffect("effect_tap_directional_flick_r_finger#plane52"), sonolus.ParticleEffect("effect_tap_directional_flick_r_finger#plane53"), sonolus.ParticleEffect("effect_tap_directional_flick_r_finger#plane55"), sonolus.ParticleEffect("effect_tap_directional_flick_r_finger#plane58"), sonolus.ParticleEffect("effect_tap_directional_flick_r_finger#plane60"), sonolus.ParticleEffect("effect_tap_directional_flick_r_finger#plane62"), sonolus.ParticleEffect("effect_tap_directional_flick_r_finger#plane64"),
+	},
+	DirL:       [3]sonolus.Effect{sonolus.ParticleEffect("effect_tap_directional_flick_l"), sonolus.ParticleEffect("effect_tap_directional_flick_l_2"), sonolus.ParticleEffect("effect_tap_directional_flick_l_3")},
+	DirR:       [3]sonolus.Effect{sonolus.ParticleEffect("effect_tap_directional_flick_r"), sonolus.ParticleEffect("effect_tap_directional_flick_r_2"), sonolus.ParticleEffect("effect_tap_directional_flick_r_3")},
+	Firework:   [11]sonolus.Effect{sonolus.ParticleEffect("GameClearParticle/effect_par_firework_star_pink1"), sonolus.ParticleEffect("GameClearParticle/effect_par_firework_star_green1 (1)"), sonolus.ParticleEffect("GameClearParticle/effect_par_firework_star_yellow1 (1)"), sonolus.ParticleEffect("GameClearParticle/effect_par_firework_star_blue1 (1)"), sonolus.ParticleEffect("GameClearParticle/effect_par_firework_star_purple1 (1)"), sonolus.ParticleEffect("GameClearParticle/effect_par_firework_star_green1#effect_gameclear_firework_star_a"), sonolus.ParticleEffect("GameClearParticle/effect_par_firework_star_green1#effect_gameclear_firework_star_b"), sonolus.ParticleEffect("GameClearParticle/effect_par_firework_star_pink1 (1)"), sonolus.ParticleEffect("GameClearParticle/effect_par_firework_star_blue1"), sonolus.ParticleEffect("GameClearParticle/effect_par_firework_star_yellow1"), sonolus.ParticleEffect("GameClearParticle/effect_par_firework_star_purple1")},
 	FireworkFC: sonolus.ParticleEffect("FullComboAnimation/effect_par_firework_star"),
 	FireworkAP: sonolus.ParticleEffect("AllPerfectAnimation/effect_par_firework_star"), PerfectW: [6]sonolus.Effect{sonolus.ParticleEffect("effect_tap_perfect_2"), sonolus.ParticleEffect("effect_tap_perfect_3"), sonolus.ParticleEffect("effect_tap_perfect_4"), sonolus.ParticleEffect("effect_tap_perfect_5"), sonolus.ParticleEffect("effect_tap_perfect_6"), sonolus.ParticleEffect("effect_tap_perfect_7")},
 	PerfectPlaneW:       [6]sonolus.Effect{sonolus.ParticleEffect("effect_tap_perfect_2#plane46"), sonolus.ParticleEffect("effect_tap_perfect_3#plane46"), sonolus.ParticleEffect("effect_tap_perfect_4#plane46"), sonolus.ParticleEffect("effect_tap_perfect_5#plane46"), sonolus.ParticleEffect("effect_tap_perfect_6#plane46"), sonolus.ParticleEffect("effect_tap_perfect_7#plane46")},
@@ -89,10 +102,13 @@ var Particles = &ParticlesData{
 	KeepPlaneW:          [6]sonolus.Effect{sonolus.ParticleEffect("effect_TapKeep_2#plane48"), sonolus.ParticleEffect("effect_TapKeep_3#plane48"), sonolus.ParticleEffect("effect_TapKeep_4#plane48"), sonolus.ParticleEffect("effect_TapKeep_5#plane48"), sonolus.ParticleEffect("effect_TapKeep_6#plane48"), sonolus.ParticleEffect("effect_TapKeep_7#plane48")},
 }
 
-// Particle effect durations (seconds), from the particle pack contract.
+// Particle effect durations (seconds): the canonical duration of each
+// family, the same in every particle item (the generator puts every tap
+// effect skin on it; good / great / perfect also cover the skill and width
+// variants).
 const (
-	durTap, durGood, durGreat, durPerfect = 0.6, 0.6, 0.7, 0.9
-	durSwipe, durKeep, durKeepPlane       = 0.75, 1.0, 6.0
+	durTap, durGood, durGreat, durPerfect = 0.8, 0.8, 0.85, 1
+	durSwipe, durKeep, durKeepPlane       = 1, 1, 18
 	durDir1, durDir23, durFinger          = 0.7, 1.1, 0.35
 	planeCos46, planeCos48, planeCos50    = 0.694658, 0.669131, 0.642788
 )

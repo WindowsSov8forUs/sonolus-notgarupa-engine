@@ -26,6 +26,8 @@ func (n *PlayInitialization) Preprocess() {
 		laneChange = play.Time.BeatToTime(n.LaneChangeBeat)
 	}
 	initLayout(play.Screen.Rect(), Config.NoteSpeed, Config.NoteSize, Config.Mirror, n.Habahiro, laneChange)
+	initHoldSE()
+	initFx()
 	initHud(n.NoteCount)
 	Hud.ClearTime = n.ClearTime
 	initStageLights()

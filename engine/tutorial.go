@@ -17,9 +17,11 @@ type TutorialState struct {
 	Phase    float64
 	Start    float64
 	Previous float64
-	Loop     sonolus.LoopedEffectHandle
+	Loop     float64 // hold sound main / intro handle IDs
+	Intro    float64
 	Keep     sonolus.ParticleHandle
-	KeepP    sonolus.ParticleHandle // the lane-plane TapKeep part
+	KeepP    sonolus.ParticleHandle // the lane-plane TapKeep parts
+	KeepQ    sonolus.ParticleHandle
 }
 
 var Tut = TutorialState{}
@@ -35,6 +37,8 @@ func tutPeriod() float64 { return tutHit() + 2.2 }
 
 func Preprocess() {
 	initLayout(tutorial.Screen.Rect(), Config.NoteSpeed, Config.NoteSize, Config.Mirror, false, -1)
+	initHoldSE()
+	initFx()
 	Tut.Phase = 0
 	Tut.Start = tutorial.Time.Now()
 	Tut.Previous = -1
@@ -74,15 +78,12 @@ func Navigate() {
 }
 
 func tutStopHold() {
-	if Tut.Loop.ID > 0 {
-		Tut.Loop.Stop()
-		Tut.Loop.ID = 0
+	if Tut.Loop > 0 {
+		stopHoldSound(Tut.Loop, Tut.Intro, tutorial.Time.Now(), true)
+		Tut.Loop, Tut.Intro = 0, 0
 	}
-	if Tut.Keep.ID > 0 {
-		Tut.Keep.Destroy()
-		Tut.KeepP.Destroy()
-		Tut.Keep.ID, Tut.KeepP.ID = 0, 0
-	}
+	destroyFx(Tut.Keep, Tut.KeepP, Tut.KeepQ)
+	Tut.Keep.ID, Tut.KeepP.ID, Tut.KeepQ.ID = 0, 0, 0
 }
 
 // crossed reports whether phase time passed at since the previous update.
@@ -173,7 +174,7 @@ func Update() {
 		if crossed(prev, t, end) {
 			tutStopHold()
 			tutJudge(laneX(3), jtLongEnd)
-			Effects.HoldRelease.Play(0)
+			playHoldRelease(tutorial.Time.Now(), true)
 		}
 		if t < h+0.5 {
 			tutText(t, h, Instructions.Hold)
@@ -226,10 +227,7 @@ func Update() {
 		}
 		if held {
 			drawHoldFlash(Skin.NoteLong[3], Skin.NoteLongFlash[3], heldPos(contact), noteSpritePx, true, t-h, subZ(z, 2))
-			if Tut.Keep.ID > 0 {
-				Tut.Keep.Move(particleQuad(laneX(contact), 1))
-				Tut.KeepP.Move(particleQuad(laneX(contact), planeCos48))
-			}
+			moveFx(fxKeep, laneX(contact), Tut.Keep, Tut.KeepP, Tut.KeepQ)
 		}
 		if crossed(prev, t, h) {
 			tutJudge(laneX(2), jtSlide)
@@ -241,7 +239,7 @@ func Update() {
 		if crossed(prev, t, t2) {
 			tutStopHold()
 			tutJudge(laneX(5), jtSlide)
-			Effects.HoldRelease.Play(0)
+			playHoldRelease(tutorial.Time.Now(), true)
 		}
 		tutText(t, h, Instructions.Follow)
 		if t > h-0.4 && t < t2+0.3 {
@@ -259,12 +257,11 @@ func tutText(t, h float64, text sonolus.Text) {
 }
 
 func tutStartHold(x float64) {
-	if Config.SFX && Tut.Loop.ID <= 0 {
-		Tut.Loop = Effects.HoldLoop.PlayLooped()
+	if Config.SFX && Tut.Loop <= 0 {
+		Tut.Loop, Tut.Intro = startHoldSound(tutorial.Time.Now(), true)
 	}
-	if Config.NoteEffects && Tut.Keep.ID <= 0 {
-		Tut.Keep = Particles.Keep.Spawn(particleQuad(x, 1), durKeep, true)
-		Tut.KeepP = Particles.KeepPlane.Spawn(particleQuad(x, planeCos48), durKeepPlane, true)
+	if Config.NoteEffects && !fxAlive(Tut.Keep, Tut.KeepP, Tut.KeepQ) {
+		Tut.Keep, Tut.KeepP, Tut.KeepQ = spawnFx(fxKeep, x, durKeep, durKeepPlane, true)
 	}
 }
 
@@ -285,14 +282,11 @@ func tutJudge(x, jt float64) {
 	}
 	switch jt {
 	case jtFlick:
-		Particles.Swipe.Spawn(particleQuad(x, 1), durSwipe, false)
-		Particles.SwipePlane.Spawn(particleQuad(x, planeCos46), durSwipe, false)
+		spawnFx(fxSwipe, x, durSwipe, durSwipe, false)
 	case jtDirectional:
 		Particles.DirR[0].Spawn(particleQuad(x, 1), durDir1, false)
-		Particles.FingerR.Spawn(particleQuad(x, 1), durFinger, false)
-		Particles.FingerRPlane.Spawn(particleQuad(x, planeCos46), durFinger, false)
+		spawnFx(fxFingerR, x, durFinger, durFinger, false)
 	default:
-		Particles.Perfect.Spawn(particleQuad(x, 1), durPerfect, false)
-		Particles.PerfectPlane.Spawn(particleQuad(x, planeCos46), durPerfect, false)
+		spawnFx(fxPerfect, x, durPerfect, durPerfect, false)
 	}
 }

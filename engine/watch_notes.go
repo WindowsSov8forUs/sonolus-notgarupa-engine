@@ -242,6 +242,7 @@ type WatchLongHead struct {
 	Tail                 sonolus.EntityRef[WatchLongTail] `archetype:"imported,name=tail"`
 	Keep                 sonolus.ParticleHandle           `archetype:"memory"`
 	KeepPlane            sonolus.ParticleHandle           `archetype:"memory"`
+	KeepPlane2           sonolus.ParticleHandle           `archetype:"memory"`
 }
 
 type WatchLongTail struct {
@@ -301,21 +302,17 @@ func (n *WatchLongHead) DespawnTime() float64 {
 func (n *WatchLongHead) held(now float64) bool { return n.JGrade != gradeMiss && now >= n.JTime }
 
 func (n *WatchLongHead) UpdateSequential() {
-	if !Config.NoteEffects || !n.held(watch.Time.Now()) || n.Keep.ID > 0 {
+	if !Config.NoteEffects || !n.held(watch.Time.Now()) || fxAlive(n.Keep, n.KeepPlane, n.KeepPlane2) {
 		return
 	}
 	x := laneX(n.JLane)
 	w := int(sonolus.Clamp(n.Width, 1, 7))
-	n.Keep = pickW(Particles.Keep, Particles.KeepW, w).Spawn(particleQuad(x, 1), durKeep, true)
-	n.KeepPlane = pickW(Particles.KeepPlane, Particles.KeepPlaneW, w).Spawn(particleQuad(x, planeCos48), durKeepPlane, true)
+	n.Keep, n.KeepPlane, n.KeepPlane2 = spawnKeep(w, x)
 }
 
 func (n *WatchLongHead) Terminate() {
-	if n.Keep.ID > 0 {
-		n.Keep.Destroy()
-		n.KeepPlane.Destroy()
-		n.Keep.ID, n.KeepPlane.ID = 0, 0
-	}
+	destroyFx(n.Keep, n.KeepPlane, n.KeepPlane2)
+	n.Keep.ID, n.KeepPlane.ID, n.KeepPlane2.ID = 0, 0, 0
 }
 
 func (n *WatchLongHead) UpdateParallel() {
@@ -444,6 +441,7 @@ type WatchSlideBase struct {
 	ContactWidth float64                               `archetype:"shared"`
 	Keep         sonolus.ParticleHandle                `archetype:"memory"`
 	KeepPlane    sonolus.ParticleHandle                `archetype:"memory"`
+	KeepPlane2   sonolus.ParticleHandle                `archetype:"memory"`
 }
 
 type WatchSlideHead struct {
@@ -559,24 +557,18 @@ func (n *WatchSlideBase) UpdateSequential() {
 		}
 		n.ContactLane = fl + (a.Lane-fl)*k
 	}
-	if Config.NoteEffects && n.holding(now) && n.Keep.ID <= 0 {
-		x := laneX(n.ContactLane)
-		n.Keep = Particles.Keep.Spawn(particleQuad(x, 1), durKeep, true)
-		n.KeepPlane = Particles.KeepPlane.Spawn(particleQuad(x, planeCos48), durKeepPlane, true)
+	if Config.NoteEffects && n.holding(now) && !fxAlive(n.Keep, n.KeepPlane, n.KeepPlane2) {
+		n.Keep, n.KeepPlane, n.KeepPlane2 = spawnFx(fxKeep, laneX(n.ContactLane), durKeep, durKeepPlane, true)
 	}
-	if n.Keep.ID > 0 && !n.holding(now) {
-		n.Keep.Destroy()
-		n.KeepPlane.Destroy()
-		n.Keep.ID, n.KeepPlane.ID = 0, 0
+	if fxAlive(n.Keep, n.KeepPlane, n.KeepPlane2) && !n.holding(now) {
+		destroyFx(n.Keep, n.KeepPlane, n.KeepPlane2)
+		n.Keep.ID, n.KeepPlane.ID, n.KeepPlane2.ID = 0, 0, 0
 	}
 }
 
 func (n *WatchSlideBase) Terminate() {
-	if n.Keep.ID > 0 {
-		n.Keep.Destroy()
-		n.KeepPlane.Destroy()
-		n.Keep.ID, n.KeepPlane.ID = 0, 0
-	}
+	destroyFx(n.Keep, n.KeepPlane, n.KeepPlane2)
+	n.Keep.ID, n.KeepPlane.ID, n.KeepPlane2.ID = 0, 0, 0
 }
 
 func (n *WatchSlideBase) UpdateParallel() {
@@ -598,10 +590,7 @@ func (n *WatchSlideBase) UpdateParallel() {
 		p := heldPos(lane)
 		body, flash, px := slideHoldSprites(n.Width, lane)
 		drawHoldFlash(body, flash, p, px, !n.Hidden, now-n.HoldStart, n.z())
-		if n.Keep.ID > 0 {
-			n.Keep.Move(particleQuad(p.X, 1))
-			n.KeepPlane.Move(particleQuad(p.X, planeCos48))
-		}
+		moveFx(fxKeep, p.X, n.Keep, n.KeepPlane, n.KeepPlane2)
 	}
 }
 
@@ -660,6 +649,8 @@ type WatchSimLine struct {
 	BLane           float64                          `archetype:"imported,name=bLane,default=-1000"`
 	SpeedMin        float64                          `archetype:"imported,name=speedMin,default=0"` // note speeds (tenths) the line exists at
 	SpeedMax        float64                          `archetype:"imported,name=speedMax,default=1000"`
+	ANoMargin       bool                             `archetype:"imported,name=aNoMargin"` // directional-note end: no edge margin
+	BNoMargin       bool                             `archetype:"imported,name=bNoMargin"`
 }
 
 func (l *WatchSimLine) Preprocess() {
@@ -682,7 +673,7 @@ func (l *WatchSimLine) UpdateParallel() {
 	if pa < 0 || pb < 0 || pa > 1 || pb > 1 {
 		return
 	}
-	drawSimLine(notePos(l.ALane, curveOf(pa)), notePos(l.BLane, curveOf(pb)), math.Min(a.Time, b.Time))
+	drawSimLine(notePos(l.ALane, curveOf(pa)), notePos(l.BLane, curveOf(pb)), math.Min(a.Time, b.Time), l.ANoMargin, l.BNoMargin)
 }
 
 // watchChained: the level has the scoring chain (firstScored); levels from
@@ -699,8 +690,6 @@ func watchHold(n *WatchNoteBase, start, end float64) {
 		return
 	}
 	if Config.SFX {
-		loop := Effects.HoldLoop.PlayLoopedScheduled(start)
-		loop.Stop(end)
-		Effects.HoldRelease.PlayScheduled(end, 0)
+		scheduleHoldSound(start, end)
 	}
 }

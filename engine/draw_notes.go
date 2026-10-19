@@ -280,10 +280,28 @@ func flashValue(t float64) float64 {
 	return ((5.529601097*d-4.6080002785)*d)*d + 0.6
 }
 
+// syncEdgeMargin is the master noteSyncEdgeMargin of note skin TYPE7, the
+// only non-zero value (its items carry Skin.SyncEdgeMarginOpt).
+const syncEdgeMargin = 1.100000023841858
+
 // drawSimLine joins two simultaneous notes (width 0.28 × note local scale).
-func drawSimLine(p, q sonolus.Vec2, t float64) {
+// NoteSyncLine pulls each end in by the note skin's noteSyncEdgeMargin ×
+// the note's world scale, except at directional-note ends (aNo / bNo).
+func drawSimLine(p, q sonolus.Vec2, t float64, aNo, bNo bool) {
 	if Layout.SuddenR > 0 && (p.Y+q.Y)/2 > Layout.SuddenClipY {
 		return
+	}
+	if Skin.SyncEdgeMarginOpt.Exists() {
+		dir := 1.0
+		if p.X > q.X {
+			dir = -1
+		}
+		if !aNo {
+			p.X += syncEdgeMargin * noteScale(p.Y, 1) * dir
+		}
+		if !bNo {
+			q.X -= syncEdgeMargin * noteScale(q.Y, 1) * dir
+		}
 	}
 	half := noteLocalScale(p.Y, 1) * 0.28 / 2
 	if Layout.HabaSkin {

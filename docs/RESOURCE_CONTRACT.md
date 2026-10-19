@@ -1,15 +1,33 @@
 # NotGarupa 资源契约
 
-本文件约定 `sonolus-notgarupa-engine` 与四个资源包生成器之间的资源名称、几何与使用方式。机器可读的完整清单由生成器每次运行时重新写出：
+本文件约定 `sonolus-notgarupa-engine` 与四个资源包生成器之间的资源名称、几何与使用方式。每个条目的机器可读清单由生成器每次运行时写到 `out/contracts/<条目>.json`：
 
-| 资源包 | 生成器 | 机器可读清单 |
+| 资源包 | 生成器 | 条目数 |
 |---|---|---|
-| Skin | `sonolus-notgarupa-skin-generator` | `sonolus-notgarupa-skin-generator/contract.json` |
-| Effect | `sonolus-notgarupa-effect-generator` | `sonolus-notgarupa-effect-generator/contract.json` |
-| Particle | `sonolus-notgarupa-particle-generator` | `sonolus-notgarupa-particle-generator/contract.json` |
-| Background | `sonolus-notgarupa-background-generator` | （无，见下文） |
+| Skin | `sonolus-notgarupa-skin-generator` | 782 |
+| Effect | `sonolus-notgarupa-effect-generator` | 15 |
+| Particle | `sonolus-notgarupa-particle-generator` | 154 |
+| Background | `sonolus-notgarupa-background-generator` | 44（无清单，见下文） |
 
-引擎需要的资源名清单在本仓库的 `resources.json`：它列出引擎声明的全部 skin 精灵、effect clip 与 particle 效果名，每类分为 `ordinary`（普通条目与 HABAHIRO 条目都必须提供）与 `habahiro`（只有 HABAHIRO 条目另外提供）。清单由 `engine/resources_test.go` 从引擎源码中的 `sonolus.SkinSprite` / `EffectClip` / `ParticleEffect` 声明提取：HABAHIRO 专用名是皮肤的 `Haba*` 字段与粒子的宽度变体 `*W` 字段。修改声明后运行 `go test ./engine -run TestResourceList -update` 更新清单，测试保证两者一致。服务器启动时按清单检查实际加载的条目（devserver 的 `-resources`）。NotGarupa 不支持第三方资源，所以清单中的名字缺一不可。
+## 条目集合与命名
+
+生成器默认运行即生成完整资源，没有选择单个条目的参数。条目集合由原作 JP 10.1.4 的皮肤主数据决定（各生成器 `internal/master/skins.json`，规则在同目录的 `master.go`）：
+
+- 原作的直播设置可独立选择音符皮肤（7）、lane 皮肤（15）、打击特效（5）、打击音效（4）、方向键皮肤（5）与方向键特效 normal / light；判定皮肤固定 skin00，方向键音效固定 `directionalflickskin00`，背景由活动决定（不是玩家设置）。普通设置按资源类型取相关轴的全部排列组合。
+- Collaboration / Limited 特殊组合：该行替换的组件固定，其余轴照常排列；组件的单独开关（「不适用」）不另外生成。
+- HABAHIRO（谱面强制）：音符、lane、判定、打击特效与背景固定为 habahiro，打击音效与方向键皮肤、方向键特效保留玩家设置。
+- 没有任何途径取得原始资源的条目整体不生成，见 `EXCLUDED_RESOURCES.md`。
+
+| 类型 | 条目名 | 默认 | HABAHIRO |
+|---|---|---|---|
+| Skin | `notgarupa-<音符>-<lane>-<方向键>[-<判定>]`（判定为 skin00 时省略） | `notgarupa-skin00-skin00-skin00` | `notgarupa-habahiro-<方向键>` |
+| Effect | `notgarupa-<打击音效>` | `notgarupa-skin00` | （同普通） |
+| Particle | `notgarupa-<打击特效>-<方向键><normal\|light>` | `notgarupa-skin00-skin00normal` | `notgarupa-habahiro-<方向键><normal\|light>` |
+| Background | `notgarupa-<背景>-normal` / `-fever` | `notgarupa-skin00-normal` | `notgarupa-habahiro-normal` |
+
+Sonolus 关卡只能指定一个条目，所以服务器为 HABAHIRO 关卡强制的是方向键 skin00 / normal 的 HABAHIRO 条目（devserver 默认值）。
+
+引擎需要的资源名清单在本仓库的 `resources.json`：它列出引擎声明的全部 skin 精灵、effect clip 与 particle 效果名，每类分为 `ordinary`（普通条目与 HABAHIRO 条目都必须提供）、`habahiro`（只有 HABAHIRO 条目另外提供）与 `optional`（各条目不同，引擎用 `Exists()` 判断：条目属性的存在标记、只有部分条目才有的片段与粒子部分）。清单由 `engine/resources_test.go` 从引擎源码中的 `sonolus.SkinSprite` / `EffectClip` / `ParticleEffect` 声明提取：HABAHIRO 专用名是皮肤的 `Haba*` 字段与粒子的宽度变体 `*W` 字段，可选名是 `*Opt` 字段。修改声明后运行 `go test ./engine -run TestResourceList -update` 更新清单，测试保证两者一致。服务器启动时按清单检查实际加载的条目（devserver 的 `-resources`）。NotGarupa 不支持第三方资源，所以 `ordinary` 与 `habahiro` 中的名字缺一不可。
 
 每个生成器都是独立项目：各自有 `go.mod`，用到的公共代码（Bestdori / 官方 CDN 下载与缓存、Unity bundle 与 NGUI 精灵解析、图集打包、字体预渲染、音频解码、sonolus-pack-go 调用）放在各自的 `internal/` 下，可单独 `go build` 与运行。本文件由引擎维护（引擎是资源的使用方）。
 
@@ -34,12 +52,14 @@
 | `sgm_<字号>_<HEX>_<字符>` | `sgm`（TT-Shin Go）字体单字形，2× 超采样 |
 | `sgmtext_<字号>_<HEX>_<id>` | 整段预渲染文字 |
 | `habahiro/<原作名>` | HABAHIRO（多 lane 宽音符）专用精灵，只在 HABAHIRO 皮肤条目中，命名与几何见下文 HABAHIRO 节 |
+| `default/judge_auto` | 默认判定图集（skin00）的 judge_auto：原作在 Auto Live 中从不使用特殊判定皮肤，引擎在 Auto 中画它；条目自己的判定图集可以没有 judge_auto（`skin_bike`） |
+| `notgarupa/noteSyncEdgeMargin_1.1` | 存在标记（1×1 透明，可选）：音符皮肤主数据 `noteSyncEdgeMargin` 为 1.1（TYPE7），同时押线两端向内收 1.1 × 音符世界缩放，方向键音符一端除外（关卡数据 `aNoMargin` / `bNoMargin`）；没有标记即为 0 |
 
 重名处理：RhythmGameAdditive 的 `hp_meter` 为 `additive/hp_meter`；APK 资源文件名中的 hash 后缀已去掉（`AllPerfect_A`）；高分段贴图使用原名 `ss_kira`、`sss_star_long`、`ss_overlay`。
 
 ### 几何
 
-每个精灵在 `contract.json` 中记录：
+每个精灵在条目清单 `out/contracts/<条目>.json` 中记录：
 
 - `w`、`h`：贴图像素（字形为逻辑字号像素，贴图为其 `scale` 倍）。
 - `pivot`：归一化轴心，左下为原点（Unity 约定）；来自 APK 图集 atlas 行（`render-catalog.json`）的 pivot 已由 `1 − pivotY` 换算到同一约定。
@@ -73,11 +93,11 @@ Sonolus 精灵不能着色，也没有加法混合，因此：
 
 ### 纹理尺寸
 
-默认纹理 2048×4096（2 的幂）。Sonolus 文档只“建议”不超过 2048²；本皮肤内容裁边后约 4.9M px²，在不缩小原作素材的前提下放不进 2048²。`-max-texture` 可调整。可选内容：`-startup`（开场演出素材）、`-skill-adjust`（判定线技能叠加层）。HABAHIRO 条目见下文。
+普通条目纹理 2048×4096（2 的幂）。Sonolus 文档只“建议”不超过 2048²；皮肤内容裁边后约 4.9M px²，在不缩小原作素材的前提下放不进 2048²。引擎不使用的开场演出素材与判定线技能叠加层不输出。HABAHIRO 条目见下文。
 
 ## Effect
 
-片段名 = 原作 cue 名。默认格式 WAV：先按 MP3 的 LAME 标签去掉编码延迟与填充，解码长度与原作 HCA 采样数完全一致（例如 perfect 33001、SE_RHYTHM_TAP_LONG 23253），保证判定音与时间轴对齐。`-format mp3` 改为直接使用 Bestdori 的 MP3 字节（Sonolus 客户端是否接受 WAV 尚未在真机确认）。
+片段名 = 原作 cue 名。格式 WAV：先按 MP3 的 LAME 标签去掉编码延迟与填充，解码长度与原作 HCA 采样数完全一致（例如 perfect 33001、SE_RHYTHM_TAP_LONG 23253），保证判定音与时间轴对齐（Sonolus 客户端是否接受 WAV 尚未在真机确认）。循环点与同时发声上限取自各打击音效皮肤原作的 cue sheet（官方 CDN 上的 `TapSE.acb`）。
 
 | 片段 | 用途 |
 |---|---|
@@ -86,8 +106,10 @@ Sonolus 精灵不能着色，也没有加法混合，因此：
 | `directional_fl` `directional_fl_2` `directional_fl_3` | 方向滑键（按宽度 1 / 2 / ≥3） |
 | `game_button` | 空点（未命中音符的触摸） |
 | `SE_RHYTHM_TAP_LONG` | 长按音效完整 cue |
-| `SE_RHYTHM_TAP_LONG#loop` | 原作循环区间 0–22997 采样，`PlayLooped` 用 |
+| `SE_RHYTHM_TAP_LONG#loop` | 原作循环区间 `[LoopStart, LoopEnd)`（skin00 为 0–22997 采样），`PlayLooped` 用；cue 不循环的条目（`skin_april2019`）没有 |
+| `SE_RHYTHM_TAP_LONG#intro` | 循环起点不为 0 时的前奏 `[0, LoopStart)`（`skin_maid`、`skin_coin`、`skinapril2021`、`skin_stage`、`skin_delta`） |
 | `SE_RHYTHM_TAP_LONG#release` | 停止循环时播放的 0.3 s 线性淡出尾音（Sonolus 无法淡出循环） |
+| `notgarupa/hold/introUsBit<k>`、`onceUsBit<k>`、`noCueLimit` | 存在标记（1 采样静音）：前奏时长、不循环 cue 的时长（µs 的第 k 位），以及按住 cue 没有发声上限（`skin_delta`） |
 | `SE_RHYTHM_TAP_SKILL` | 技能音符（Great 以上，与判定音同时） |
 | `SE_RHYTHM_CUTIN_SKILL` `SE_RHYTHM_CUTIN_AUDIENCE` | 技能发动 |
 | `SE_RHYTHM_FULLCOMBO` `SE_RHYTHM_CLEAR` `SE_RHYTHM_CLEAR_VO` | 通关 |
@@ -95,36 +117,35 @@ Sonolus 精灵不能着色，也没有加法混合，因此：
 | `decide_1` | 暂停/对话框按钮 |
 | `miss` | 静音片段，仅供 `#MISS` |
 
-标准名别名：`#PERFECT/#GREAT/#GOOD` → 对应 cue，`#*_ALTERNATIVE` → `flick`，`#HOLD/#HOLD_ALTERNATIVE` → `SE_RHYTHM_TAP_LONG#loop`，`#STAGE` → `game_button`，`#MISS*` → `miss`。
+按住音（引擎 `hold_se.go`）：初始化时读标记。循环的 cue 先以可停止的句柄播放 `#intro`，`introSeconds` 后开始 `#loop`；不循环的 cue 播放整个 cue 一次；松开时停止，循环的 cue 再播放 `#release`（不循环的 cue 直接停止：它的淡出应从当前位置开始，没有对应的片段）。同时存在的按住音上限为 4，有 `noCueLimit` 时取 16。
+
+标准名别名：`#PERFECT/#GREAT/#GOOD` → 对应 cue，`#*_ALTERNATIVE` → `flick`，`#HOLD/#HOLD_ALTERNATIVE` → `SE_RHYTHM_TAP_LONG#loop`（不循环时为整个 cue），`#STAGE` → `game_button`，`#MISS*` → `miss`。
 
 ## Particle
 
-原作 tap effect `skin00` 与方向滑键特效 `directionalflickskin00normal` 的每个 prefab 由 Unity ParticleSystem 序列化数据逐系统转换（发射、形状、速度限制/阻力、重力、角速度、大小/颜色随寿命变化、贴图序列帧、拉伸 billboard）。原作中处于 inactive 状态、`Play` 不会播放的 13 个子系统不转换。
+每个打击特效（`ingameskin/tapeffect/<id>`）与方向键特效（`directionalflick<方向键><normal|light>`）的 prefab 由官方 CDN 上原作 bundle 中的 Unity ParticleSystem 序列化数据逐系统转换（发射、形状、速度 / 力随寿命变化、速度限制与阻力、重力、角速度与随速度旋转、大小 / 颜色随寿命变化、贴图序列帧、拉伸 billboard、Quad 与 3D 网格）。原作中处于 inactive 状态、`Play` 不会播放的子系统不转换。转换细节与近似见粒子生成器的 README。
 
 ### 坐标约定
 
 - 特效坐标 = 原作粒子单位（一条 lane = 2.2 单位），原点 = 接收按钮的锚点（判定线上 lane 中心）。
 - 引擎生成时传入以锚点为中心、半宽 `g`、半高 `g × quadScale.y` 的 quad，`g = rate · noteSize · safeRatio`（每粒子单位的世界单位）。
-- `<prefab>#plane<度>` 是原作在 lane 平面上（绕 X 轴倾斜）的系统，引擎须以 `quadScale.y = cos(度)` 压扁 quad。与主特效同时生成、同样时长。
-- 每个特效的时长写在 `contract.json`，生成时把该值作为 `duration` 传入。
+- `<prefab>#plane<度>` 是原作在 lane 平面上（绕 X 轴倾斜）的系统，引擎须以 `quadScale.y = cos(度)` 压扁 quad，与主特效同时生成。倾角随打击特效而异（−65、44、46、48、50、52、53、55、58、60、62、64°），每个条目每个 prefab 最多两个平面部分，有的条目某个 prefab 没有面向屏幕的部分。引擎为 11 个 prefab 族声明全部倾角的效果名（`fx.go`，可选），初始化时记下当前条目有哪些部分。
+- 同一族在所有条目中时长相同（生成器统一到该族最长的时长，循环效果取周期的公倍数），引擎以下表时长生成。
 
 | 特效 | 时长 (s) | 循环 | quadScale.y |
 |---|---|---|---|
-| `effect_tap`（空点） | 0.6 | 否 | 1 |
-| `effect_tap_good` | 0.6 | 否 | 1 |
-| `effect_tap_great` / `#plane50` | 0.7 | 否 | 1 / 0.6428 |
-| `effect_tap_perfect` / `#plane46` | 0.9 | 否 | 1 / 0.6947 |
-| `effect_tap_skill_good` | 0.6 | 否 | 1 |
-| `effect_tap_skill_great` / `#plane46` | 0.7 | 否 | 1 / 0.6947 |
-| `effect_tap_skill_perfect` / `#plane46` / `#plane50` | 0.9 | 否 | 1 / 0.6947 / 0.6428 |
-| `effect_tap_swipe` / `#plane46` | 0.75 | 否 | 1 / 0.6947 |
+| `effect_tap`（空点） | 0.8 | 否 | 1 / 各平面 |
+| `effect_tap_good`、`effect_tap_skill_good` | 0.8 | 否 | 1 / 各平面 |
+| `effect_tap_great`、`effect_tap_skill_great` | 0.85 | 否 | 1 / 各平面 |
+| `effect_tap_perfect`、`effect_tap_skill_perfect` | 1 | 否 | 1 / 各平面 |
+| `effect_tap_swipe` | 1 | 否 | 1 / 各平面 |
 | `effect_TapKeep` | 1 | 是 | 1 |
-| `effect_TapKeep#plane48` | 6 | 是 | 0.6691 |
+| `effect_TapKeep#plane<度>` | 18 | 是 | cos(度) |
 | `effect_tap_directional_flick_{l,r}` | 0.7 | 否 | 1 |
 | `effect_tap_directional_flick_{l,r}_2` / `_3` | 1.1 | 否 | 1 |
 | `effect_tap_directional_flick_{l,r}_finger` / `#plane46` | 0.35 | 否 | 1 / 0.6947 |
 
-`effect_TapKeep#plane48` 的周期取 6 s，使旋转环（360°/s 与 300°/s）在循环边界处角度连续。循环特效按稳态生成，开始时已包含上一周期遗留的粒子。
+TapKeep 平面部分的周期为 1、6 或 9 s（skin00 为 6 s，使旋转环在循环边界处角度连续），统一为 18 s。循环特效按稳态生成，开始时已包含上一周期遗留的粒子。
 
 ### 与原作的差异（平台限制）
 
@@ -155,7 +176,7 @@ Sonolus 精灵不能着色，也没有加法混合，因此：
 
 ### HABAHIRO 粒子条目
 
-HABAHIRO 条目 `notgarupa-habahiro`（与普通条目同在一个包中）包含普通条目的全部特效，另加原作 `ingameskin/tapeffect/habahiro` 的宽度变体：`effect_tap_good` / `_great` / `_perfect`、`effect_tap_skill_good` / `_great` / `_perfect`、`effect_tap_swipe`、`effect_TapKeep` 各自的 `_2`…`_7`（`#planeNN` 部分与基础特效相同，时长相同）。引擎对宽度 w 的音符使用 `_<w>`，锚点为接收 lane（偶数宽在两 lane 之间）；Slide 的 TapKeep 始终用基础特效。
+HABAHIRO 条目 `notgarupa-habahiro-<方向键特效>` 的打击特效取自原作 `ingameskin/tapeffect/habahiro`（原作对多宽度谱面强制使用），方向键特效保留玩家设置，另加宽度变体：`effect_tap_good` / `_great` / `_perfect`、`effect_tap_skill_good` / `_great` / `_perfect`、`effect_tap_swipe`、`effect_TapKeep` 各自的 `_2`…`_7`（`#planeNN` 部分与基础特效相同，时长相同）。引擎对宽度 w 的音符使用 `_<w>`，锚点为接收 lane（偶数宽在两 lane 之间）；Slide 的 TapKeep 始终用基础特效。
 
 标准名：`#NOTE_*_TAP_*` → `effect_tap_perfect`，`#NOTE_*_ALTERNATIVE_*` → `effect_tap_swipe`，`#NOTE_*_HOLD_*` → `effect_TapKeep`，`#LANE_*` `#SLOT_*` `#JUDGE_LINE_*` → `effect_tap`（只复制主特效）。
 
@@ -163,16 +184,18 @@ HABAHIRO 条目 `notgarupa-habahiro`（与普通条目同在一个包中）包�
 
 `ingameskin/bgskin/<id>` 的 `liveBG_normal`（及 `liveBG_fever`）按原作 Standard live 舞台布局合成：bgImage 1920×1440 UI 单位、中心 y = −170、舞台根缩放 0.92，叠加 DarkCover（`CE/RevSubtraction`，在线性空间中减去灰 121 × linear(0.25)）。画布宽 1766.4 UI 单位（0.92 下的整个 bgImage 部件，宽于 1334 的屏幕）、高 1640 UI 单位，以屏幕中心对齐；引擎通过 RuntimeBackground 把它放在与 HUD 相同的 UI 单位中，并在通关退场动画（舞台缩放 0.92 → 0.7）中随舞台 TRS 移动，所以画布必须覆盖整个部件。DarkCover 纹理为均匀灰且覆盖所有可见位置，因此烘焙在整张画布上。舞台灯光、音箱、荧光棒有动画，由引擎用 skin 中的 `stage` 组精灵绘制。
 
+特殊组合的背景（`skin_persona`、`skin_delta` 等）按同样的布局合成，并叠加该背景 bundle 中舞台特效 prefab 在演奏中可见的部分（如 `skin_delta`、`skin_collabo23_winter_d` 的左右音箱）；开场 / 通关动画、飘雪等动态部分无法用静态背景表示，见 `EXCLUDED_RESOURCES.md`。
+
 高宽比 > 16:9 时原作会按 `1 − 0.23·HighAspectRatio` 缩小舞台根并上移 14·HighAspectRatio，静态背景无法随屏幕比例改变，因此在宽屏上背景比原作大。
 
 ## HABAHIRO
 
-原作对 `#HABAHIRO` 谱面强制使用专用资源，不受玩家设置影响。HABAHIRO 是 NotGarupa 的固定组成部分：三个生成器每次都同时输出普通条目与 HABAHIRO 条目（同一个包），HABAHIRO 关卡通过 `useSkin` / `useParticle` / `useBackground` 强制选用（devserver 自动设置）。分成两个条目是因为一个关卡只能选一个条目，且 HABAHIRO 皮肤纹理为 4096×8192，普通关卡不必加载：
+原作对 `#HABAHIRO` 谱面强制使用专用资源（音符、lane、判定、打击特效、背景），打击音效与方向键保留玩家设置。HABAHIRO 是 NotGarupa 的固定组成部分：三个生成器每次都同时输出普通条目与 HABAHIRO 条目（同一个包），HABAHIRO 关卡通过 `useSkin` / `useParticle` / `useBackground` 强制选用（devserver 自动设置）。分成两个条目是因为一个关卡只能选一个条目，且 HABAHIRO 皮肤纹理为 4096×8192，普通关卡不必加载：
 
 | 资源 | 条目 | 输出 |
 |---|---|---|
-| Skin | `notgarupa-skin00-skin00-habahiro`（普通全部精灵 + `habahiro/*`，纹理 4096×8192，全分辨率） | `sonolus-notgarupa-skin-generator/out/pack`，清单 `contract-habahiro.json` |
-| Particle | `notgarupa-habahiro` | `sonolus-notgarupa-particle-generator/out/pack`，清单 `contract-habahiro.json` |
+| Skin | `notgarupa-habahiro-<方向键>`（普通命名的精灵为 skin00 音符与换道前的 skin00 lane，另加 `habahiro/*`，纹理 4096×8192，全分辨率） | `sonolus-notgarupa-skin-generator/out/pack` |
+| Particle | `notgarupa-habahiro-<方向键特效>` | `sonolus-notgarupa-particle-generator/out/pack` |
 | Background | `notgarupa-habahiro-normal` / `-fever`（`ingameskin/bgskin/habahiro`） | `sonolus-notgarupa-background-generator/out/pack` |
 
 宽音符精灵 `habahiro/note_<族>_<s>_<s+1>_…_<s+w−1>`（族：`note_normal`、`note_normal_16`、`note_skill`、`note_flick`、`note_long`、`note_long_flash`；每族 28 个 run，下标 `(w−1)(16−w)/2 + s`），像素宽 308 / 524 / 736 / 952 / 1164 / 1380 / 1596 × 120，PPU 100，pivot 中心；`habahiro/note_slide_among`、`_2`…`_7`；`habahiro/note_flick_top`、`_2`、`_3`（171 / 288 / 400 × 138）；`habahiro/longNoteLine*`、`habahiro/simultaneous_line`；换道后的场地 `habahiro/bg_line_rhythm` 与判定线 `habahiro/game_play_line`（1800×43）；换道闪光 `habahiro/bg_line_rhythm_flash`、`_flash2`、`habahiro/game_play_line_flash`、`_flash2`。几何、换道时间与闪光关键帧见 `sonolus-notgarupa-skin-generator/HABAHIRO.md`。

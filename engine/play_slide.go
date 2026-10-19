@@ -141,12 +141,16 @@ type PlaySlideBase struct {
 	OX           float64                              `archetype:"shared"`
 	OY           float64                              `archetype:"shared"`
 	Feedback     bool                                 `archetype:"shared"`
-	FlashStart   float64                              `archetype:"shared"`
-	GestureAt    float64                              `archetype:"memory"` // cursor whose gesture origin is set
-	Loop         sonolus.LoopedEffectHandle           `archetype:"memory"`
-	Keep         sonolus.ParticleHandle               `archetype:"memory"`
-	KeepPlane    sonolus.ParticleHandle               `archetype:"memory"`
-	KeepPlane2   sonolus.ParticleHandle               `archetype:"memory"`
+	// Broken is the order (head 0, node Index) of the last missed node: the
+	// original hides the segments up to and out of it (hideNote(root,
+	// current, true)); −1 while nothing is missed.
+	Broken     float64                    `archetype:"shared"`
+	FlashStart float64                    `archetype:"shared"`
+	GestureAt  float64                    `archetype:"memory"` // cursor whose gesture origin is set
+	Loop       sonolus.LoopedEffectHandle `archetype:"memory"`
+	Keep       sonolus.ParticleHandle     `archetype:"memory"`
+	KeepPlane  sonolus.ParticleHandle     `archetype:"memory"`
+	KeepPlane2 sonolus.ParticleHandle     `archetype:"memory"`
 }
 
 type PlaySlideHead struct {
@@ -201,6 +205,7 @@ func (n *PlaySlideBase) Preprocess() {
 		}
 	}
 	n.SegHead = true
+	n.Broken = -1
 	n.Cached = -1
 	n.OnHead = !n.Hidden
 	n.HeadDone = n.Hidden
@@ -325,6 +330,7 @@ func (n *PlaySlideBase) headTimeout(now float64) {
 		applyJudgement(now, judgement{Width: n.Width, Grade: gradeMiss, Type: jtSlide, X: laneX(lane), Lane: lane,
 			Key: n.Time, Count: gestureCount(n.Kind, n.KindWidth), Direction: n.Direction, Divisor: 1, Mid: true, Slide: true})
 		n.stopFeedback()
+		n.Broken = 0
 		n.leaveHead()
 	}
 }
@@ -378,6 +384,7 @@ func (n *PlaySlideBase) nodeTimeout(now float64) {
 	}
 	if miss {
 		n.stopFeedback()
+		n.Broken = c.Index
 		n.judgeNode(n.Cursor, gradeMiss, timingNone, missSeconds, jtSlide, divisor, now)
 	}
 }
@@ -763,10 +770,14 @@ func (n *PlaySlideBase) release(p sonolus.Vec2, t, now float64) {
 		lane := n.headLane()
 		applyJudgement(now, judgement{Width: n.Width, Grade: gradeMiss, Type: endType(n.Kind), X: laneX(lane), Lane: lane,
 			Key: n.Time, Count: gestureCount(n.Kind, n.KindWidth), Direction: n.Direction, Divisor: 1, Mid: true, Slide: true})
+		n.Broken = 0
 		n.leaveHead()
 		return
 	}
 	c := n.Cursor.Get()
+	if !c.Terminal {
+		n.Broken = c.Index // everything up to the pending node and out of it
+	}
 	switch {
 	case !c.Terminal:
 		n.judgeNode(n.Cursor, gradeMiss, timingNone, missSeconds, endType(c.Kind), 5, now)
@@ -822,7 +833,8 @@ func (n *PlaySlideBase) UpdateParallel() {
 }
 
 // drawBody draws the live segments: from the contact point (or the head) to
-// each following node until the first one that has not appeared yet.
+// each following node until the first one that has not appeared yet. The
+// segments out of a missed node and every one before it are gone (Broken).
 func (n *PlaySlideBase) drawBody(now float64) {
 	alpha := bodyAlpha()
 	if n.AllHidden {
@@ -832,10 +844,12 @@ func (n *PlaySlideBase) drawBody(now float64) {
 	var fp sonolus.Vec2
 	var fh float64
 	next := n.First
+	front := 0.0 // order of the segment's front node
 	if n.HasContact {
 		fp, fh = heldPos(n.ContactLane), heldHalf(n.ContactWidth)
 		if !n.SegHead {
 			next = n.Seg.Get().Next
+			front = n.Seg.Get().Index
 		}
 	} else {
 		pr := n.progress(now)
@@ -863,11 +877,14 @@ func (n *PlaySlideBase) drawBody(now float64) {
 		case pr >= 1:
 			ah = heldHalf(a.Width)
 		}
-		drawBelt(fp, fh, ap, ah, n.Curve, z, alpha)
+		if front > n.Broken {
+			drawBelt(fp, fh, ap, ah, n.Curve, z, alpha)
+		}
 		if pr < 0 {
 			return
 		}
 		fp, fh = notePos(a.Lane+a.Exit, c), ah
+		front = a.Index
 		next = a.Next
 	}
 }

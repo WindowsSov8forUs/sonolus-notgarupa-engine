@@ -107,7 +107,8 @@ func (*PlayStage) UpdateSequential() {
 		Hud.SSStart = now
 	}
 	// the original clears when the BGM ends (clearTime, when the level knows
-	// it); otherwise 0.5 s after the last judgement. Life 0 stops the live.
+	// it); otherwise 0.5 s after the last judgement. A failed level (life 0)
+	// plays on but does not clear.
 	if Hud.ClearStart <= 0 && !Hud.GameOver && Hud.NoteCount > 0 && Hud.Judged >= Hud.NoteCount {
 		Hud.ClearStart = now + 0.5
 		if Hud.ClearTime > 0 {

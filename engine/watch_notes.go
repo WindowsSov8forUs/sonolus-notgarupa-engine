@@ -439,6 +439,7 @@ type WatchSlideBase struct {
 	HasContact   bool                                  `archetype:"shared"`
 	ContactLane  float64                               `archetype:"shared"`
 	ContactWidth float64                               `archetype:"shared"`
+	Broken       float64                               `archetype:"shared"` // as PlaySlideBase.Broken
 	Keep         sonolus.ParticleHandle                `archetype:"memory"`
 	KeepPlane    sonolus.ParticleHandle                `archetype:"memory"`
 	KeepPlane2   sonolus.ParticleHandle                `archetype:"memory"`
@@ -479,15 +480,20 @@ func (n *WatchSlideBase) Preprocess() {
 		n.JType = jtSlide
 	}
 	node := n.First
-	lastVisible := -1e9
+	lastVisible, firstMiss := -1e9, 1e9
 	for k := 0; k < 4096 && node.Index > 0; k++ {
 		d := node.Get()
 		n.Spawn = math.Min(n.Spawn, d.Spawn)
 		if !d.Hidden {
 			lastVisible = d.JTime
+			if d.JGrade == gradeMiss {
+				firstMiss = math.Min(firstMiss, d.JTime)
+			}
 		}
 		node = d.Next
 	}
+	// a Miss stops the hold feedback; the replay cannot tell a new touch
+	lastVisible = math.Min(lastVisible, firstMiss)
 	n.SegHead = true
 	n.HoldStart = n.JTime
 	if n.Hidden {
@@ -557,6 +563,18 @@ func (n *WatchSlideBase) UpdateSequential() {
 		}
 		n.ContactLane = fl + (a.Lane-fl)*k
 	}
+	n.Broken = -1
+	if !n.Hidden && n.JGrade == gradeMiss && now >= n.JTime {
+		n.Broken = 0
+	}
+	node := n.First
+	for k := 0; k < 4096 && node.Index > 0; k++ {
+		d := node.Get()
+		if !d.Hidden && d.JGrade == gradeMiss && now >= d.JTime {
+			n.Broken = d.Index
+		}
+		node = d.Next
+	}
 	if Config.NoteEffects && n.holding(now) && !fxAlive(n.Keep, n.KeepPlane, n.KeepPlane2) {
 		n.Keep, n.KeepPlane, n.KeepPlane2 = spawnFx(fxKeep, laneX(n.ContactLane), durKeep, durKeepPlane, true)
 	}
@@ -603,10 +621,12 @@ func (n *WatchSlideBase) drawBody(now float64) {
 	var fp sonolus.Vec2
 	var fh float64
 	next := n.First
+	front := 0.0
 	if n.HasContact {
 		fp, fh = heldPos(n.ContactLane), heldHalf(n.ContactWidth)
 		if !n.SegHead {
 			next = n.Seg.Get().Next
+			front = n.Seg.Get().Index
 		}
 	} else {
 		c := n.curve(now, true)
@@ -630,11 +650,14 @@ func (n *WatchSlideBase) drawBody(now float64) {
 		case c >= 1:
 			ah = heldHalf(a.Width)
 		}
-		drawBelt(fp, fh, ap, ah, n.Curve, z, alpha)
+		if front > n.Broken {
+			drawBelt(fp, fh, ap, ah, n.Curve, z, alpha)
+		}
 		if c < 0 {
 			return
 		}
 		fp, fh = notePos(a.Lane+a.Exit, c), ah
+		front = a.Index
 		next = a.Next
 	}
 }

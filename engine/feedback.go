@@ -55,9 +55,12 @@ func hudApply(now float64, j judgement) float64 {
 	added := score - Hud.Score
 	Hud.Score = score
 	Hud.LastAdded = added
-	if added > 0 && !Hud.GameOver {
+	if added > 0 {
 		addPop(added, now) // every judgement with score starts its own pop
 	}
+	// Life 0 does not end the play (Sonolus cannot stop the live; the level
+	// is failed, as Sonolus' own life rules it): life stays at 0, the HUD
+	// shows the game-over state and no clear follows, everything else goes on.
 	dmg := 0.0
 	if !Hud.GameOver {
 		dmg = lifeDamage(g, j.Type, Config.FullLength)
@@ -69,9 +72,6 @@ func hudApply(now float64, j judgement) float64 {
 			if Hud.Life <= 0 {
 				Hud.GameOver = true
 				Hud.GameOverStart = now
-				for i := 0.0; i < 7; i++ {
-					laneOff(i) // game over switches every lane effect off
-				}
 			}
 		}
 	}
@@ -106,9 +106,6 @@ func hudApply(now float64, j judgement) float64 {
 // judgementLights lights the receiver lane of end judgements and drives the
 // stage speakers.
 func judgementLights(now float64, j judgement) {
-	if Hud.GameOver {
-		return
-	}
 	if j.Auto || !j.Mid && (j.Type == jtLongEnd || j.Type == jtLongEndFlick || j.Type == jtLongEndDir || j.Type == jtLongEndMulti) {
 		laneOnReserve(j.Lane, now)
 	}
@@ -249,7 +246,7 @@ func playFx(k, f int, x, dur float64) {
 // their fixed-tilt plane parts) of the HABAHIRO tap effect.
 func playJudgementParticles(j judgement) {
 	g := j.Grade
-	if g < gradeGood || Hud.GameOver {
+	if g < gradeGood {
 		return
 	}
 	x := j.X

@@ -133,7 +133,7 @@ func (*WatchStage) Preprocess() {
 		Hud.ClearStatus = clearStatusNow()
 	}
 	if Hud.GameOver {
-		Hud.ClearStart, Hud.ClearStatus = 0, 0 // life 0 stops the live
+		Hud.ClearStart, Hud.ClearStatus = 0, 0 // the level is failed: no clear
 	}
 	if Config.SFX && Hud.ClearStart > 0 {
 		if Hud.ClearStatus >= 2 {
@@ -149,7 +149,7 @@ func (*WatchStage) Preprocess() {
 // watchAddPop replays a scoring unit's AddScore pop into the pool as the
 // cursor passes it (rebuilt from the start after a seek).
 func watchAddPop(n *WatchNoteBase) {
-	if n.SAddValue > 0 && !n.SGameOver {
+	if n.SAddValue > 0 {
 		addPop(n.SAddValue, n.SAddStart)
 	}
 }

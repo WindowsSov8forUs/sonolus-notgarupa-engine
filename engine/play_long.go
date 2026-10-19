@@ -40,7 +40,8 @@ func (n *PlayLongTail) UpdateParallel() {
 	if pr < 0 {
 		return
 	}
-	drawTerminal(n.look(), n.Kind, n.Width, n.Lane, curveOf(pr), now-n.IconStart, noteZ(zNote, n.Head.Get().Time, n.Head.Get().Lane))
+	// stops on the line while its Long is held, as in watch mode
+	drawTerminal(n.look(), n.Kind, n.Width, n.Lane, math.Min(curveOf(pr), 1), now-n.IconStart, noteZ(zNote, n.Head.Get().Time, n.Head.Get().Lane))
 }
 
 // PlayLongHead owns the Long: hold state, body, flash, loop SE and TapKeep.
@@ -236,10 +237,9 @@ func (n *PlayLongHead) UpdateParallel() {
 		if pr < 0 {
 			return
 		}
+		// an untouched head keeps moving past the line while it waits
+		// (NoteLong.WaitState moves it; only a Slide head stops on the line)
 		c = curveOf(pr)
-		if n.State == stWait {
-			c = math.Min(c, 1) // snapped onto the line while waiting
-		}
 	}
 	tc := 0.0
 	if tpr := tail.progress(now); tpr >= 0 {

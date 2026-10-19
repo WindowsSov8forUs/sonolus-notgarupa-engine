@@ -222,9 +222,6 @@ func clearAddPops() {
 }
 
 func drawAddScore(now, z float64) {
-	if Hud.GameOver {
-		return // game over hides every AddScore root
-	}
 	for i := 0; i < 4; i++ {
 		// later pops draw on top (depth cycles over 8)
 		drawAddPop(Hud.AddValue[i], now-Hud.AddStart[i], Hud.AddStart[i] > 0, z+math.Mod(Hud.AddSeq[i], 8)*0.001)
@@ -284,8 +281,8 @@ func comboScale(t float64) float64 {
 }
 
 func drawCombo(now, z float64) {
-	// hidden one second after its last change (0655843) and at game over
-	if Hud.Combo <= 0 || Hud.GameOver || now-Hud.ComboStart > 1+1.0/60 {
+	// hidden one second after its last change (0655843)
+	if Hud.Combo <= 0 || now-Hud.ComboStart > 1+1.0/60 {
 		return
 	}
 	root := comboRoots[Config.ComboPos]

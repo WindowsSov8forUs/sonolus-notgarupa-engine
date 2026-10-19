@@ -13,36 +13,42 @@ import (
 // Stage in updateParallel.
 type HudState struct {
 	sonolus.LevelMemoryResource
-	Combo         float64
-	MaxCombo      float64
-	ComboStart    float64 // time the combo number last changed
-	Score         float64
-	ScoreRaw      float64 // arcade weight earned so far
-	Life          float64
-	JudgeSprite   float64 // index into Skin.JudgeText, −1 hidden
-	JudgeTiming   float64
-	JudgeStart    float64
-	JudgeGrade    float64    // raw result of the shown judge text (frame representative)
-	AddValue      [4]float64 // AddScore pool: 4 roots, round robin
-	AddStart      [4]float64
-	AddSeq        [4]float64
-	AddNext       float64
-	LastAdded     float64 // score added by the last judgement
-	AllPerfect    bool
-	PerfectCount  float64
-	GreatCount    float64
-	Judged        float64
-	GameOver      bool
-	GameOverStart float64
-	SSStart       float64
-	LastNoteTime  float64
-	ClearStart    float64
-	StageS        float64 // Stage TRS scale and y (updateStagePose)
-	StageY        float64
-	ClearStatus   float64 // 1 clear, 2 Full Combo, 3 All Perfect
-	ClearSE       bool
-	ClearTime     float64     // imported BGM end (0: unknown)
-	FireDone      [13]float64 // clear fireworks already spawned
+	Combo        float64
+	MaxCombo     float64
+	ComboStart   float64 // time the combo number last changed
+	Score        float64
+	ScoreRaw     float64 // arcade weight earned so far
+	Life         float64
+	JudgeSprite  float64 // index into Skin.JudgeText, −1 hidden
+	JudgeTiming  float64
+	JudgeStart   float64
+	JudgeGrade   float64    // raw result of the shown judge text (frame representative)
+	AddValue     [4]float64 // AddScore pool: 4 roots, round robin
+	AddStart     [4]float64
+	AddSeq       [4]float64
+	AddNext      float64
+	LastAdded    float64 // score added by the last judgement
+	AllPerfect   bool
+	PerfectCount float64
+	GreatCount   float64
+	Judged       float64
+	GameOver     bool
+	// GameOverCover (life vignette): logical level 0–3, the running scale
+	// tween (from, to, start) and whether the texture is enabled
+	CoverLevel   float64
+	CoverFrom    float64
+	CoverTo      float64
+	CoverStart   float64
+	CoverOn      bool
+	SSStart      float64
+	LastNoteTime float64
+	ClearStart   float64
+	StageS       float64 // Stage TRS scale and y (updateStagePose)
+	StageY       float64
+	ClearStatus  float64 // 1 clear, 2 Full Combo, 3 All Perfect
+	ClearSE      bool
+	ClearTime    float64     // imported BGM end (0: unknown)
+	FireDone     [13]float64 // clear fireworks already spawned
 	// judgement particles per owner (receiver half-lane × prefab family),
 	// restarted by the next judgement of the same owner
 	Fx0           [126]sonolus.ParticleHandle
@@ -419,20 +425,6 @@ func drawLife(now, z float64) {
 		}
 		glyph(sp, pen, baseline, lifeDigitW, lifeDigitH, 0.5, lifeDescent, 1, z+0.4, 1)
 	}
-	if Hud.GameOver {
-		c := uiTopRight(-220, 140)
-		sliced3(Skin.NoHealth, c.X-132*Layout.U, c.X+132*Layout.U, c.Y-35*Layout.U, c.Y+35*Layout.U, 50, 50, z+0.5, 1)
-		ph := math.Mod(now-Hud.GameOverStart, 2)
-		tw := ph
-		if ph > 1 {
-			tw = 2 - ph
-		}
-		ta := 0.1080000028014183 + (1-0.1080000028014183)*tw
-		l1 := uiTopRight(-314, 142-12)
-		l2 := uiTopRight(-314, 142+12)
-		glyph(Skin.GameOverText1, l1.X, l1.Y-8*Layout.U, 120, 22, 0.5, 2.640625, 1, z+0.6, ta)
-		glyph(Skin.GameOverText2, l2.X, l2.Y-8*Layout.U, 195, 22, 0.5, 2.640625, 1, z+0.6, ta)
-	}
 }
 
 // Auto Live caption (watch auto): pill 206×38 at (130, 134 down).
@@ -503,7 +495,8 @@ func resetHudState() {
 	Hud.Life = 1000
 	Hud.AllPerfect = true
 	Hud.PerfectCount, Hud.GreatCount, Hud.Judged = 0, 0, 0
-	Hud.GameOver, Hud.GameOverStart = false, 0
+	Hud.GameOver = false
+	resetCover()
 	Hud.JudgeSprite, Hud.JudgeTiming, Hud.JudgeStart, Hud.JudgeGrade = -1, timingNone, 0, -1
 	Hud.SilencePos, Hud.SilenceTime = -1e9, -1e9
 	for i := 0; i < 7; i++ {
@@ -515,6 +508,70 @@ func resetHudState() {
 // hudCleared: from the clear on, the field, lane effects, combo, judge text
 // and AddScore are hidden.
 func hudCleared(now float64) bool { return Hud.ClearStart > 0 && now >= Hud.ClearStart }
+
+// coverScales are GameOverCoverManager's localScale per level (x = y; the
+// level-1/2 values are float32 1.7 and 1.35).
+var coverScales = [4]float64{3, 1.7000000476837158, 1.350000023841858, 1}
+
+// coverLevel is GameOverCoverControllerBase.calcCoverLevel of
+// min(life/1000, 1): > 0.3 level 0, ≤ 0 level 3, ≤ 0.15 level 2, else 1.
+func coverLevel(life float64) float64 {
+	r := math.Min(life/1000, 1)
+	switch {
+	case r > 0.30000001192092896:
+		return 0
+	case r <= 0:
+		return 3
+	case r <= 0.15000000596046448:
+		return 2
+	}
+	return 1
+}
+
+func coverScale(now float64) float64 {
+	k := sonolus.Clamp((now-Hud.CoverStart)/0.5, 0, 1)
+	return Hud.CoverFrom + (Hud.CoverTo-Hud.CoverFrom)*k
+}
+
+func resetCover() {
+	Hud.CoverLevel, Hud.CoverFrom, Hud.CoverTo, Hud.CoverStart, Hud.CoverOn = 0, coverScales[0], coverScales[0], -1e9, false
+}
+
+// updateCover is UpdateCover, run every frame with the current life: only a
+// level change enables / disables the texture (non-zero low life follows
+// isEnableFearOfDeath, on at the default light and graphics settings) and
+// starts a 0.5 s linear DOScale from the current scale (no DOKill: the newer
+// tween wins). snap jumps to the level's scale (watch seek).
+func updateCover(now float64, snap bool) {
+	level := coverLevel(Hud.Life)
+	if snap {
+		Hud.CoverLevel, Hud.CoverStart = level, -1e9
+		Hud.CoverFrom, Hud.CoverTo = coverScales[int(level)], coverScales[int(level)]
+		Hud.CoverOn = level > 0
+		return
+	}
+	if level == Hud.CoverLevel {
+		return
+	}
+	Hud.CoverFrom = coverScale(now)
+	Hud.CoverTo = coverScales[int(level)]
+	Hud.CoverStart = now
+	Hud.CoverLevel = level
+	Hud.CoverOn = level > 0
+}
+
+// drawCover draws GameOverCover: the UITexture sub_glow, 1334×1500 at (0, 190)
+// under UI_Root_Back/Display (behind every UI_Root element). The original
+// subtracts the texture (ReverseSubtract), so its white rim darkens the
+// background; the skin carries it as black with that strength as alpha.
+func drawCover(now, z float64) {
+	if !Hud.CoverOn {
+		return
+	}
+	s := coverScale(now) * Layout.UB
+	y := 190 * Layout.UB
+	Skin.GameOverCover.Draw(sonolus.Rect{T: y + 750*s, R: 667 * s, B: y - 750*s, L: -667 * s}.ToQuad(), z, 1)
+}
 
 // drawHud draws every HUD element in its original layer.
 func drawHud(now float64) {

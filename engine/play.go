@@ -107,15 +107,16 @@ func (*PlayStage) UpdateSequential() {
 		Hud.SSStart = now
 	}
 	// the original clears when the BGM ends (clearTime, when the level knows
-	// it); otherwise 0.5 s after the last judgement. A failed level (life 0)
-	// plays on but does not clear.
-	if Hud.ClearStart <= 0 && !Hud.GameOver && Hud.NoteCount > 0 && Hud.Judged >= Hud.NoteCount {
+	// it); otherwise 0.5 s after the last judgement. Life 0 does not stop
+	// the live or the clear (the original multi-live path).
+	if Hud.ClearStart <= 0 && Hud.NoteCount > 0 && Hud.Judged >= Hud.NoteCount {
 		Hud.ClearStart = now + 0.5
 		if Hud.ClearTime > 0 {
 			Hud.ClearStart = math.Max(Hud.ClearTime, now)
 		}
 		Hud.ClearStatus = clearStatusNow()
 	}
+	updateCover(now, false)
 	updateFireworks(now, true)
 	if Hud.ClearStart > 0 && !Hud.ClearSE && now >= Hud.ClearStart {
 		Hud.ClearSE = true
@@ -133,6 +134,7 @@ func (*PlayStage) UpdateParallel() {
 	now := play.Time.Now()
 	drawStageLights(now, 2)
 	drawSpeakers(now, 3)
+	drawCover(now, 4)
 	if !hudCleared(now) {
 		drawField(now)
 		drawLaneEffects(now, zLaneEffect)

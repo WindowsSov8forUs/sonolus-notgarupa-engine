@@ -107,7 +107,7 @@ func (*WatchStage) Preprocess() {
 		n.SCombo, n.SComboStart, n.SScore, n.SLife = Hud.Combo, Hud.ComboStart, Hud.Score, Hud.Life
 		n.SAllPerfect, n.SJudge, n.STiming, n.SJudgeStart = Hud.AllPerfect, Hud.JudgeSprite, Hud.JudgeTiming, Hud.JudgeStart
 		n.SAddValue, n.SAddStart = Hud.LastAdded, n.JTime
-		n.SGameOver, n.SGameOverStart = Hud.GameOver, Hud.GameOverStart
+		n.SGameOver = Hud.GameOver
 		if Hud.SSStart <= 0 && Hud.Score >= Hud.RankThreshold[4] && Hud.Score > 0 {
 			Hud.SSStart = n.JTime
 		}
@@ -131,9 +131,6 @@ func (*WatchStage) Preprocess() {
 	Hud.ClearStatus = 1
 	if !isAuto() {
 		Hud.ClearStatus = clearStatusNow()
-	}
-	if Hud.GameOver {
-		Hud.ClearStart, Hud.ClearStatus = 0, 0 // the level is failed: no clear
 	}
 	if Config.SFX && Hud.ClearStart > 0 {
 		if Hud.ClearStatus >= 2 {
@@ -204,11 +201,12 @@ func (*WatchStage) UpdateSequential() {
 		n := sonolus.EntityRef[WatchNoteBase]{Index: Cursor.Last}.Get()
 		Hud.Combo, Hud.ComboStart, Hud.Score, Hud.Life = n.SCombo, n.SComboStart, n.SScore, n.SLife
 		Hud.AllPerfect, Hud.JudgeSprite, Hud.JudgeTiming, Hud.JudgeStart = n.SAllPerfect, n.SJudge, n.STiming, n.SJudgeStart
-		Hud.GameOver, Hud.GameOverStart = n.SGameOver, n.SGameOverStart
+		Hud.GameOver = n.SGameOver
 	} else {
 		Hud.Combo, Hud.Score, Hud.Life, Hud.AllPerfect, Hud.JudgeSprite = 0, 0, 1000, true, -1
 		Hud.GameOver = false
 	}
+	updateCover(now, skip)
 	updateLaneReserve(now)
 	updateFireworks(now, !skip)
 }
@@ -217,6 +215,7 @@ func (*WatchStage) UpdateParallel() {
 	now := watch.Time.Now()
 	drawStageLights(now, 2)
 	drawSpeakers(now, 3)
+	drawCover(now, 4)
 	if !hudCleared(now) {
 		drawField(now)
 		drawLaneEffects(now, zLaneEffect)

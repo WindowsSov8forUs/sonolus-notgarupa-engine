@@ -41,18 +41,17 @@ type WatchNoteBase struct {
 	HoldUntil float64 `archetype:"shared"`
 	JSlide    bool    `archetype:"shared"`
 
-	SCombo         float64 `archetype:"shared"`
-	SComboStart    float64 `archetype:"shared"`
-	SScore         float64 `archetype:"shared"`
-	SLife          float64 `archetype:"shared"`
-	SAllPerfect    bool    `archetype:"shared"`
-	SJudge         float64 `archetype:"shared"`
-	STiming        float64 `archetype:"shared"`
-	SAddValue      float64 `archetype:"shared"`
-	SAddStart      float64 `archetype:"shared"`
-	SJudgeStart    float64 `archetype:"shared"` // the frame representative's time
-	SGameOver      bool    `archetype:"shared"`
-	SGameOverStart float64 `archetype:"shared"`
+	SCombo      float64 `archetype:"shared"`
+	SComboStart float64 `archetype:"shared"`
+	SScore      float64 `archetype:"shared"`
+	SLife       float64 `archetype:"shared"`
+	SAllPerfect bool    `archetype:"shared"`
+	SJudge      float64 `archetype:"shared"`
+	STiming     float64 `archetype:"shared"`
+	SAddValue   float64 `archetype:"shared"`
+	SAddStart   float64 `archetype:"shared"`
+	SJudgeStart float64 `archetype:"shared"` // the frame representative's time
+	SGameOver   bool    `archetype:"shared"`
 }
 
 // replayGrade recovers the original grade from a replay's Sonolus judgment

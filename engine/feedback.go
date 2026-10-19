@@ -59,8 +59,8 @@ func hudApply(now float64, j judgement) float64 {
 		addPop(added, now) // every judgement with score starts its own pop
 	}
 	// Life 0 does not end the play (Sonolus cannot stop the live; the level
-	// is failed, as Sonolus' own life rules it): life stays at 0, the HUD
-	// shows the game-over state and no clear follows, everything else goes on.
+	// is failed, as Sonolus' own life rules it). As in the original multi
+	// live, life stays at 0 and everything else goes on, the clear included.
 	dmg := 0.0
 	if !Hud.GameOver {
 		dmg = lifeDamage(g, j.Type, Config.FullLength)
@@ -71,7 +71,6 @@ func hudApply(now float64, j judgement) float64 {
 			Hud.Life = sonolus.Clamp(Hud.Life+dmg, 0, 2000)
 			if Hud.Life <= 0 {
 				Hud.GameOver = true
-				Hud.GameOverStart = now
 			}
 		}
 	}

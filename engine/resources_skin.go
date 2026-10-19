@@ -54,14 +54,12 @@ type SkinData struct {
 	LifeFill2       [3]sonolus.Sprite
 	LifeWarning     [3]sonolus.Sprite
 	LifeWarningBody [9]sonolus.Sprite
-	NoHealth        [3]sonolus.Sprite
 	LifeDigitGreen  [10]sonolus.Sprite
 	LifeDigitRed    [10]sonolus.Sprite
 	LifeSlash       sonolus.Sprite
 	AutoPill        [3]sonolus.Sprite
 	AutoText        sonolus.Sprite
-	GameOverText1   sonolus.Sprite
-	GameOverText2   sonolus.Sprite
+	GameOverCover   sonolus.Sprite
 	SSOverlay       sonolus.Sprite
 	SSKira          [8]sonolus.Sprite
 	LightBlue       sonolus.Sprite
@@ -138,14 +136,12 @@ var Skin = &SkinData{
 	LifeFill2:         [3]sonolus.Sprite{sonolus.SkinSprite("additive/hp_meter@5DFF0064#L"), sonolus.SkinSprite("additive/hp_meter@5DFF0064#M"), sonolus.SkinSprite("additive/hp_meter@5DFF0064#R")},
 	LifeWarning:       [3]sonolus.Sprite{sonolus.SkinSprite("effect_health_caution_outline#L"), sonolus.SkinSprite("effect_health_caution_outline#M"), sonolus.SkinSprite("effect_health_caution_outline#R")},
 	LifeWarningBody:   [9]sonolus.Sprite{sonolus.SkinSprite("effect_health_caution_inside#TL"), sonolus.SkinSprite("effect_health_caution_inside#T"), sonolus.SkinSprite("effect_health_caution_inside#TR"), sonolus.SkinSprite("effect_health_caution_inside#L"), sonolus.SkinSprite("effect_health_caution_inside#M"), sonolus.SkinSprite("effect_health_caution_inside#R"), sonolus.SkinSprite("effect_health_caution_inside#BL"), sonolus.SkinSprite("effect_health_caution_inside#B"), sonolus.SkinSprite("effect_health_caution_inside#BR")},
-	NoHealth:          [3]sonolus.Sprite{sonolus.SkinSprite("bg_no_health#L"), sonolus.SkinSprite("bg_no_health#M"), sonolus.SkinSprite("bg_no_health#R")},
 	LifeDigitGreen:    [10]sonolus.Sprite{sonolus.SkinSprite("sgm_18_00C000_0"), sonolus.SkinSprite("sgm_18_00C000_1"), sonolus.SkinSprite("sgm_18_00C000_2"), sonolus.SkinSprite("sgm_18_00C000_3"), sonolus.SkinSprite("sgm_18_00C000_4"), sonolus.SkinSprite("sgm_18_00C000_5"), sonolus.SkinSprite("sgm_18_00C000_6"), sonolus.SkinSprite("sgm_18_00C000_7"), sonolus.SkinSprite("sgm_18_00C000_8"), sonolus.SkinSprite("sgm_18_00C000_9")},
 	LifeDigitRed:      [10]sonolus.Sprite{sonolus.SkinSprite("sgm_18_FE2349_0"), sonolus.SkinSprite("sgm_18_FE2349_1"), sonolus.SkinSprite("sgm_18_FE2349_2"), sonolus.SkinSprite("sgm_18_FE2349_3"), sonolus.SkinSprite("sgm_18_FE2349_4"), sonolus.SkinSprite("sgm_18_FE2349_5"), sonolus.SkinSprite("sgm_18_FE2349_6"), sonolus.SkinSprite("sgm_18_FE2349_7"), sonolus.SkinSprite("sgm_18_FE2349_8"), sonolus.SkinSprite("sgm_18_FE2349_9")},
 	LifeSlash:         sonolus.SkinSprite("sgm_18_505050_/"),
 	AutoPill:          [3]sonolus.Sprite{sonolus.SkinSprite("label_round_white@FF3B72#L"), sonolus.SkinSprite("label_round_white@FF3B72#M"), sonolus.SkinSprite("label_round_white@FF3B72#R")},
 	AutoText:          sonolus.SkinSprite("sgmtext_24_FFFFFF_autolive"),
-	GameOverText1:     sonolus.SkinSprite("sgmtext_22_FF0000_gameover_1"),
-	GameOverText2:     sonolus.SkinSprite("sgmtext_22_FF0000_gameover_2"),
+	GameOverCover:     sonolus.SkinSprite("sub_glow"),
 	SSOverlay:         sonolus.SkinSprite("ss_overlay@FFDDED"),
 	SSKira:            [8]sonolus.Sprite{sonolus.SkinSprite("ss_kira@FFE8FBDC"), sonolus.SkinSprite("ss_kira@D7FBFF"), sonolus.SkinSprite("ss_kira@ECFFD3"), sonolus.SkinSprite("ss_kira@FFFFFFDC"), sonolus.SkinSprite("ss_kira@FDE3FF"), sonolus.SkinSprite("ss_kira@E6F6FF"), sonolus.SkinSprite("ss_kira@F1FFE6DC"), sonolus.SkinSprite("ss_kira@FFEED7")},
 	LightBlue:         sonolus.SkinSprite("Tex_miniShine@0037FF"),

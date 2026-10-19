@@ -18,7 +18,7 @@
 | `SlideNode` / `SlideHidden` | ✔ / | Slide 连接点：绘制自身精灵并保存自身结果；Hidden 节点只作几何顶点，永不生成 |
 | `SimLine` | | 同时押线（转换器按原作配对算法生成） |
 
-所有音符公共字段：`#BEAT, lane, spriteLane, width, spanStart, group, axisHit, skill, direction, scoreNext`（宽音符另有 `spriteStart`）。`Initialization` 另有 `habahiro`、`laneChangeBeat`（HABAHIRO 关卡，无换道为 −1）与可选的 `clearTime`（BGM 结束的关卡时刻）。`SimLine` 带两端的绘制 lane `aLane`、`bLane`（宽方向 Slide 尾或其 Add 成员时为该成员的 lane），以及可选的 `speedMin`、`speedMax`（见下）。永不生成的实体（`SlideHidden`、关闭同时押线时的 `SimLine`）的生成顺序放在队尾，避免阻塞 Sonolus 生成队列。
+所有音符公共字段：`#BEAT, lane, spriteLane, width, spanStart, group, axisHit, skill, direction, scoreNext`（宽音符另有 `spriteStart`）。`Initialization` 另有 `habahiro`、`laneChangeBeat`（HABAHIRO 关卡，无换道为 −1）与可选的 `clearTime`（BGM 结束的关卡时刻）。`SimLine` 带两端的绘制 lane `aLane`、`bLane`（宽方向 Slide 尾或其 Add 成员时为该成员的 lane），可选的 `aNoMargin`、`bNoMargin`（该端是方向键音符：音符皮肤的同时押线边距不作用于这一端，原作 NoteSyncLine 对 GameNoteType 10–19 不收缩），以及可选的 `speedMin`、`speedMax`（见下）。永不生成的实体（`SlideHidden`、关闭同时押线时的 `SimLine`）的生成顺序放在队尾，避免阻塞 Sonolus 生成队列。
 
 ## 计分链
 

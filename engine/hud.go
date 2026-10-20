@@ -43,6 +43,7 @@ type HudState struct {
 	SSStart    float64
 	StageS     float64 // Stage TRS scale and y of the opening (updateStagePose)
 	StageY     float64
+	HudAlpha   float64 // opening fade of the gameplay HUD layer (updateStagePose)
 	// judgement particles per owner (receiver half-lane × prefab family),
 	// restarted by the next judgement of the same owner
 	Fx0           [126]sonolus.ParticleHandle
@@ -90,6 +91,7 @@ func sliced3(parts [3]sonolus.Sprite, left, right, bottom, top, capL, capR, z, a
 		m := (l2 + r2) / 2
 		l2, r2 = m, m
 	}
+	a *= Hud.HudAlpha
 	parts[0].Draw(sonolus.Rect{T: top, R: l2, B: bottom, L: left}.ToQuad(), z, a)
 	parts[1].Draw(sonolus.Rect{T: top, R: r2, B: bottom, L: l2}.ToQuad(), z, a)
 	parts[2].Draw(sonolus.Rect{T: top, R: right, B: bottom, L: r2}.ToQuad(), z, a)
@@ -102,7 +104,7 @@ func sliced9(parts [9]sonolus.Sprite, left, right, bottom, top, bl, br, bt, bb, 
 	ys := [4]float64{top, top - bt*u, bottom + bb*u, bottom}
 	for row := 0; row < 3; row++ {
 		for col := 0; col < 3; col++ {
-			parts[row*3+col].Draw(sonolus.Rect{T: ys[row], R: xs[col+1], B: ys[row+1], L: xs[col]}.ToQuad(), z, a)
+			parts[row*3+col].Draw(sonolus.Rect{T: ys[row], R: xs[col+1], B: ys[row+1], L: xs[col]}.ToQuad(), z, a*Hud.HudAlpha)
 		}
 	}
 }
@@ -112,7 +114,7 @@ func glyph(s sonolus.Sprite, penX, baseline, w, h, originX, descent, scale, z, a
 	u := Layout.U * scale
 	l := penX - originX*u
 	b := baseline - descent*u
-	s.Draw(sonolus.Rect{T: b + h*u, R: l + w*u, B: b, L: l}.ToQuad(), z, a)
+	s.Draw(sonolus.Rect{T: b + h*u, R: l + w*u, B: b, L: l}.ToQuad(), z, a*Hud.HudAlpha)
 }
 
 const (
@@ -153,7 +155,7 @@ func drawScore(z float64) {
 			}
 			sliced3(parts, f0.X, f0.X+w*Layout.U, f0.Y, f1.Y, 5, 5, z+0.1, 1)
 		default:
-			Skin.MeterS.Draw(sonolus.Rect{T: f1.Y, R: f0.X + 421*ratio*Layout.U, B: f0.Y, L: f0.X}.ToQuad(), z+0.1, 1)
+			Skin.MeterS.Draw(sonolus.Rect{T: f1.Y, R: f0.X + 421*ratio*Layout.U, B: f0.Y, L: f0.X}.ToQuad(), z+0.1, Hud.HudAlpha)
 		}
 	}
 	// Cover ring: x 63..490, y_down 29.5..62.5, 9-slice 8.
@@ -164,7 +166,7 @@ func drawScore(z float64) {
 	for i := 0; i < 5; i++ {
 		x := 25 + 41 + Hud.RankThreshold[i]*421/math.Max(Hud.ScoreMax, 1)
 		m := uiTopLeft(x, 53)
-		Skin.LevelMark.Draw(uiRect(m, 8, 6), z+0.3, 1)
+		Skin.LevelMark.Draw(uiRect(m, 8, 6), z+0.3, Hud.HudAlpha)
 		c := uiTopLeft(x, 45)
 		baseline := c.Y - (10.5625+1.4453125)/2*Layout.U + 1.4453125*Layout.U
 		if i < 4 {
@@ -256,7 +258,7 @@ func drawAddPop(value, t float64, live bool, z float64) {
 	// Play shifts x by −50, then every coroutine resume adds +8 / +1 / +1
 	origin := uiTopLeft(282-50+off, 85)
 	scale := 0.6
-	Skin.AddPlus.Draw(uiRect(origin, 47*scale, 70*scale), z, alpha)
+	Skin.AddPlus.Draw(uiRect(origin, 47*scale, 70*scale), z, alpha*Hud.HudAlpha)
 	// centres: the plus at 0, then previous centre + inner width + 1
 	c, inner := 0.0, 47.0
 	for i := digits - 1; i >= 0; i-- {
@@ -264,7 +266,7 @@ func drawAddPop(value, t float64, live bool, z float64) {
 		c += inner + 1
 		inner = addInner[d]
 		p := sonolus.Vec2{X: origin.X + c*scale*Layout.U, Y: origin.Y}
-		Skin.AddDigit[d].Draw(uiRect(p, 47*scale, 70*scale), z, alpha)
+		Skin.AddDigit[d].Draw(uiRect(p, 47*scale, 70*scale), z, alpha*Hud.HudAlpha)
 	}
 }
 
@@ -315,15 +317,15 @@ func drawCombo(now, z float64) {
 		d := int(math.Mod(math.Floor(Hud.Combo/math.Pow(10, float64(i))), 10))
 		x := 22 + (-70*float64(i+1) + 35*float64(n))
 		c := uiPoint(rx+x*s, ry)
-		Skin.ComboDigit[d].Draw(uiRect(c, 82*s, 116*s), z, 1)
+		Skin.ComboDigit[d].Draw(uiRect(c, 82*s, 116*s), z, Hud.HudAlpha)
 		if ap {
-			Skin.ComboDigitAP[d].Draw(uiRect(c, 82*s, 116*s), z+0.01, apAlpha)
+			Skin.ComboDigitAP[d].Draw(uiRect(c, 82*s, 116*s), z+0.01, apAlpha*Hud.HudAlpha)
 		}
 	}
 	c := uiPoint(rx-6*s, ry-72*s)
-	Skin.ComboText.Draw(uiRect(c, 150*s, 42*s), z, 1)
+	Skin.ComboText.Draw(uiRect(c, 150*s, 42*s), z, Hud.HudAlpha)
 	if ap {
-		Skin.ComboTextAP.Draw(uiRect(c, 150*s, 42*s), z+0.01, apAlpha)
+		Skin.ComboTextAP.Draw(uiRect(c, 150*s, 42*s), z+0.01, apAlpha*Hud.HudAlpha)
 	}
 }
 
@@ -350,14 +352,14 @@ func drawJudge(now, z float64) {
 	idx := int(Hud.JudgeSprite)
 	size := judgeSize[idx]
 	c := uiPoint(0, -160)
-	Skin.JudgeText[idx].Draw(uiRect(c, size[0]*0.8*s, size[1]*0.8*s), z, a)
+	Skin.JudgeText[idx].Draw(uiRect(c, size[0]*0.8*s, size[1]*0.8*s), z, a*Hud.HudAlpha)
 	if Hud.JudgeTiming != timingNone && Config.FastSlow {
 		ft := uiPoint(4*0.8*s, -160-38*0.8*s)
 		sp := Skin.JudgeText[6]
 		if Hud.JudgeTiming == timingSlow {
 			sp = Skin.JudgeText[7]
 		}
-		sp.Draw(uiRect(ft, 144*s, 30*s), z+0.01, a)
+		sp.Draw(uiRect(ft, 144*s, 30*s), z+0.01, a*Hud.HudAlpha)
 	}
 }
 
@@ -571,7 +573,7 @@ func drawCover(now, z float64) {
 func pauseCenter() sonolus.Vec2 { return uiTopRight(-42, 54) }
 
 func drawPauseButton(z float64) {
-	Skin.PauseButton.Draw(uiRect(pauseCenter(), 68, 70), z, 1)
+	Skin.PauseButton.Draw(uiRect(pauseCenter(), 68, 70), z, Hud.HudAlpha)
 }
 
 // drawHud draws every HUD element in its original layer.

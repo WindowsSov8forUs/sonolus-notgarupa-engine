@@ -26,8 +26,11 @@ func stageRoot() float64 { return 1 - 0.23*Layout.HAR }
 // information view (jacket, title) and the SD characters are not drawn.
 func openingClock(now float64) float64 { return (now + 2) * 1.5 }
 
-// updateStagePose sets the Stage TRS of the opening.
+// updateStagePose sets the Stage TRS of the opening and the 0.5 s fade-in
+// of the gameplay HUD layer (score, life, combo, judge, AddScore, Auto label,
+// pause button) that starts with it.
 func updateStagePose(now float64) {
+	Hud.HudAlpha = sonolus.Clamp(openingClock(now)/0.5, 0, 1)
 	p := sonolus.Clamp((openingClock(now)-0.5)/3, 0, 1)
 	p = p * (2 - p)
 	Hud.StageS, Hud.StageY = 0.7+0.22*p, 111*(1-p)
@@ -322,7 +325,7 @@ func drawSSEffect(now, z float64) {
 	if right > left {
 		p0 := uiTopLeft(left, 46+12)
 		p1 := uiTopLeft(right, 46-12)
-		Skin.SSOverlay.Draw(sonolus.Rect{T: p1.Y, R: p1.X, B: p0.Y, L: p0.X}.ToQuad(), z, fa)
+		Skin.SSOverlay.Draw(sonolus.Rect{T: p1.Y, R: p1.X, B: p0.Y, L: p0.X}.ToQuad(), z, fa*Hud.HudAlpha)
 	}
 	lt := math.Mod(t, 3)
 	for i := 0; i < 8; i++ {
@@ -347,7 +350,7 @@ func drawSSEffect(now, z float64) {
 			s = 0.9 + 0.1*math.Cos(2*math.Pi*lt/0.6666667)
 		}
 		c := uiTopLeft(rx, 45-kiraY[i])
-		Skin.SSKira[i].Draw(rotQuad(c, kiraSize[i]*s, kiraSize[i]*s, kiraRotation(i, lt)), z+0.01, a)
+		Skin.SSKira[i].Draw(rotQuad(c, kiraSize[i]*s, kiraSize[i]*s, kiraRotation(i, lt)), z+0.01, a*Hud.HudAlpha)
 	}
 }
 

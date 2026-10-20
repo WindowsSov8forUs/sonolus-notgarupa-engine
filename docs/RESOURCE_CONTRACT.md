@@ -35,7 +35,7 @@ HABAHIRO 条目不是与普通条目并列的皮肤：服务器不在条目列�
 
 - **Bestdori**（`https://bestdori.com/assets/<region>/<bundle>_rip/<file>`；各服有独占素材，每个 bundle 按服务器优先级 jp → en → tw → cn → kr 取自第一个拥有它的服务器）：note / directional / field / judge 皮肤、打击音效（`sound/tapseskin/*`、`sound/common`）、背景（`ingameskin/bgskin/*`）。
 - **原作官方资源 CDN**（`https://content.garupa.jp/Release/<版本>/Android/<bundle>`，资源版本固定）：判定粒子 bundle（`ingameskin/tapeffect/skin00`、`directionalflickskin00normal`、`habahiro`），粒子生成器直接解析其中的 ParticleSystem 与贴图。
-- **原作 APK 内置资源**（不在 AssetBundle 中，无法联网获取）：HUD 图集与其 atlas 行、`sgm` 字体、lane tap 光柱、Sudden 线、分数槽高分段贴图、舞台灯光/音箱/荧光棒、DarkCover、开场信息、FC/AP 字样、`decide_1`、通关烟花组件树与贴图。随各生成器放在其 `assets/apk/` 下并编入程序。
+- **原作 APK 内置资源**（不在 AssetBundle 中，无法联网获取）：HUD 图集与其 atlas 行、`sgm` 字体、lane tap 光柱、Sudden 线、分数槽高分段贴图、舞台灯光/音箱/荧光棒、DarkCover、开场信息、`decide_1`。随各生成器放在其 `assets/apk/` 下并编入程序。
 
 生成器不依赖任何第三方工程。所有下载写入 `-cache`（默认 `.cache`），之后可用 `-offline` 完全离线重建。
 
@@ -55,7 +55,7 @@ HABAHIRO 条目不是与普通条目并列的皮肤：服务器不在条目列�
 | `default/judge_auto` | 默认判定图集（skin00）的 judge_auto：原作在 Auto Live 中从不使用特殊判定皮肤，引擎在 Auto 中画它；条目自己的判定图集可以没有 judge_auto（`skin_bike`） |
 | `notgarupa/noteSyncEdgeMargin_1.1` | 存在标记（1×1 透明，可选）：音符皮肤主数据 `noteSyncEdgeMargin` 为 1.1（TYPE7），同时押线两端向内收 1.1 × 音符世界缩放，方向键音符一端除外（关卡数据 `aNoMargin` / `bNoMargin`）；没有标记即为 0 |
 
-重名处理：RhythmGameAdditive 的 `hp_meter` 为 `additive/hp_meter`；APK 资源文件名中的 hash 后缀已去掉（`AllPerfect_A`）；高分段贴图使用原名 `ss_kira`、`sss_star_long`、`ss_overlay`。
+重名处理：RhythmGameAdditive 的 `hp_meter` 为 `additive/hp_meter`；高分段贴图使用原名 `ss_kira`、`sss_star_long`、`ss_overlay`。
 
 ### 几何
 
@@ -65,7 +65,7 @@ HABAHIRO 条目不是与普通条目并列的皮肤：服务器不在条目列�
 - `pivot`：归一化轴心，左下为原点（Unity 约定）；来自 APK 图集 atlas 行（`render-catalog.json`）的 pivot 已由 `1 − pivotY` 换算到同一约定。
 - `ppu`：Unity pixels-per-unit（NGUI 精灵为 0，以 UI 单位 = 像素绘制）。
 - `border`：九宫格边距 `[左, 右, 上, 下]`。
-- `trim` / `full`：透明边已裁掉时的裁切量 `[左, 上, 右, 下]` 与原始尺寸。`w`、`h`、`pivot` 已是裁切后的值，按 `w/ppu × h/ppu` 围绕 `pivot` 绘制即与原作位置一致。只有 `stage` 与 `clear` 两组（舞台灯光、音箱、通关文字等独立美术）会裁切；音符、判定、HUD、贴图类（`longNoteLine*`、`FlickNoteLine_*`、`bg_line_rhythm`）与 sliced 精灵都保持原尺寸。引擎按 `full` 矩形定位、再按 `trim` 内缩绘制（`stage_fx.go: drawTrimmed`）。
+- `trim` / `full`：透明边已裁掉时的裁切量 `[左, 上, 右, 下]` 与原始尺寸。`w`、`h`、`pivot` 已是裁切后的值，按 `w/ppu × h/ppu` 围绕 `pivot` 绘制即与原作位置一致。只有 `stage` 组（舞台灯光、音箱等独立美术）会裁切；音符、判定、HUD、贴图类（`longNoteLine*`、`FlickNoteLine_*`、`bg_line_rhythm`）与 sliced 精灵都保持原尺寸。引擎按 `full` 矩形定位、再按 `trim` 内缩绘制（`stage_fx.go: drawTrimmed`）。
 - `glyph`：字形的 `advance`、`ascent`、`descent`、`originX`（逻辑像素）。字形 `pivot` 位于基线上的笔位。
 
 所有精灵变换为恒等变换，纹理插值开启。
@@ -81,7 +81,6 @@ HABAHIRO 条目不是与普通条目并列的皮肤：服务器不在条目列�
 | `hud` | RhythmGameUI（分数面板、分数条、生命条、暂停按钮、AddScore 数字、COMBO 字样…）、IconComboNumber（`icon_number_big_*`、`icon_number_big_AP_*`）、生命警告、生命遮罩 `sub_glow`、SS 特效、`level_mark` |
 | `lane` | `NoteLaneEffect_1..4`（PPU 69，轴心在完整 rect 底边）、`sudden_line` |
 | `stage` | `Tex_miniShine`、`Tex_speaker`、`speaker_effect`、`Pyllium` 及其着色版本 |
-| `clear` | `FullCombo_*`、`AllPerfect_*` 字样、星与雷电 |
 | `text` | 预渲染字形与文字 |
 
 ### 着色与混合
@@ -113,7 +112,6 @@ Sonolus 精灵不能着色，也没有加法混合，因此：
 | `notgarupa/hold/introUsBit<k>`、`onceUsBit<k>`、`noCueLimit` | 存在标记（1 采样静音）：前奏时长、不循环 cue 的时长（µs 的第 k 位），以及按住 cue 没有发声上限（`skin_delta`） |
 | `SE_RHYTHM_TAP_SKILL` | 技能音符（Great 以上，与判定音同时） |
 | `SE_RHYTHM_CUTIN_SKILL` `SE_RHYTHM_CUTIN_AUDIENCE` | 技能发动 |
-| `SE_RHYTHM_FULLCOMBO` `SE_RHYTHM_CLEAR` `SE_RHYTHM_CLEAR_VO` | 通关 |
 | `SE_RHYTHM_GAYA` | 观众循环 |
 | `decide_1` | 暂停/对话框按钮 |
 | `miss` | 静音片段，仅供 `#MISS` |
@@ -155,26 +153,6 @@ TapKeep 平面部分的周期为 1、6 或 9 s（skin00 为 6 s，使旋转环�
 - 粒子随机量中，Sonolus 只能线性表达的部分（方位角、起始大小、起始旋转、box 位置）保留真正的随机；其余（寿命、速度、颜色比例、贴图帧等）分层采样。
 - 每个属性在每个时间段内线性插值，段数自适应（默认误差 0.05 粒子单位，最多 8 段）。
 
-### 通关烟花（普通与 HABAHIRO 粒子条目都有）
-
-由 `game-clear-profile.json` 转换。引擎在通关时刻 + `start` 生成一次，quad 以 `uiPoint(anchor)` 为中心，半宽半高固定 0.185 Sonolus 单位（不乘 UI 缩放），`quadScale` [1, 1]。
-
-| 特效 | anchor (UI) | start (s) | 时长 (s) |
-|---|---|---|---|
-| `GameClearParticle/effect_par_firework_star_pink1` | (−457.545, −78.63) | 0.2 | 1.2 |
-| `…_green1 (1)` | (−81.545, −28.63) | 0.533333 | 1.2 |
-| `…_yellow1 (1)` | (−336.545, 93.37) | 0.8 | 1.2 |
-| `…_blue1 (1)` | (345.455, −123.63) | 0.85 | 1.2 |
-| `…_purple1 (1)` | (175.455, 99.37) | 0.983333 | 1.2 |
-| `…_green1#effect_gameclear_firework_star_a` | (−98.545, −28.63) | 1.166667 | 0.5 |
-| `…_green1#effect_gameclear_firework_star_b` | (121.05, −29.0) | 1.166667 | 1.2 |
-| `…_pink1 (1)` | (−391.545, −78.63) | 1.45 | 1.2 |
-| `…_blue1` | (346.455, −153.63) | 1.616667 | 1.2 |
-| `…_yellow1` | (−284.545, 93.37) | 1.75 | 1.2 |
-| `…_purple1` | (254.455, 99.37) | 1.85 | 1.2 |
-| `FullComboAnimation/effect_par_firework_star`（状态 2） | (0, 45.873) | 0.233333 | 1.1 |
-| `AllPerfectAnimation/effect_par_firework_star`（状态 3） | (0, 45.873) | 0.233333 | 1.1 |
-
 ### HABAHIRO 粒子条目
 
 HABAHIRO 条目 `notgarupa-habahiro-<方向键特效>` 的打击特效取自原作 `ingameskin/tapeffect/habahiro`（原作对多宽度谱面强制使用），方向键特效保留玩家设置，另加宽度变体：`effect_tap_good` / `_great` / `_perfect`、`effect_tap_skill_good` / `_great` / `_perfect`、`effect_tap_swipe`、`effect_TapKeep` 各自的 `_2`…`_7`（`#planeNN` 部分与基础特效相同，时长相同）。引擎对宽度 w 的音符使用 `_<w>`，锚点为接收 lane（偶数宽在两 lane 之间）；Slide 的 TapKeep 始终用基础特效。
@@ -183,7 +161,7 @@ HABAHIRO 条目 `notgarupa-habahiro-<方向键特效>` 的打击特效取自原�
 
 ## Background
 
-`ingameskin/bgskin/<id>` 的 `liveBG_normal`（及 `liveBG_fever`）按原作 Standard live 舞台布局合成：bgImage 1920×1440 UI 单位、中心 y = −170、舞台根缩放 0.92，叠加 DarkCover（`CE/RevSubtraction`，在线性空间中减去灰 121 × linear(0.25)）。画布宽 1766.4 UI 单位（0.92 下的整个 bgImage 部件，宽于 1334 的屏幕）、高 1640 UI 单位，以屏幕中心对齐；引擎通过 RuntimeBackground 把它放在与 HUD 相同的 UI 单位中，并在通关退场动画（舞台缩放 0.92 → 0.7）中随舞台 TRS 移动，所以画布必须覆盖整个部件。DarkCover 纹理为均匀灰且覆盖所有可见位置，因此烘焙在整张画布上。舞台灯光、音箱、荧光棒有动画，由引擎用 skin 中的 `stage` 组精灵绘制。
+`ingameskin/bgskin/<id>` 的 `liveBG_normal`（及 `liveBG_fever`）按原作 Standard live 舞台布局合成：bgImage 1920×1440 UI 单位、中心 y = −170、舞台根缩放 0.92，叠加 DarkCover（`CE/RevSubtraction`，在线性空间中减去灰 121 × linear(0.25)）。画布宽 1766.4 UI 单位（0.92 下的整个 bgImage 部件，宽于 1334 的屏幕）、高 1640 UI 单位，以屏幕中心对齐；引擎通过 RuntimeBackground 把它放在与 HUD 相同的 UI 单位中。DarkCover 纹理为均匀灰且覆盖所有可见位置，因此烘焙在整张画布上。舞台灯光、音箱、荧光棒有动画，由引擎用 skin 中的 `stage` 组精灵绘制。
 
 特殊组合的背景（`skin_persona`、`skin_delta` 等）按同样的布局合成，并叠加该背景 bundle 中舞台特效 prefab 在演奏中可见的部分（如 `skin_delta`、`skin_collabo23_winter_d` 的左右音箱）；开场 / 通关动画、飘雪等动态部分无法用静态背景表示，见 `EXCLUDED_RESOURCES.md`。
 

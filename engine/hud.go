@@ -35,20 +35,12 @@ type HudState struct {
 	GameOver     bool
 	// GameOverCover (life vignette): logical level 0–3, the running scale
 	// tween (from, to, start) and whether the texture is enabled
-	CoverLevel   float64
-	CoverFrom    float64
-	CoverTo      float64
-	CoverStart   float64
-	CoverOn      bool
-	SSStart      float64
-	LastNoteTime float64
-	ClearStart   float64
-	StageS       float64 // Stage TRS scale and y (updateStagePose)
-	StageY       float64
-	ClearStatus  float64 // 1 clear, 2 Full Combo, 3 All Perfect
-	ClearSE      bool
-	ClearTime    float64     // imported BGM end (0: unknown)
-	FireDone     [13]float64 // clear fireworks already spawned
+	CoverLevel float64
+	CoverFrom  float64
+	CoverTo    float64
+	CoverStart float64
+	CoverOn    bool
+	SSStart    float64
 	// judgement particles per owner (receiver half-lane × prefab family),
 	// restarted by the next judgement of the same owner
 	Fx0           [126]sonolus.ParticleHandle
@@ -481,7 +473,6 @@ func drawLaneEffects(now, z float64) {
 // initHud resets the HUD model for a level of noteCount scoring units.
 func initHud(noteCount float64) {
 	Hud.NoteCount = noteCount
-	Hud.StageS, Hud.StageY = 0.92, 0
 	Hud.ScoreTotal = 0
 	for i := 1.0; i <= noteCount; i++ {
 		Hud.ScoreTotal += arcadeWeight(gradePerfect, i)
@@ -507,10 +498,6 @@ func resetHudState() {
 		Hud.LaneReserve[i] = 0
 	}
 }
-
-// hudCleared: from the clear on, the field, lane effects, combo, judge text
-// and AddScore are hidden.
-func hudCleared(now float64) bool { return Hud.ClearStart > 0 && now >= Hud.ClearStart }
 
 // coverScales are GameOverCoverManager's localScale per level (x = y; the
 // level-1/2 values are float32 1.7 and 1.35).
@@ -581,10 +568,7 @@ func drawHud(now float64) {
 	drawScore(zHUD)
 	drawSSEffect(now, zHUD+0.35)
 	drawLife(now, zHUD+1)
-	if !hudCleared(now) {
-		drawCombo(now, zInfo)
-		drawJudge(now, zInfo+1)
-		drawAddScore(now, zInfo+2)
-	}
-	drawClear(now, zHUD+5)
+	drawCombo(now, zInfo)
+	drawJudge(now, zInfo+1)
+	drawAddScore(now, zInfo+2)
 }

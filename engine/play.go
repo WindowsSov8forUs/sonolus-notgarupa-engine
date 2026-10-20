@@ -3,8 +3,6 @@
 package main
 
 import (
-	"math"
-
 	"github.com/WindowsSov8forUs/sonolus-go/v2/sonolus"
 	"github.com/WindowsSov8forUs/sonolus-go/v2/sonolus/play"
 )
@@ -15,7 +13,6 @@ type PlayInitialization struct {
 	play.CallbackOrders `archetype:"preprocess=-10"`
 	NoteCount           float64                         `archetype:"imported,name=noteCount"`
 	Habahiro            bool                            `archetype:"imported,name=habahiro"`
-	ClearTime           float64                         `archetype:"imported,name=clearTime"`
 	LaneChangeBeat      float64                         `archetype:"imported,name=laneChangeBeat,default=-1"`
 	FirstScored         sonolus.EntityRef[PlayNoteBase] `archetype:"imported,name=firstScored"`
 }
@@ -29,7 +26,6 @@ func (n *PlayInitialization) Preprocess() {
 	initHoldSE()
 	initFx()
 	initHud(n.NoteCount)
-	Hud.ClearTime = n.ClearTime
 	initStageLights()
 	initCurves()
 	play.Background.Set(backgroundQuad())
@@ -101,33 +97,11 @@ func (*PlayStage) ShouldSpawn() bool   { return true }
 func (*PlayStage) UpdateSequential() {
 	now := play.Time.Now()
 	updateLaneReserve(now)
-	updateStagePose(now)
 	play.Background.Set(backgroundQuad())
 	if Hud.SSStart <= 0 && Hud.Score >= Hud.RankThreshold[4] && Hud.Score > 0 {
 		Hud.SSStart = now
 	}
-	// the original clears when the BGM ends (clearTime, when the level knows
-	// it); otherwise 0.5 s after the last judgement. Life 0 does not stop
-	// the live or the clear (the original multi-live path).
-	if Hud.ClearStart <= 0 && Hud.NoteCount > 0 && Hud.Judged >= Hud.NoteCount {
-		Hud.ClearStart = now + 0.5
-		if Hud.ClearTime > 0 {
-			Hud.ClearStart = math.Max(Hud.ClearTime, now)
-		}
-		Hud.ClearStatus = clearStatusNow()
-	}
 	updateCover(now, false)
-	updateFireworks(now, true)
-	if Hud.ClearStart > 0 && !Hud.ClearSE && now >= Hud.ClearStart {
-		Hud.ClearSE = true
-		if Config.SFX {
-			if Hud.ClearStatus >= 2 {
-				Effects.FullCombo.Play(0)
-			}
-			Effects.Clear.Play(0)
-			Effects.ClearVoice.Play(0)
-		}
-	}
 }
 
 func (*PlayStage) UpdateParallel() {
@@ -135,9 +109,7 @@ func (*PlayStage) UpdateParallel() {
 	drawStageLights(now, 2)
 	drawSpeakers(now, 3)
 	drawCover(now, 4)
-	if !hudCleared(now) {
-		drawField(now)
-		drawLaneEffects(now, zLaneEffect)
-	}
+	drawField(now)
+	drawLaneEffects(now, zLaneEffect)
 	drawHud(now)
 }

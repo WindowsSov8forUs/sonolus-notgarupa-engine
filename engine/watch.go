@@ -30,7 +30,6 @@ type WatchInitialization struct {
 	watch.CallbackOrders `archetype:"preprocess=-10"`
 	NoteCount            float64                          `archetype:"imported,name=noteCount"`
 	Habahiro             bool                             `archetype:"imported,name=habahiro"`
-	ClearTime            float64                          `archetype:"imported,name=clearTime"`
 	LaneChangeBeat       float64                          `archetype:"imported,name=laneChangeBeat,default=-1"`
 	FirstScored          sonolus.EntityRef[WatchNoteBase] `archetype:"imported,name=firstScored"`
 }
@@ -111,7 +110,6 @@ func (*WatchStage) Preprocess() {
 		if Hud.SSStart <= 0 && Hud.Score >= Hud.RankThreshold[4] && Hud.Score > 0 {
 			Hud.SSStart = n.JTime
 		}
-		Hud.LastNoteTime = math.Max(Hud.LastNoteTime, n.JTime)
 		clip := judgementClip(n.JTime, j)
 		if Config.SFX {
 			if skillSE(j) {
@@ -124,24 +122,6 @@ func (*WatchStage) Preprocess() {
 		first = n.ScoreNext
 	}
 	loops.finish()
-	// Clear at the BGM end when known, else 0.5 s after the last judgement;
-	// Auto Live always clears with status 1, as in the original (GarupaEditor
-	// reports 3 there on purpose, for its own testing).
-	Hud.ClearStart = Hud.LastNoteTime + 0.5
-	if ct := (sonolus.EntityRef[WatchInitialization]{Index: 0}).Get().ClearTime; ct > 0 {
-		Hud.ClearStart = math.Max(ct, Hud.LastNoteTime)
-	}
-	Hud.ClearStatus = 1
-	if !isAuto() {
-		Hud.ClearStatus = clearStatusNow()
-	}
-	if Config.SFX && Hud.ClearStart > 0 {
-		if Hud.ClearStatus >= 2 {
-			Effects.FullCombo.PlayScheduled(Hud.ClearStart, 0)
-		}
-		Effects.Clear.PlayScheduled(Hud.ClearStart, 0)
-		Effects.ClearVoice.PlayScheduled(Hud.ClearStart, 0)
-	}
 	resetHudState()
 	Cursor.Next = sonolus.EntityRef[WatchInitialization]{Index: 0}.Get().FirstScored.Index
 }
@@ -159,7 +139,6 @@ func (*WatchStage) DespawnTime() float64 { return 1e9 }
 
 func (*WatchStage) UpdateSequential() {
 	now := watch.Time.Now()
-	updateStagePose(now)
 	watch.Background.Set(backgroundQuad())
 	skip := watch.Time.Skip() || now < Cursor.LastTime
 	if skip {
@@ -169,7 +148,6 @@ func (*WatchStage) UpdateSequential() {
 			laneOff(float64(i))
 		}
 		clearAddPops()
-		resetFireworks()
 	}
 	for k := 0; k < 256 && Cursor.Next > 0; k++ {
 		n := sonolus.EntityRef[WatchNoteBase]{Index: Cursor.Next}.Get()
@@ -211,7 +189,6 @@ func (*WatchStage) UpdateSequential() {
 	}
 	updateCover(now, skip)
 	updateLaneReserve(now)
-	updateFireworks(now, !skip)
 }
 
 func (*WatchStage) UpdateParallel() {
@@ -219,10 +196,8 @@ func (*WatchStage) UpdateParallel() {
 	drawStageLights(now, 2)
 	drawSpeakers(now, 3)
 	drawCover(now, 4)
-	if !hudCleared(now) {
-		drawField(now)
-		drawLaneEffects(now, zLaneEffect)
-	}
+	drawField(now)
+	drawLaneEffects(now, zLaneEffect)
 	drawHud(now)
 	if isAuto() {
 		drawAutoCaption(zHUD + 2)

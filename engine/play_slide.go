@@ -96,8 +96,8 @@ func (n *PlaySlideNodeBase) UpdateParallel() {
 		c = math.Min(curveOf(pr), 1)
 	} else {
 		stopped = true
-		if h.HasContact && (n.Kind == NodePlain || n.Terminal) {
-			lane = h.ContactLane // a stopped node rides the contact point
+		if h.HasContact {
+			lane = h.ContactLane // a stopped node rides the contact point, gesture or not
 		}
 	}
 	// a child sorts with its head (head time and lane)
@@ -267,9 +267,6 @@ func (n *PlaySlideBase) advanceSegment(now float64) {
 		if next.Index <= 0 || now < next.Get().Time {
 			return
 		}
-		if nd := next.Get(); !nd.Terminal && nd.Kind != NodePlain && !nd.Judged {
-			return // the Slide cannot leave an unjudged gesture node (9882c42)
-		}
 		n.Seg = next
 		n.SegHead = false
 	}
@@ -278,10 +275,6 @@ func (n *PlaySlideBase) advanceSegment(now float64) {
 // updateContact places the contact point on the judge line: the stopped
 // node slides toward the next node, linearly in time.
 func (n *PlaySlideBase) updateContact(now float64) {
-	if n.OnHead && n.Kind != NodePlain && !n.HeadDone {
-		n.HasContact = false // nor a pending gesture head
-		return
-	}
 	ft, fl, fw := n.Time, n.Lane+n.Exit, n.Width
 	next := n.First
 	if !n.SegHead {

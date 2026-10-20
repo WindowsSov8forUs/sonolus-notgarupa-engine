@@ -72,7 +72,7 @@ Archetype、数据字段与计分链见 [LEVEL_DATA.md](LEVEL_DATA.md)。转换�
 - 松手：中间节点待判时该节点 Miss，Slide 存活并可由任何新按下接续；普通尾在“甜区”（半径² × 1.08）内松手按 τ 评级；flick 类尾未完成手势即 Miss。
 - 一个触摸至多判定一个音符；已被占有的音符胜出时该触摸被消耗。
 - 扩展（GarupaEditor）：
-  - Slide 头与中间的手势节点按原作 Slide 尾族判定：成功类型 5/6/7（Flick / Directional / 宽 Directional），超时 Miss 为类型 8（中间 ÷5），松手 Miss 用节点自身的 5/6/7。按下时只绑定（原点 = 触点、grace = 0），并启动 flash 与保持音；之后与尾部相同：在节点判定范围内 grace 恢复为 8，离开则每帧递减；到达 VPL 前原点跟随手指；到达且 grace > 0 时完成手势判 Perfect，Slide 继续。手势节点的接触范围是 Directional 的锚 lane 或 Flick 的跨度。未判定的手势节点挡住接触点，节点停在原位保持手势精灵。
+  - Slide 头与中间的手势节点按原作 Slide 尾族判定：成功类型 5/6/7（Flick / Directional / 宽 Directional），超时 Miss 为类型 8（中间 ÷5），松手 Miss 用节点自身的 5/6/7。按下时只绑定（原点 = 触点、grace = 0），并启动 flash 与保持音；之后与尾部相同：在节点判定范围内 grace 恢复为 8，离开则每帧递减；到达 VPL 前原点跟随手指；到达且 grace > 0 时完成手势判 Perfect，Slide 继续。手势节点的接触范围是 Directional 的锚 lane 或 Flick 的跨度。停下后的移动与普通节点一致（原作 slidingMove / MoveToNextAfterNoteButton 不看手势）：未按住或未判定的手势头、手势节点同样随接触点向下一个节点前进，保持手势精灵，直到判定或 Miss 隐藏。
   - Hidden 头 Slide 的第一个可见节点不是按钮候选，而是在常规处理后对所有未结束的触摸检查：普通节点在判定圆内且 `τ ≤ 1` 判 Perfect，手势节点在 `τ ≤ 8` 时绑定；同一手指可同时登记多个 Slide。
   - 仅剩 Hidden 节点的中间节点按 13/60 s 超时（与 GarupaEditor 一致）。
 - 同一帧内按下又松开的触摸：先按 Began 处理（点亮 lane、绑定 Long/Slide），再按 Ended 处理（lane 渐灭、松手判定）。

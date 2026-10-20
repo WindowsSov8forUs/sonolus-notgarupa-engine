@@ -405,7 +405,7 @@ func (n *WatchSlideNodeBase) UpdateParallel() {
 		}
 	} else {
 		stopped = true
-		if h.HasContact && (n.Kind == NodePlain || n.Terminal) {
+		if h.HasContact {
 			lane = h.ContactLane
 		}
 	}
@@ -539,9 +539,6 @@ func (n *WatchSlideBase) UpdateSequential() {
 		if next.Index <= 0 || now < next.Get().Time {
 			break
 		}
-		if nd := next.Get(); !nd.Terminal && nd.Kind != NodePlain && now < nd.JTime {
-			break // the Slide waits at a gesture node until it is judged
-		}
 		n.Seg = next
 		n.SegHead = false
 	}
@@ -552,7 +549,7 @@ func (n *WatchSlideBase) UpdateSequential() {
 		ft, fl, fw = f.Time, f.Lane+f.Exit, f.Width
 		next = f.Next
 	}
-	n.HasContact = now >= ft && !(n.SegHead && !n.Hidden && n.Kind != NodePlain && now < n.JTime)
+	n.HasContact = now >= ft
 	n.ContactWidth = fw
 	n.ContactLane = fl
 	if n.HasContact && next.Index > 0 {

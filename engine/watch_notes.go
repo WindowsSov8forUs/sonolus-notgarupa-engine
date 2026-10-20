@@ -407,6 +407,9 @@ func (n *WatchSlideNodeBase) UpdateParallel() {
 		stopped = true
 		if h.HasContact {
 			lane = h.ContactLane
+			if !h.SegHead && h.Seg.Index == watch.Entity.Info().Index {
+				lane -= n.Exit // as Play: the exit offset stays behind the gesture
+			}
 		}
 	}
 	z := noteZ(zNote, h.Time, h.Lane)
@@ -595,22 +598,78 @@ func (n *WatchSlideBase) UpdateParallel() {
 			l := n.look()
 			l.Stopped = n.progress(now) >= 1
 			lane := n.Lane
-			if l.Stopped && n.HasContact {
-				lane = n.ContactLane // as Play: the stopped head rides the contact point
+			if l.Stopped {
+				lane = n.anchorLane(now) // as Play: the stopped head rides the contact point
 			}
 			drawTerminal(l, n.Kind, n.KindWidth, lane, c, now-n.Spawn, n.z())
 		}
 	}
 	if n.holding(now) {
-		lane := n.Lane
-		if n.HasContact {
-			lane = n.ContactLane
-		}
+		lane := n.anchorLane(now)
 		p := heldPos(lane)
+		chain, passed := n.chainSprite(now)
 		body, flash, px := slideHoldSprites(n.Width, lane)
-		drawHoldFlash(body, flash, p, px, !n.Hidden, now-n.HoldStart, n.z())
+		drawHoldFlash(body, flash, p, px, !n.Hidden && chain == chainHead, now-n.HoldStart, n.z())
+		if chain == chainPassed {
+			drawAmong(lane, 1, passed.Get().Width, NodePlain, 0, true, n.z())
+		}
 		moveFx(fxKeep, p.X, n.Keep, n.KeepPlane, n.KeepPlane2)
 	}
+}
+
+// anchorLane is PlaySlideBase.anchorLane; a gesture shows until its judgement.
+func (n *WatchSlideBase) anchorLane(now float64) float64 {
+	if !n.HasContact {
+		return n.Lane
+	}
+	lane := n.ContactLane
+	if n.SegHead {
+		if now < n.JTime {
+			lane -= n.Exit
+		}
+	} else if f := n.Seg.Get(); now < f.JTime {
+		lane -= f.Exit
+	}
+	return lane
+}
+
+// chainSprite is PlaySlideBase.chainSprite, with the passed node taken from
+// the replay: the last visible middle node judged (not Missed) by now.
+func (n *WatchSlideBase) chainSprite(now float64) (float64, sonolus.EntityRef[WatchSlideNodeBase]) {
+	passed := sonolus.EntityRef[WatchSlideNodeBase]{Index: 0}
+	node := n.First
+	for k := 0; k < 4096 && node.Index > 0; k++ {
+		d := node.Get()
+		if !d.Hidden && !d.Terminal && d.JGrade != gradeMiss && now >= d.JTime {
+			passed = node
+		}
+		node = d.Next
+	}
+	from, chain := n.First, chainHead
+	if passed.Index > 0 {
+		from, chain = passed.Get().Next, chainPassed
+	}
+	for k := 0; k < 4096 && from.Index > 0; k++ {
+		d := from.Get()
+		if !d.Hidden {
+			if chain == chainPassed && now >= d.stopTime() {
+				return chainNone, passed
+			}
+			return chain, passed
+		}
+		if now >= d.Time {
+			return chainNone, passed
+		}
+		from = d.Next
+	}
+	return chain, passed
+}
+
+func (n *WatchSlideNodeBase) stopTime() float64 {
+	if n.Terminal {
+		return n.Time + Layout.VPLDelay
+	}
+	return n.Time
 }
 
 func (n *WatchSlideBase) drawBody(now float64) {

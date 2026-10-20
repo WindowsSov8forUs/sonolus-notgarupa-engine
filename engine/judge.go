@@ -206,7 +206,8 @@ func gestureCount(kind, width float64) float64 {
 }
 
 // endType is the judge note type of a flick-family end; a gesture head or
-// intermediate node carries the same original Slide-tail family (f6e1d41).
+// intermediate node judges its gesture as the same original Slide-tail
+// family (chart extension).
 func endType(kind float64) float64 {
 	switch kind {
 	case NodeFlick:

@@ -85,9 +85,16 @@ func drawNoteSprite(sp sonolus.Sprite, lane, c, buttons float64, z sonolus.ZInde
 	return p
 }
 
+// Sprite riding at the front of a held Slide (Play and Watch chainSprite).
+const (
+	chainNone   = -1.0
+	chainHead   = 0.0 // the held head body
+	chainPassed = 1.0 // the last passed middle node
+)
+
 // drawAmong draws an intermediate Slide node: note_slide_among, with the
-// up-flick icon on a Flick gesture node (b92e1aa); a node stopped on the line
-// takes the target-button scale.
+// up-flick icon on a Flick gesture node whose gesture still shows (chart
+// extension); a node stopped on the line takes the target-button scale.
 func drawAmong(lane, c, width, kind, iconT float64, stopped bool, z sonolus.ZIndex) {
 	p := notePos(lane, c)
 	if suddenHides(p.Y) {

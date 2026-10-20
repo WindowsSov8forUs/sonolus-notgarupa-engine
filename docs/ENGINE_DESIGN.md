@@ -14,10 +14,10 @@
 | 小数 lane、场外 lane（< 0 或 > 6）、宽度（非方向键 width ≤ 7） | 扩展 | 按 lane 线性外推坐标绘制；判定区为各成员 lane 目标点的圆 |
 | SV / TimingGroup（含 0 与负速度） | 扩展 | 每组分段常速滚动轴，见 §3 |
 | 负 BPM（折叠时间） | 扩展 | 转换器计算有符号时间；Slide 节点时间逆序时按各节点独立运动 |
-| Slide 中间/头部的 Flick、Directional（gesture 节点） | 扩展 | 按 GarupaEditor 的 gesture 规则判定（到达 VPL 后的手势，Perfect/Miss） |
+| Slide 中间/头部的 Flick、Directional（gesture 节点） | 扩展 | 手势本身按原作 Slide 尾族判定（含按下缓存）；其余一切按节点在链中的位置与普通节点相同，见 §7.1 |
 | Hidden 头/尾（headless/tailless）、全 Hidden Slide | 扩展 | 头/尾不判定；全 Hidden 仅绘制，主体 alpha × 0.5 |
-| Long 与 Slide 的区分 | 原作（a6fabc4） | 只由 `long` 标记决定，不再按形状规整 |
-| 同位置排序 | 原作（d3d7ef8、bb580ce） | 转换器按 GarupaEditor 批记录（含 BPM 记录与 Slide 宽方向尾 / 手势的 Add 成员）建批，批内用原作 .NET IntroSort（不稳定）按 buttonType 排序（投影音符用跨度中心）；该顺序决定方向键成组、同时押线与实体次序 |
+| Long 与 Slide 的区分 | 原作（NoteLong 与 NoteSlide 是两种音符） | 只由谱面的 `long` 标记决定，不再按形状规整 |
+| 同位置排序 | 原作 | 转换器按 GarupaEditor 批记录（含 BPM 记录与 Slide 宽方向尾 / 手势的 Add 成员）建批，批内用原作 .NET IntroSort（不稳定）按 buttonType 排序（投影音符用跨度中心）；该顺序决定方向键成组、同时押线与实体次序 |
 | Slide 族 A/B 交替 | 影响同时押线与方向键连线的同组判断 | 转换器按 slideOrdinal 奇偶记录并参与配对 |
 | 已触摸未滑动的 Flick 7 帧后判 **Perfect** | **GarupaEditor 错误**（已确认）：原作 WaitState 超时调用的是 onMiss 槽，不是 forcePerfect | 按原作：7 帧后 **Miss** |
 | 触摸 → 最近 lane，无纵向限制、无相邻 lane 回退 | **不是扩展** | 按原作：判定圆半径 √0.23136（宽屏 1.168 × lane 间距），最近 lane 无可判音符时依次试第二、第三近 lane |
@@ -66,15 +66,15 @@ Archetype、数据字段与计分链见 [LEVEL_DATA.md](LEVEL_DATA.md)。转换�
 - 时间窗：`f = |Δt|·60`，银行家舍入为整数帧 `r`；`r < sweet+3` Perfect，`+6` Great，`+7` Good，`+8` Bad，否则不判定。sweet：头/单点 0，Long 尾 1。
 - Slide 节点（位置判定）的时间等价：`τ = (t_vpl − t)·60`，`t_vpl = T + δ`，`δ = ceil(arrival·60)/60 − arrival`；`τ ≤ 3` Perfect，`≤ 6` Great，`≤ 7` Good，`≤ 8` Bad；晚侧恒为 Perfect，直到超时。按住经过中间节点的条件：手指在节点 lane 判定圆内且 `τ ≤ 1`。
 - 自动 Miss：单点 `13/60 s`；Long 头超时两次 Miss（各半伤害）；Slide 头在 13/60 s 与“到下一可见节点一半”二者较早者；中间节点同理并在下一可见节点停止时失效（伤害 ÷5）；Flick 尾停在线上 7 帧后 Miss；其余尾 13/60 s。
-- 超时起点：Long 头在越过判定线（progress > 1）后进入 Wait，只有 Wait 中的头会超时；Wait 中的头继续移动越过判定线（`NoteLong.WaitState` 调用 `NoteBase.Move`），超时后整条 Long 消失；按住时头停在线上，尾到线后停在线上直到判定。Slide 头在越过判定线且到达虚拟完美线（τ ≤ 0）后才进入等待。SV 下 progress 是视觉进度，所以速度为 0 停在线上的头要等轴恢复移动后才超时（GarupaEditor `stopSlideHeadAtJudgeLine`）。中间节点停在真实判定线，终点停在虚拟完美线，因此中间节点的“下一节点已停止”判断对终点使用虚拟完美线。
-- 尾部手势块（ExecTouchMoved，调整值 B = 0）：按住时每次在普通中间节点上的 Moved 也会检查 Flick 族终点。刚经过最后一个中间节点时，终点手势在同一帧判定；仍有中间节点未判定时，终点的接触与原点照常推进，一旦 Flick 完成，就按松手处理，未判定的节点 Miss（中间节点 ÷5）。Directional 终点在此处重置原点，所以实际只有 Flick 终点会这样完成。
+- 超时起点：Long 头在越过判定线（progress > 1）后进入 Wait，只有 Wait 中的头会超时；Wait 中的头继续移动越过判定线（`NoteLong.WaitState` 调用 `NoteBase.Move`），超时后整条 Long 消失；按住时头停在线上，尾到线后停在线上直到判定。Slide 头在越过判定线且到达虚拟完美线（τ ≤ 0）后才进入等待。SV 下 progress 是视觉进度，所以速度为 0 停在线上的头要等轴恢复移动后才超时（原作停止条件：progress > 1 且越过虚拟完美线）。中间节点停在真实判定线，终点停在虚拟完美线，因此中间节点的“下一节点已停止”判断对终点使用虚拟完美线。
+- 尾部手势块（ExecTouchMoved，调整值 B = 0）：按住时每次在中间节点上的 Moved（手势节点也一样）都会检查 Flick 族终点。刚经过最后一个中间节点时，终点手势在同一帧判定；仍有中间节点未判定时，终点的接触与原点照常推进，一旦 Flick 完成，就按松手处理，未判定的节点 Miss（中间节点 ÷5）。Directional 终点在此处重置原点，所以实际只有 Flick 终点会这样完成。
 - Flick：按下时缓存等级；2D 位移 > 0.04 rate（0.0711 世界单位）完成；7 个 ExecuteFrame 内未完成 → Miss。方向键：x 方向 + 水平 > 0.01 rate；宽方向键另需 2D > count·0.01 rate。
 - 松手：中间节点待判时该节点 Miss，Slide 存活并可由任何新按下接续；普通尾在“甜区”（半径² × 1.08）内松手按 τ 评级；flick 类尾未完成手势即 Miss。
 - 一个触摸至多判定一个音符；已被占有的音符胜出时该触摸被消耗。
 - 扩展（GarupaEditor）：
-  - Slide 头与中间的手势节点按原作 Slide 尾族判定：成功类型 5/6/7（Flick / Directional / 宽 Directional），超时 Miss 为类型 8（中间 ÷5），松手 Miss 用节点自身的 5/6/7。按下时只绑定（原点 = 触点、grace = 0），并启动 flash 与保持音；之后与尾部相同：在节点判定范围内 grace 恢复为 8，离开则每帧递减；到达 VPL 前原点跟随手指；到达且 grace > 0 时完成手势判 Perfect，Slide 继续。手势节点的接触范围是 Directional 的锚 lane 或 Flick 的跨度。停下后的移动与普通节点一致（原作 slidingMove / MoveToNextAfterNoteButton 不看手势）：未按住或未判定的手势头、手势节点同样随接触点向下一个节点前进，保持手势精灵，直到判定或 Miss 隐藏。
+  - Slide 头与中间的手势节点：原作没有这种节点，因此原作按结构决定的行为都不看“是否手势”。只有手势本身的判定按原作 Slide 尾族：成功类型 5/6/7（Flick / Directional / 宽 Directional），接触范围与对应的尾相同（宽 Directional 为整个跨度）；按下即原作尾的 ExecTouchBegan 缓存：记下这次按下的等级与 timing，关闭手势精灵（头部改为按住的普通头，中间节点改为普通中间节点），手指自按下点移动够 Flick 距离即按缓存判定，不看方向、grace 与 VPL；按住到达时沿尾的按住路径：节点自己的 grace 在判定范围内恢复为 8、离开则每帧递减，到达 VPL 前原点跟随手指，到达且 grace > 0 时完成手势判 Perfect。手势的原点、grace 与缓存是节点自己的状态，不重置原作尾部的共享状态。其余与该位置的普通节点完全相同：停下后随接触点前进；超时 Miss 为类型 8（中间 ÷5）；松手是 onMiss（类型 8）；成功的中间节点移动点亮的 lane；按住时的尾部手势块照常进行；判定后按普通中间节点的链路显示（只剩 `note_slide_among`，没有 Flick 图标或箭头）。宽 Directional 的出口偏移让主体从箭头远端继续：节点停下起主体前端就在远端，手势显示期间箭头（及与之同位的按住头）保持在前端减去偏移处，不跳动；手势关闭后与普通节点一样位于前端。
   - Hidden 头 Slide 的第一个可见节点不是按钮候选，而是在常规处理后对所有未结束的触摸检查：普通节点在判定圆内且 `τ ≤ 1` 判 Perfect，手势节点在 `τ ≤ 8` 时绑定；同一手指可同时登记多个 Slide。
-  - 仅剩 Hidden 节点的中间节点按 13/60 s 超时（与 GarupaEditor 一致）。
+  - 仅剩 Hidden 节点的中间节点按 13/60 s 超时：原作没有“后面只剩不可见节点”的中间节点，按原作“无可见后继”的规则会立即 Miss，扩展沿用 13/60 s。
 - 同一帧内按下又松开的触摸：先按 Began 处理（点亮 lane、绑定 Long/Slide），再按 Ended 处理（lane 渐灭、松手判定）。
 - 等待手势的 Flick / Directional 与保持中的 Long 头仍参加按钮仲裁；被选中时该触摸被消耗。投影（非整数 lane）音符与 lane 音符在同一轮竞争。
 - 终点节点在 VPL 停止：终点 Flick 的 7 帧计数和终点相关超时从 VPL 起算。
@@ -109,7 +109,7 @@ Sonolus 自身的生命值只能在 preprocess 中静态配置（`AddLifeSchedul
 - 音符层内的次序用 Sonolus 多键 z（`sonolus.ZIndex`）逐键表达，避免把时刻与 lane 压进一个浮点数时丢失精度：z1 = 层，z2 = −时刻（较早的在上），z3 = −lane（较低 lane 在上），z4 = 同一音符内的子序（Flick 箭头在主体之上，多宽方向键越靠近滑动方向越在上）。按原作，Long 尾与 Slide 节点使用头的时刻；相连的 Directional 成员把 z3 改为“方向 × lane”，使更靠近滑动方向的成员在上（原作的 ±0.00001 深度微调优先于 lane 次序）。长条主体、同时押线与方向连线只按 −时刻 排序。
 - 通关演出（通关音效与语音、隐藏场地、FC/AP 字样、烟花、舞台退场）不实现：原作在 BGM 结束时通关，之后才播放约 3.2 s 的演出与 4 s 的舞台退场；Sonolus 在 BGM 结束时结束关卡，引擎无法延长或结束关卡，演出没有可显示的时间。结果由 Sonolus 结算界面展示（Next-RUSH 同样不实现原作的通关演出）。
 - 开场：原作在歌曲信息页之后按开场时钟 O 进行：BgCover（`point_charactor_shadow` 着黑，2000² × 2.5，x 80）从 0.92 每帧减 0.0075；O = 0.5 起舞台 TRS 以 OutQuad 在 3 s 内由（缩放 0.7、y 111）到（0.92、0），舞台背景亮度 0.75 s 内 0.5 → 1；O = 2.5 起 lane、判定线与 Sudden 线 1 s 淡入；O = 0 起 HUD 层 0.5 s 淡入；O = 3 起播放音乐。Sonolus 的关卡从音乐前 2 s 开始（实测首帧关卡时刻 −2.000），因此开场整体加速 1.5 倍、O = 3 对齐关卡时刻 0：舞台与 lane 与原作一样在音乐开始后约 0.33 s 完成。背景四边形、舞台灯光与音箱随舞台姿态绘制；背景亮度用黑色 BgCover 精灵按 0.5·(1 − 进度) 叠在背景之上、灯光之下近似。歌曲信息页（封面、曲名、乐队与作词作曲编曲）不实现：引擎无法读取关卡封面与文字，Sonolus 在开始前的关卡详情中已展示这些信息（Next-RUSH 同样不还原原作的封面开场，只在 −2 → −1 s 淡入 UI）；SD 角色不实现。HUD 层（分数、生命、连击、判定文字、AddScore、Auto 标签、暂停按钮与 SS 特效）按原作在开场起点 0.5 s 内淡入（加速后为 −2.00 → −1.67 s）；它位于 BgCover 之前，不被遮住。
-- 保持循环音（SE_RHYTHM_TAP_LONG）同时最多 4 个，新的开始会停止最早的一个（原作 cue 上限，GarupaEditor originalCueLimitProfile），被停止的那一个松手时也不再播放释放音。Play 在关卡内存中记录 4 个句柄；Watch 与 #EFFECT_AUTO 由 Stage 的 preprocess 沿计分链按开始顺序排程（音符在 preprocess 中把持续结束时间记在开始的计分单位上）；旧转换器生成、没有计分链的关卡仍由音符直接排程，不受上限约束。单次音效无法中止，不受此限。
+- 保持循环音（SE_RHYTHM_TAP_LONG）同时最多 4 个，新的开始会停止最早的一个（原作 cue 上限），被停止的那一个松手时也不再播放释放音。Play 在关卡内存中记录 4 个句柄；Watch 与 #EFFECT_AUTO 由 Stage 的 preprocess 沿计分链按开始顺序排程（音符在 preprocess 中把持续结束时间记在开始的计分单位上）；旧转换器生成、没有计分链的关卡仍由音符直接排程，不受上限约束。单次音效无法中止，不受此限。
 - 舞台：舞台根缩放 `0.92·(1 − 0.23·HAR)`（背景 UI 根，整数 activeHeight，无安全区系数）、上移 14·HAR；背景四边形按同一变换放置。12 盏灯按 7 项色表每 0.2 s 插值，浅色项每盏灯在预处理时随机选取一次。音箱按判定跨度含 lane 0 / 6 触发，使用原作 `speaker_normal` / `_exciting` / `_continuous` 动画片段（Root 缩放与跳动、半透明叠加层、两个发光的位置 / 缩放 / 透明度，60 Hz 采样）。可用“Stage lights”关闭。
 - SS 特效：kira 按原作旋转（静态与动画），在面板裁剪两端 20 单位内淡出（Flash 无法做软裁剪）。
 - 判定粒子：同一判定位置（半 lane）与同一预制体族的新判定先销毁旧粒子再生成（restartIfActive）。
@@ -127,7 +127,8 @@ Sonolus 自身的生命值只能在 preprocess 中静态配置（`AddLifeSchedul
 - 按住、停止或吸附在判定线上的精灵使用目标按钮缩放 `rate·N`（世界 ×P），不再用移动中的混合缩放（停止的 Slide 节点含终点，以及未按住、吸附在线上的 Slide 头）；主体前端在按住点用同一缩放；尚未出现的节点端点用虚拟缩放 `rate·N·|Ly/safe − Y0/P| / |(Ly − G)/safe|`。按住中的 Slide 接触点在按钮局部空间移动，世界坐标为 `(x, G)·P/M`。
 - 方向键连线宽 = 局部缩放 × 0.75；判定线随音符大小缩放；音符大小设置 10%–200%（HABAHIRO 钳制到 80%–150%）。
 - Long / Slide 子节点按头的时刻与 lane 排序；相连的方向键成员 z3 = −first + 2·方向·(lane − first)（first 为组最左 lane，即原作逐成员 ±0.00001 的链式深度）。lane 光柱 OffReserve 为 1 帧，渐灭可重启，7 条光柱同深度按 lane 排序。
-- 中间 Flick 节点保持 `note_slide_among` 并带上滑图标。Slide 主体材质只看后续节点是否有 Hidden。
+- 中间 Flick 节点保持 `note_slide_among` 并带上滑图标，手势关闭（按下缓存或判定）后只剩 `note_slide_among`。Slide 主体材质只看后续节点是否有 Hidden。
+- 按住中的 Slide 前端精灵按原作 hide-before（ExecTouchMoved 只隐藏前一个音符，不可见节点经 `killFromInvisibleNotesToVisibleNote` 同样计入）：按住头的主体只显示到经过第一个中间节点为止；之后最后经过的中间节点以 `note_slide_among` 随接触点前进，直到下一个可见节点停下（或经过不可见节点、Miss、松手）；flash 一直在前端。
 - Slide 的节点 Miss（头超时、中间节点超时、松手时待判的节点）按原作 `hideNote(root, current, true)` 去掉该节点及其之前的全部主体段（含从它出发的一段），flash 与 TapKeep 停止；之后到达的段照常绘制。Watch 按回放中的 Miss 时刻同样处理，并在第一次 Miss 时结束按住表现（回放无法得知重新按下）。
 - 新设置：Long 主体亮度（10–100，默认 80，即透明度）与 Sudden（0–100）。Sudden 精确裁剪主体线、同时押线与方向连线，画出现条；音符精灵在中心进入遮罩时整体隐藏（Sonolus 无遮罩）；lane fit 需要贴图裁剪，未实现；lane 光柱不遮罩。
 

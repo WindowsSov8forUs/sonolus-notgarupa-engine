@@ -258,7 +258,9 @@ func drawAddPop(value, t float64, live bool, z float64) {
 	for v := value; v >= 10; v = math.Floor(v / 10) {
 		digits++
 	}
-	origin := uiTopLeft(282, 135-off)
+	// AddScoreObject moves along the root's local X: authored (282, 85 down),
+	// Play shifts x by −50, then every coroutine resume adds +8 / +1 / +1
+	origin := uiTopLeft(282-50+off, 85)
 	scale := 0.6
 	Skin.AddPlus.Draw(uiRect(origin, 47*scale, 70*scale), z, alpha)
 	// centres: the plus at 0, then previous centre + inner width + 1
@@ -287,8 +289,9 @@ func comboScale(t float64) float64 {
 }
 
 func drawCombo(now, z float64) {
-	// hidden one second after its last change (0655843)
-	if Hud.Combo <= 0 || now-Hud.ComboStart > 1+1.0/60 {
+	// stays at its latest value until Combo returns to zero (the one-second
+	// hide coroutine has no caller); a change replays the scale clip
+	if Hud.Combo <= 0 {
 		return
 	}
 	root := comboRoots[Config.ComboPos]

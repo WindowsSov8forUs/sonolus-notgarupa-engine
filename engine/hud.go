@@ -563,11 +563,20 @@ func drawCover(now, z float64) {
 	Skin.GameOverCover.Draw(sonolus.Rect{T: y + 750*s, R: 667 * s, B: y - 750*s, L: -667 * s}.ToQuad(), z, 1)
 }
 
+// pauseCenter is the original PauseButton (68×70 widget, button_pause) under
+// the safe-area top-right; the Sonolus menu button lies on it, transparent.
+func pauseCenter() sonolus.Vec2 { return uiTopRight(-42, 54) }
+
+func drawPauseButton(z float64) {
+	Skin.PauseButton.Draw(uiRect(pauseCenter(), 68, 70), z, 1)
+}
+
 // drawHud draws every HUD element in its original layer.
 func drawHud(now float64) {
 	drawScore(zHUD)
 	drawSSEffect(now, zHUD+0.35)
 	drawLife(now, zHUD+1)
+	drawPauseButton(zHUD + 1)
 	drawCombo(now, zInfo)
 	drawJudge(now, zInfo+1)
 	drawAddScore(now, zInfo+2)

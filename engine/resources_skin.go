@@ -59,6 +59,7 @@ type SkinData struct {
 	LifeSlash       sonolus.Sprite
 	AutoPill        [3]sonolus.Sprite
 	AutoText        sonolus.Sprite
+	PauseButton     sonolus.Sprite
 	GameOverCover   sonolus.Sprite
 	SSOverlay       sonolus.Sprite
 	SSKira          [8]sonolus.Sprite
@@ -139,6 +140,7 @@ var Skin = &SkinData{
 	LifeSlash:         sonolus.SkinSprite("sgm_18_505050_/"),
 	AutoPill:          [3]sonolus.Sprite{sonolus.SkinSprite("label_round_white@FF3B72#L"), sonolus.SkinSprite("label_round_white@FF3B72#M"), sonolus.SkinSprite("label_round_white@FF3B72#R")},
 	AutoText:          sonolus.SkinSprite("sgmtext_24_FFFFFF_autolive"),
+	PauseButton:       sonolus.SkinSprite("button_pause"),
 	GameOverCover:     sonolus.SkinSprite("sub_glow"),
 	SSOverlay:         sonolus.SkinSprite("ss_overlay@FFDDED"),
 	SSKira:            [8]sonolus.Sprite{sonolus.SkinSprite("ss_kira@FFE8FBDC"), sonolus.SkinSprite("ss_kira@D7FBFF"), sonolus.SkinSprite("ss_kira@ECFFD3"), sonolus.SkinSprite("ss_kira@FFFFFFDC"), sonolus.SkinSprite("ss_kira@FDE3FF"), sonolus.SkinSprite("ss_kira@E6F6FF"), sonolus.SkinSprite("ss_kira@F1FFE6DC"), sonolus.SkinSprite("ss_kira@FFEED7")},

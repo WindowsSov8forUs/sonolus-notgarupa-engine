@@ -62,11 +62,12 @@ func (n *WatchInitialization) Preprocess() {
 	watch.Life.SetArchetype(watch.ArchetypeID[WatchSlideHead](), miss)
 	watch.Life.SetArchetype(watch.ArchetypeID[WatchSlideNode](), miss)
 
-	c := uiTopRight(-42, 54)
+	// The menu button lies, transparent, on the original pause button,
+	// which the HUD draws (drawPauseButton).
 	watch.UI.SetMenu(sonolus.RuntimeUILayout{
-		Anchor: c, Pivot: sonolus.Vec2{X: 0.5, Y: 0.5},
+		Anchor: pauseCenter(), Pivot: sonolus.Vec2{X: 0.5, Y: 0.5},
 		Size:  sonolus.Vec2{X: 68 * Layout.U, Y: 70 * Layout.U},
-		Alpha: 1, Background: true,
+		Alpha: 0,
 	})
 	hidden := sonolus.RuntimeUILayout{Anchor: sonolus.Vec2{X: 0, Y: 0}, Pivot: sonolus.Vec2{X: 0.5, Y: 0.5}}
 	watch.UI.SetJudgment(hidden)

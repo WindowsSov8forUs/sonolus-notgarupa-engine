@@ -49,12 +49,12 @@ func (n *PlayInitialization) Preprocess() {
 	play.Life.SetArchetype(play.ArchetypeID[PlaySlideHead](), miss)
 	play.Life.SetArchetype(play.ArchetypeID[PlaySlideNode](), miss)
 
-	// The menu button takes the original pause button's place.
-	c := uiTopRight(-42, 54)
+	// The menu button lies, transparent, on the original pause button,
+	// which the HUD draws (drawPauseButton).
 	play.UI.SetMenu(sonolus.RuntimeUILayout{
-		Anchor: c, Pivot: sonolus.Vec2{X: 0.5, Y: 0.5},
+		Anchor: pauseCenter(), Pivot: sonolus.Vec2{X: 0.5, Y: 0.5},
 		Size:  sonolus.Vec2{X: 68 * Layout.U, Y: 70 * Layout.U},
-		Alpha: 1, Background: true,
+		Alpha: 0,
 	})
 	hidden := sonolus.RuntimeUILayout{Anchor: sonolus.Vec2{X: 0, Y: 0}, Pivot: sonolus.Vec2{X: 0.5, Y: 0.5}}
 	play.UI.SetJudgment(hidden)

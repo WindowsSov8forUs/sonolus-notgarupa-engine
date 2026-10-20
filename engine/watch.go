@@ -134,6 +134,16 @@ func watchAddPop(n *WatchNoteBase) {
 	}
 }
 
+// WatchGlobals carries the watch global callbacks.
+type WatchGlobals struct{ watch.GlobalCallbacks }
+
+var WatchGlobal WatchGlobals
+
+// UpdateSpawn is the Lifetime system's spawning clock: an entity is alive
+// while it lies in [SpawnTime, DespawnTime). Without it the clock stays 0 and
+// no note ever spawns.
+func UpdateSpawn() float64 { return watch.Time.Now() }
+
 func (*WatchStage) SpawnTime() float64   { return -1e9 }
 func (*WatchStage) DespawnTime() float64 { return 1e9 }
 

@@ -205,8 +205,8 @@ func drawScore(z float64) {
 	}
 }
 
-// AddScore pop: number root at x 282 (safe top-left), rising along y; three
-// phases of 9 updates (≥ 0.14 s each), 4 roots round robin (549aea8).
+// AddScore pop: number root at x 282 (safe top-left), moving along its local
+// X; three phases of 9 updates (≥ 0.14 s each), 4 roots round robin.
 var addInner = [10]float64{43, 30, 45, 45, 47, 46, 46, 45, 46, 44}
 
 // addPop starts a pop on the next root of the pool.

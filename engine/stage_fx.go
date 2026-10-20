@@ -12,8 +12,8 @@ import (
 // Stage dressing of the original Standard live: stage lights, speakers and
 // the SS gauge effect.
 
-// stageRoot is the back UI root scale 1 − 0.23·HAR (no safe-area factor,
-// 3c89bdf), in UI units.
+// stageRoot is the original back UI root scale 1 − 0.23·HAR (integer
+// activeHeight, no safe-area factor), in UI units.
 func stageRoot() float64 { return 1 - 0.23*Layout.HAR }
 
 // openingClock maps level time to the original opening (StartupDirection

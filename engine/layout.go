@@ -148,7 +148,7 @@ func initLayout(screen sonolus.Rect, noteSpeed, noteSize float64, mirror, habahi
 	Layout.Ly = launcherY * S
 	Layout.N = noteSize
 	Layout.Arrival = arrivalSeconds(noteSpeed)
-	// UIRoot FitWidth with an integer activeHeight (f0cfcd4)
+	// the original UIRoot: FitWidth with an integer activeHeight
 	Layout.U = 2 / roundHalfEvenInt(uiWidth/aspect) * uk
 	Layout.UK = uk
 	Layout.Screen = screen
@@ -232,7 +232,7 @@ func heldPos(lane float64) sonolus.Vec2 {
 
 // Body mesh half widths: moving, held / stopped on the line, waiting at the
 // spawn row (calculateNoteMeshHalfWidth: local·width·safe).
-// HABAHIRO widens wide bodies (grid width rate, f82da53).
+// HABAHIRO widens wide bodies (the original grid width rate from HighAspectRatio).
 func bodyHalf(y, width float64) float64 {
 	return noteLocalScale(y, width) * width * Layout.Safe * widthRate(width)
 }

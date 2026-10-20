@@ -597,7 +597,11 @@ func (n *WatchSlideBase) UpdateParallel() {
 			// an unheld head snaps onto the line at the target-button scale
 			l := n.look()
 			l.Stopped = n.progress(now) >= 1
-			drawTerminal(l, n.Kind, n.KindWidth, n.Lane, c, now-n.Spawn, n.z())
+			lane := n.Lane
+			if l.Stopped && n.HasContact {
+				lane = n.ContactLane // as Play: the stopped head rides the contact point
+			}
+			drawTerminal(l, n.Kind, n.KindWidth, lane, c, now-n.Spawn, n.z())
 		}
 	}
 	if n.holding(now) {

@@ -819,9 +819,15 @@ func (n *PlaySlideBase) UpdateParallel() {
 		pr := n.progress(now)
 		if pr >= 0 {
 			// an unheld head snaps onto the line at the target-button scale
+			// and, like a held one, rides the contact point (slidingMove runs
+			// in Wait and Stop alike) until its Miss hides it
 			l := n.look()
 			l.Stopped = pr >= 1
-			drawTerminal(l, n.Kind, n.KindWidth, n.Lane, math.Min(curveOf(pr), 1), now-n.SpawnTime, n.z())
+			lane := n.Lane
+			if l.Stopped && n.HasContact {
+				lane = n.ContactLane
+			}
+			drawTerminal(l, n.Kind, n.KindWidth, lane, math.Min(curveOf(pr), 1), now-n.SpawnTime, n.z())
 		}
 	}
 	if n.Feedback {

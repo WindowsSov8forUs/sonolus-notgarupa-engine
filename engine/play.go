@@ -97,6 +97,7 @@ func (*PlayStage) ShouldSpawn() bool   { return true }
 func (*PlayStage) UpdateSequential() {
 	now := play.Time.Now()
 	updateLaneReserve(now)
+	updateStagePose(now)
 	play.Background.Set(backgroundQuad())
 	if Hud.SSStart <= 0 && Hud.Score >= Hud.RankThreshold[4] && Hud.Score > 0 {
 		Hud.SSStart = now
@@ -109,7 +110,8 @@ func (*PlayStage) UpdateParallel() {
 	drawStageLights(now, 2)
 	drawSpeakers(now, 3)
 	drawCover(now, 4)
-	drawField(now)
+	drawOpeningCovers(now)
+	drawField(now, lineAlpha(now))
 	drawLaneEffects(now, zLaneEffect)
 	drawHud(now)
 }

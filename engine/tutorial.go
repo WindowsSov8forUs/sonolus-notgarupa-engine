@@ -119,7 +119,7 @@ func Update() {
 		prev = -1
 	}
 	Tut.Previous = t
-	drawField(now)
+	drawField(now, 1)
 	h := tutHit()
 	z := noteZ(zNote, 0, 0)
 	g := Layout.G

@@ -64,6 +64,7 @@ type SkinData struct {
 	SSOverlay       sonolus.Sprite
 	SSKira          [8]sonolus.Sprite
 	LightBlue       sonolus.Sprite
+	BgCover         sonolus.Sprite
 	LightPale       sonolus.Sprite
 	LightWhite      sonolus.Sprite
 	Speaker         sonolus.Sprite
@@ -145,6 +146,7 @@ var Skin = &SkinData{
 	SSOverlay:         sonolus.SkinSprite("ss_overlay@FFDDED"),
 	SSKira:            [8]sonolus.Sprite{sonolus.SkinSprite("ss_kira@FFE8FBDC"), sonolus.SkinSprite("ss_kira@D7FBFF"), sonolus.SkinSprite("ss_kira@ECFFD3"), sonolus.SkinSprite("ss_kira@FFFFFFDC"), sonolus.SkinSprite("ss_kira@FDE3FF"), sonolus.SkinSprite("ss_kira@E6F6FF"), sonolus.SkinSprite("ss_kira@F1FFE6DC"), sonolus.SkinSprite("ss_kira@FFEED7")},
 	LightBlue:         sonolus.SkinSprite("Tex_miniShine@0037FF"),
+	BgCover:           sonolus.SkinSprite("point_charactor_shadow@000000"),
 	LightPale:         sonolus.SkinSprite("Tex_miniShine@D5FFFF"),
 	LightWhite:        sonolus.SkinSprite("Tex_miniShine"),
 	Speaker:           sonolus.SkinSprite("Tex_speaker"),

@@ -41,6 +41,8 @@ type HudState struct {
 	CoverStart float64
 	CoverOn    bool
 	SSStart    float64
+	StageS     float64 // Stage TRS scale and y of the opening (updateStagePose)
+	StageY     float64
 	// judgement particles per owner (receiver half-lane × prefab family),
 	// restarted by the next judgement of the same owner
 	Fx0           [126]sonolus.ParticleHandle
@@ -473,6 +475,7 @@ func drawLaneEffects(now, z float64) {
 // initHud resets the HUD model for a level of noteCount scoring units.
 func initHud(noteCount float64) {
 	Hud.NoteCount = noteCount
+	Hud.StageS, Hud.StageY = 0.7, 111 // the opening's start pose
 	Hud.ScoreTotal = 0
 	for i := 1.0; i <= noteCount; i++ {
 		Hud.ScoreTotal += arcadeWeight(gradePerfect, i)

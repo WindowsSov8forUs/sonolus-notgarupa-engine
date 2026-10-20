@@ -16,13 +16,44 @@ import (
 // 3c89bdf), in UI units.
 func stageRoot() float64 { return 1 - 0.23*Layout.HAR }
 
-// stagePlayScale is the Stage TRS scale in play (at y 0). The clear and its
-// outro tween are not drawn: Sonolus ends the level when the BGM ends, which
-// is when the original clears.
-const stagePlayScale = 0.92
+// openingClock maps level time to the original opening (StartupDirection
+// after the information view, GarupaEditor startupDirectionController): there
+// BgCover fades out from 0.92 by 0.0075 a frame; from 0.5 s the Stage TRS
+// tweens from (scale 0.7, y 111) to (0.92, 0) with OutQuad over 3 s while the
+// stage backdrop brightens 0.5 → 1 over 0.75 s; from 2.5 s the lanes fade in
+// over 1 s; the music starts at 3 s. Sonolus starts a level 2 s before the
+// music, so the opening runs 1.5× faster with its 3 s at level time 0. The
+// information view (jacket, title) and the SD characters are not drawn.
+func openingClock(now float64) float64 { return (now + 2) * 1.5 }
+
+// updateStagePose sets the Stage TRS of the opening.
+func updateStagePose(now float64) {
+	p := sonolus.Clamp((openingClock(now)-0.5)/3, 0, 1)
+	p = p * (2 - p)
+	Hud.StageS, Hud.StageY = 0.7+0.22*p, 111*(1-p)
+}
+
+// lineAlpha is the opening fade of the lanes, judge line and Sudden bar.
+func lineAlpha(now float64) float64 { return sonolus.Clamp(openingClock(now)-2.5, 0, 1) }
+
+// drawOpeningCovers draws BgCover (point_charactor_shadow tinted black,
+// 2000² at scale 2.5, x 80 under UI_Root_Back) over the stage, and the
+// backdrop's dimming (multiply by 0.5 + 0.5·progress) under the lights.
+func drawOpeningCovers(now float64) {
+	o := openingClock(now)
+	k := Layout.UB
+	q := sonolus.Rect{T: 2500 * k, R: 2580 * k, B: -2500 * k, L: -2420 * k}.ToQuad()
+	if c := sonolus.Clamp((o-0.5)/0.75, 0, 1); c < 1 {
+		Skin.BgCover.Draw(q, 1, 0.5*(1-c))
+	}
+	// 0.0075 per 60 Hz frame of the opening clock
+	if a := 0.92 - 0.45*o; a > 0 {
+		Skin.BgCover.Draw(q, 3.5, a)
+	}
+}
 
 // stageK is the Stage scale under the back UI root.
-func stageK() float64 { return stagePlayScale * stageRoot() }
+func stageK() float64 { return Hud.StageS * stageRoot() }
 
 // stageScale converts stage-space sizes to the UI units drawTrimmed expects.
 func stageScale() float64 { return stageK() * Layout.UB / Layout.U }
@@ -30,15 +61,19 @@ func stageScale() float64 { return stageK() * Layout.UB / Layout.U }
 // stagePoint converts stage-space UI units (centred, y up) to the screen;
 // the stage root sits 14·HAR units higher on wide screens.
 func stagePoint(x, y float64) sonolus.Vec2 {
-	return sonolus.Vec2{X: x * stageK() * Layout.UB, Y: (y*stageK() + 14*Layout.HAR) * Layout.UB}
+	return sonolus.Vec2{X: x * stageK() * Layout.UB, Y: (y*stageK() + 14*Layout.HAR + Hud.StageY*stageRoot()) * Layout.UB}
 }
 
 // backgroundQuad places the generated background (1766.4 × 1640 UI units:
-// the bgImage widget laid out at stage scale 0.92) under the stage root.
+// the bgImage widget laid out at stage scale 0.92) under the same stage
+// transform. Away from 0.92 the backdrop scales about its own centre, which
+// sits 170·scale below the root and follows the pose's y.
 func backgroundQuad() sonolus.Quad {
 	k := stageRoot() * Layout.UB
 	cy := 14 * Layout.HAR * Layout.UB
-	return sonolus.Rect{T: cy + 820*k, R: 883.2 * k, B: cy - 820*k, L: -883.2 * k}.ToQuad()
+	f := Hud.StageS / 0.92
+	c0, c := cy-170*0.92*k, cy+(Hud.StageY-170*Hud.StageS)*k
+	return sonolus.Rect{T: c + (cy+820*k-c0)*f, R: 883.2 * k * f, B: c + (cy-820*k-c0)*f, L: -883.2 * k * f}.ToQuad()
 }
 
 // drawTrimmed draws a trimmed sprite so that its untrimmed full rect of

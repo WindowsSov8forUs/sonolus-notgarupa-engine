@@ -73,8 +73,8 @@ func memberZ(z sonolus.ZIndex, direction, lane, first float64) sonolus.ZIndex {
 	return z
 }
 
-// drawField draws the lane image and the judge line.
-func drawField(now float64) {
+// drawField draws the lane image and the judge line at alpha la (opening fade).
+func drawField(now, la float64) {
 	field, judge, judgePx := Skin.Field, Skin.JudgeLine, 38.0
 	if Layout.HabaSkin && Layout.LaneChange >= 0 && now >= Layout.LaneChange+laneChangeSwap {
 		// HABAHIRO lane change: only the sprites change (habahiro field and
@@ -86,13 +86,13 @@ func drawField(now float64) {
 	bottom := (13*Layout.HAR - 240*ml) * u
 	half := 580 * ml * u
 	height := 610 * ml * u
-	field.Draw(sonolus.Rect{T: bottom + height, R: half, B: bottom, L: -half}.ToQuad(), zField, 1)
+	field.Draw(sonolus.Rect{T: bottom + height, R: half, B: bottom, L: -half}.ToQuad(), zField, la)
 	// the judge line is a Button4 child: it follows the note size
 	w := 1800.0 / judgeLinePPU * 0.99 * Layout.S * Layout.N
 	h := judgePx / judgeLinePPU * 0.99 * Layout.S * Layout.N
-	judge.Draw(sonolus.Rect{T: Layout.G + h/2, R: w / 2, B: Layout.G - h/2, L: -w / 2}.ToQuad(), zJudgeLine, 1)
+	judge.Draw(sonolus.Rect{T: Layout.G + h/2, R: w / 2, B: Layout.G - h/2, L: -w / 2}.ToQuad(), zJudgeLine, la)
 	drawLaneChangeFlash(now)
-	drawSuddenBar()
+	drawSuddenBar(la)
 }
 
 // laneChangeSwap is the ChangeLane event of the lane-change animation (frame 25).
@@ -144,7 +144,7 @@ func drawLaneChangeFlash(now float64) {
 
 // drawSuddenBar draws the Sudden appear bar (sudden_line, 9-slice 26/26 px
 // borders) at the lower edge of the cover, below the notes.
-func drawSuddenBar() {
+func drawSuddenBar(alpha float64) {
 	r := Layout.SuddenR
 	if r <= 0 {
 		return
@@ -152,7 +152,7 @@ func drawSuddenBar() {
 	k := Layout.M * Layout.UB
 	y := rhythmLinesY(368.39 - 608.391*r)
 	half, hh, cap := (1.98+105.67*r)*10*k/2, 3*k/2, 2.6*k
-	a := 0.6980392336845398
+	a := 0.6980392336845398 * alpha
 	z := zSyncLine + 0.5
 	quad := func(l, r float64) sonolus.Quad {
 		return sonolus.Rect{T: y + hh, R: r, B: y - hh, L: l}.ToQuad()

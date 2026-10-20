@@ -150,6 +150,7 @@ func (*WatchStage) DespawnTime() float64 { return 1e9 }
 
 func (*WatchStage) UpdateSequential() {
 	now := watch.Time.Now()
+	updateStagePose(now)
 	watch.Background.Set(backgroundQuad())
 	skip := watch.Time.Skip() || now < Cursor.LastTime
 	if skip {
@@ -207,7 +208,8 @@ func (*WatchStage) UpdateParallel() {
 	drawStageLights(now, 2)
 	drawSpeakers(now, 3)
 	drawCover(now, 4)
-	drawField(now)
+	drawOpeningCovers(now)
+	drawField(now, lineAlpha(now))
 	drawLaneEffects(now, zLaneEffect)
 	drawHud(now)
 	if isAuto() {

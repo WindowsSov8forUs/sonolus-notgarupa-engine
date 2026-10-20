@@ -28,7 +28,7 @@
 
 - 技能 cut-in 皮肤（只有已排除的 Collaboration 3 带有）。
 - 舞台结构皮肤 `stageskin/normal|challenge|versus`：只用于 Live2D 演出路线。
-- 判定线的技能叠加层 `game_play_line_skill_adjust_effect`，以及开场演出美术 `startup_line_star`、`startup_title_base`。
+- 判定线的技能叠加层 `game_play_line_skill_adjust_effect`，以及开场歌曲信息页的美术 `startup_line_star`、`startup_title_base`（引擎无法显示关卡封面与曲名，信息页不实现）。
 - 菜单预览用的 `noteskin/*sample`、`bgskin/*preview`。
 - 挑战活动与对邦活动背景的分层贴图 `liveBG_layer*`（`skin02`、`skin03`）：只用于挑战 Live、对邦 Live 模式；这两个背景按单人 Live 中显示的 liveBG 生成。
 - 通关演出：FC / AP 字样（`FullCombo_*`、`AllPerfect_*`）、通关烟花粒子（`GameClearParticle/*`、`FullComboAnimation/*`、`AllPerfectAnimation/*`）、`SE_RHYTHM_FULLCOMBO`、`SE_RHYTHM_CLEAR`、`SE_RHYTHM_CLEAR_VO`。原作在 BGM 结束后播放，而 Sonolus 在 BGM 结束时结束关卡，见 `ENGINE_DESIGN.md`。

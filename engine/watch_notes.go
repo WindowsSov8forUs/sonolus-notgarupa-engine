@@ -352,6 +352,7 @@ type WatchSlideHidden struct {
 }
 
 func (n *WatchSlideNode) Preprocess() {
+	n.Skill = false // only front judgements and Long ends play the skill SE
 	// gesture nodes judge as their original Slide-tail family (types 5/6/7)
 	bucket := Buckets.SlideNode
 	if n.Terminal {

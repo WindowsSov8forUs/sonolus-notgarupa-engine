@@ -79,7 +79,7 @@ Archetype、数据字段与计分链见 [LEVEL_DATA.md](LEVEL_DATA.md)。转换�
 - 同一帧内按下又松开的触摸：先按 Began 处理（点亮 lane、绑定 Long/Slide），再按 Ended 处理（lane 渐灭、松手判定）。
 - 等待手势的 Flick / Directional 与保持中的 Long 头仍参加按钮仲裁；被选中时该触摸被消耗。投影（非整数 lane）音符与 lane 音符在同一轮竞争。
 - 终点节点在 VPL 停止：终点 Flick 的 7 帧计数和终点相关超时从 VPL 起算。
-- 技能音符（Good 以上）只播放 `SE_RHYTHM_TAP_SKILL`，代替普通判定音，并受同位置静音约束；Slide 判定不使用技能粒子。宽方向键的主体粒子在跨度的滑动起始端，手指粒子在被滑动的成员上。
+- 技能音符（修正后判定 Great 以上）由前端判定（单点、Long 头、Slide 头）与 Long 尾判定自行请求 `SE_RHYTHM_TAP_SKILL`，在该音符的普通判定音之前，与之叠加；技能音不受同位置静音约束，也不写入静音状态（该音符的普通判定音照常参与）。Slide 中间节点与终点不播放技能音。Slide 判定不使用技能粒子。宽方向键的主体粒子在跨度的滑动起始端，手指粒子在被滑动的成员上。
 
 ### 5.1 Sonolus 判定映射
 

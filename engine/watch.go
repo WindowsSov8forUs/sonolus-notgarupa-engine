@@ -114,6 +114,9 @@ func (*WatchStage) Preprocess() {
 		Hud.LastNoteTime = math.Max(Hud.LastNoteTime, n.JTime)
 		clip := judgementClip(n.JTime, j)
 		if Config.SFX {
+			if skillSE(j) {
+				Effects.Skill.PlayScheduled(n.JTime, frameSeconds)
+			}
 			if clip != clipNone {
 				clipOf(clip).PlayScheduled(n.JTime, frameSeconds)
 			}

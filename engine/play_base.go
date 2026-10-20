@@ -226,6 +226,9 @@ func applyJudgement(now float64, j judgement) {
 	}
 	clip := judgementClip(now, j)
 	if Config.SFX && !Config.AutoSFX {
+		if skillSE(j) {
+			Effects.Skill.Play(0) // requested before the note's normal cue
+		}
 		if clip != clipNone {
 			clipOf(clip).Play(0)
 		}
@@ -245,7 +248,7 @@ func scheduleAuto(code, t float64, skill bool) {
 		return
 	}
 	if skill {
-		code = clipSkill // the skill SE replaces the cue
+		Effects.Skill.PlayScheduled(t, frameSeconds) // beside the cue (skillSE)
 	}
 	clipOf(code).PlayScheduled(t, frameSeconds)
 }

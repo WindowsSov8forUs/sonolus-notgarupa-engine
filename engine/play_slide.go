@@ -43,6 +43,7 @@ type PlaySlideHidden struct {
 }
 
 func (n *PlaySlideNodeBase) Preprocess() {
+	n.Skill = false // only front judgements and Long ends play the skill SE
 	n.prepare()
 	if Config.Mirror {
 		n.Exit = -n.Exit

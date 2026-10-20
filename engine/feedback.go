@@ -121,7 +121,6 @@ const (
 	clipDir1    = 5.0
 	clipDir2    = 6.0
 	clipDir3    = 7.0
-	clipSkill   = 8.0
 )
 
 // kindClip is the SE code of a Perfect on a node of the given kind.
@@ -156,8 +155,6 @@ func clipOf(code float64) sonolus.Clip {
 		return Effects.Directional[0]
 	case clipDir2:
 		return Effects.Directional[1]
-	case clipSkill:
-		return Effects.Skill
 	}
 	return Effects.Directional[2]
 }
@@ -168,6 +165,14 @@ func isFlickType(t float64) bool {
 
 // judgementClip follows InGameManager.onJudgeNote with the TapSEStatus
 // same-position silence (3-frame window) and returns the SE clip code.
+// skillSE: judgeFrontNote / NoteLong.judgeAfterNote request SE_RHYTHM_TAP_SKILL
+// themselves for a skill note whose adjusted result is Great or Perfect. It
+// is its own request beside the normal cue: never silenced by, and never
+// recorded for, the same-position silence (the note's normal cue still is).
+func skillSE(j judgement) bool {
+	return j.Skill && (j.Grade == gradePerfect || j.Grade == gradeGreat)
+}
+
 func judgementClip(now float64, j judgement) float64 {
 	g := j.Grade
 	silent := false
@@ -189,8 +194,6 @@ func judgementClip(now float64, j judgement) float64 {
 		return clipNone
 	}
 	switch {
-	case j.Skill:
-		return clipSkill // SE_RHYTHM_TAP_SKILL replaces the cue (Good and above)
 	case j.Type == jtFlick || j.Type == jtLongEndFlick:
 		return clipFlick
 	case j.Type == jtLongEndDir || j.Type == jtDirectional:

@@ -941,6 +941,7 @@ func (n *PlaySlideBase) UpdateParallel() {
 			l := n.look()
 			l.Stopped = pr >= 1
 			l.Skill = n.Skill // a skill Slide head is note_skill until it is held
+			l.LineTime = n.Time
 			lane, c := n.Lane, math.Min(curveOf(pr), 1)
 			if l.Stopped {
 				lane = n.anchorLane()

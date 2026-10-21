@@ -282,13 +282,22 @@ func (n *PreviewNoteBase) pvTerminal(kind, kindWidth float64, skill bool, z sono
 			members = math.Max(kindWidth, 1)
 		}
 		var p sonolus.Vec2
+		line := Skin.FlickLineR
+		if n.Direction < 0 {
+			line = Skin.FlickLineL
+		}
 		for k := 0.0; k < members && k < 7; k++ {
 			ml := n.Lane + n.Direction*k
 			body := lanePick(Skin.NoteFlickR, n.SpriteLane+ml-n.Lane)
 			if n.Direction < 0 {
 				body = lanePick(Skin.NoteFlickL, n.SpriteLane+ml-n.Lane)
 			}
-			p = pvNote(body, ml, n.Time, subZ(z, k))
+			q := pvNote(body, ml, n.Time, subZ(z, k))
+			if k > 0 {
+				// the members' back lines, as a moving wide directional end
+				line.DrawZ(lineQuad(p, q, pvScale()*0.75/2), lineZ(zDirLine, n.Time), 1)
+			}
+			p = q
 		}
 		pvArrow(p, n.Direction, iconZ(z))
 	default:

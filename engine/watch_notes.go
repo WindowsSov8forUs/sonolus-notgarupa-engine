@@ -669,6 +669,7 @@ func (n *WatchSlideBase) UpdateParallel() {
 			l := n.look()
 			l.Stopped = n.progress(now) >= 1
 			l.Skill = n.Skill
+			l.LineTime = n.Time
 			lane := n.Lane
 			if l.Stopped {
 				lane = n.anchorLane(now) // as Play: the stopped head rides the contact point

@@ -26,6 +26,10 @@ type judgement struct {
 	HasFinger bool    // a manual directional group: finger particle on the touched member
 	Width     float64 // note width (HABAHIRO width-variant particles)
 	Slide     bool    // a Slide judgement: never skill particles
+	// Frame: now is the judging update's own time (Play), so one OneFrame
+	// batch is exactly the judgements at that time; Watch preprocess groups
+	// replay times by 1/60 s instead
+	Frame bool
 }
 
 // hudApply updates combo, score, life and the judge text of a judgement and
@@ -76,7 +80,11 @@ func hudApply(now float64, j judgement) float64 {
 	}
 	// one representative result per frame: the highest raw result, the first
 	// on ties (scoreLifeStateManager)
-	if math.Floor(now*60) == math.Floor(Hud.JudgeStart*60) && Hud.JudgeSprite >= 0 && g <= Hud.JudgeGrade && !j.Auto {
+	sameFrame := math.Floor(now*60) == math.Floor(Hud.JudgeStart*60)
+	if j.Frame {
+		sameFrame = now == Hud.JudgeStart
+	}
+	if sameFrame && Hud.JudgeSprite >= 0 && g <= Hud.JudgeGrade && !j.Auto {
 		return dmg
 	}
 	Hud.JudgeGrade = g
@@ -213,10 +221,15 @@ func judgementClip(now float64, j judgement) float64 {
 	return clipGood
 }
 
-// fxKey is a judgement particle owner: receiver half-lane and prefab family
-// (0 perfect, 1 great, 2 good, 3..5 skill, 6 swipe, 7 / 8 directional L / R).
+// fxOwnerFamilies is the number of particle owner families per half-lane.
+const fxOwnerFamilies = 16
+
+// fxKey is a particle owner (GamePlayButton.PlayAnimation: button and effect
+// root): receiver half-lane and prefab family (0 perfect, 1 great, 2 good,
+// 3..5 skill, 6 swipe, 7..9 / 10..12 directional L / R for counts 1, 2, 3+,
+// 13 / 14 directional finger L / R, 15 empty tap).
 func fxKey(lane float64, family int) int {
-	return int(sonolus.Clamp(math.Round(lane*2), 0, 13))*9 + family
+	return int(sonolus.Clamp(math.Round(lane*2), 0, 13))*fxOwnerFamilies + family
 }
 
 // fxRestart stops an owner's previous particles: a new hit restarts the
@@ -301,16 +314,26 @@ func playJudgementParticles(j judgement) {
 			fx = j.FingerX
 		}
 		// the finger family has at most one plane part
+		// the body and the finger are separate owners: the body's root
+		// carries the count variant, the finger sits on its own button
+		fingerLane := j.Lane
+		if j.HasFinger {
+			fingerLane = j.FingerX/Layout.W + 3
+		}
 		if j.Direction < 0 {
-			k := fxKey(j.Lane, 7)
+			k := fxKey(j.Lane, 7+idx)
 			fxRestart(k)
 			Hud.Fx0[k] = Particles.DirL[idx].Spawn(q1, dur, false)
-			Hud.Fx1[k], Hud.Fx2[k], _ = spawnFx(fxFingerL, fx, durFinger, durFinger, false)
+			kf := fxKey(fingerLane, 13)
+			fxRestart(kf)
+			Hud.Fx0[kf], Hud.Fx1[kf], _ = spawnFx(fxFingerL, fx, durFinger, durFinger, false)
 		} else {
-			k := fxKey(j.Lane, 8)
+			k := fxKey(j.Lane, 10+idx)
 			fxRestart(k)
 			Hud.Fx0[k] = Particles.DirR[idx].Spawn(q1, dur, false)
-			Hud.Fx1[k], Hud.Fx2[k], _ = spawnFx(fxFingerR, fx, durFinger, durFinger, false)
+			kf := fxKey(fingerLane, 14)
+			fxRestart(kf)
+			Hud.Fx0[kf], Hud.Fx1[kf], _ = spawnFx(fxFingerR, fx, durFinger, durFinger, false)
 		}
 	case j.Type == jtFlick || j.Type == jtLongEndFlick:
 		k := fxKey(j.Lane, 6)

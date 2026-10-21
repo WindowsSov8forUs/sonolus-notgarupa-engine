@@ -396,7 +396,7 @@ func (n *PlaySlideBase) headTimeout(now float64) {
 		remaining = fv.Get().Time - now
 	}
 	if elapsed > missSeconds || remaining <= 0 || elapsed > remaining {
-		n.Grade, n.Error = gradeMiss, missSeconds
+		n.Grade, n.Error = gradeMiss, now-n.Time
 		n.HeadDone = true
 		n.State = stDone
 		lane := n.headLane()
@@ -459,7 +459,7 @@ func (n *PlaySlideBase) nodeTimeout(now float64) {
 	if miss {
 		n.stopFeedback()
 		n.Broken = c.Index
-		n.judgeNode(n.Cursor, gradeMiss, timingNone, missSeconds, jtSlide, divisor, now)
+		n.judgeNode(n.Cursor, gradeMiss, timingNone, now-c.Time, jtSlide, divisor, now)
 	}
 }
 
@@ -880,7 +880,7 @@ func (n *PlaySlideBase) release(p sonolus.Vec2, t, now float64) {
 	if n.OnHead {
 		// gesture head released before its gesture: a non-final node's
 		// release is onMiss (type 8), as for a middle node
-		n.Grade, n.Error = gradeMiss, missSeconds
+		n.Grade, n.Error = gradeMiss, now-n.Time
 		n.HeadDone = true
 		n.State = stDone
 		lane := n.headLane()
@@ -897,9 +897,9 @@ func (n *PlaySlideBase) release(p sonolus.Vec2, t, now float64) {
 	switch {
 	case !c.Terminal:
 		// onMiss (type 8) on any non-final node
-		n.judgeNode(n.Cursor, gradeMiss, timingNone, missSeconds, jtSlide, 5, now)
+		n.judgeNode(n.Cursor, gradeMiss, timingNone, now-c.Time, jtSlide, 5, now)
 	case c.Kind != NodePlain:
-		n.judgeNode(n.Cursor, gradeMiss, timingNone, missSeconds, endType(c.Kind), 1, now)
+		n.judgeNode(n.Cursor, gradeMiss, timingNone, now-c.Time, endType(c.Kind), 1, now)
 	case insideSpan(p, c.SpanStart, c.Width, true):
 		tau := slideTau(c.Time, t)
 		g := slideGrade(tau)
@@ -910,12 +910,9 @@ func (n *PlaySlideBase) release(p sonolus.Vec2, t, now float64) {
 			timing = timingFast
 		}
 		err := t - c.Time
-		if g == gradeMiss {
-			err = missSeconds
-		}
 		n.judgeNode(n.Cursor, g, timing, err, jtSlide, 1, now)
 	default:
-		n.judgeNode(n.Cursor, gradeMiss, timingNone, missSeconds, jtSlide, 1, now)
+		n.judgeNode(n.Cursor, gradeMiss, timingNone, now-c.Time, jtSlide, 1, now)
 	}
 }
 

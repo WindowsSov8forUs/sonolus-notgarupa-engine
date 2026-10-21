@@ -137,6 +137,27 @@ type PlayNoteBase struct {
 	Frames    float64 `archetype:"shared"`
 	Grade     float64 `archetype:"shared"`
 	Error     float64 `archetype:"shared"`
+	// Before is the last update before the note's time: NoteSingleBase's
+	// miss counter resets until then and adds whole deltas after it
+	Before    float64 `archetype:"memory"`
+	BeforeSet bool    `archetype:"memory"`
+	// WaitY: where a picked-up flick stopped (WaitState does not move it);
+	// it competes for touches from there
+	WaitY float64 `archetype:"memory"`
+}
+
+// missDue is NoteSingleBase.MoveState's timeout: the counter measures from
+// the last update before the note's time (the note's time if none was seen).
+func (n *PlayNoteBase) missDue(now float64) bool {
+	if now < n.Time {
+		n.Before, n.BeforeSet = now, true
+		return false
+	}
+	from := n.Time
+	if n.BeforeSet {
+		from = n.Before
+	}
+	return now-from > missSeconds
 }
 
 func (n *PlayNoteBase) prepare() {
@@ -193,11 +214,17 @@ func insideSpan(p sonolus.Vec2, spanStart, width float64, sweet bool) bool {
 	return false
 }
 
-// writeResult stores the Sonolus result of a judged note.
+// writeResult stores the Sonolus result of a judged note. A Miss keeps when
+// it happened (relative to the note's time) as its accuracy, so a replay
+// shows it at that moment; only the bucket value is clamped.
 func writeResult(grade, errorSeconds float64, bucket sonolus.Bucket) {
 	e := sonolus.Clamp(errorSeconds, -0.15, 0.15)
+	acc := e
+	if grade == gradeMiss {
+		acc = errorSeconds
+	}
 	play.Entity.SetResult(play.InputResult{
-		Judgment: sonolusJudgment(grade), Accuracy: e, Bucket: bucket, BucketValue: e * 1000,
+		Judgment: sonolusJudgment(grade), Accuracy: acc, Bucket: bucket, BucketValue: e * 1000,
 	})
 }
 
@@ -220,6 +247,7 @@ func (n *PlayNoteBase) look() noteLook {
 // applyJudgement reflects one judgement: HUD state and life gauge, then the
 // particle and SE in the original order, then lane lights.
 func applyJudgement(now float64, j judgement) {
+	j.Frame = true
 	hudApply(now, j)
 	if Config.NoteEffects {
 		playJudgementParticles(j)

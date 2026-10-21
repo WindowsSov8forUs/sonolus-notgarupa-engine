@@ -102,6 +102,11 @@ func laneYForCandidate(i int) float64 { return Input.Candidates.Get(i).Y }
 
 func (*PlayInputManager) Touch() {
 	now := play.Time.Now()
+	if now < 0 {
+		// the opening: input is dispatched only from PlayingNone, published
+		// when the music starts (InputManager.ExecInput / updatePlayState)
+		return
+	}
 	order := 0
 	for touch := range play.Touches.Values() {
 		order++
@@ -171,7 +176,10 @@ func (*PlayInputManager) Touch() {
 				Effects.EmptyTap.Play(0)
 			}
 			if Config.NoteEffects {
-				spawnFx(fxTap, laneX(lane), durTap, durTap, false)
+				// the button's effect_tap restarts like any PlayAnimation owner
+				k := fxKey(lane, 15)
+				fxRestart(k)
+				Hud.Fx0[k], Hud.Fx1[k], Hud.Fx2[k] = spawnFx(fxTap, laneX(lane), durTap, durTap, false)
 			}
 			continue
 		}

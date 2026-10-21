@@ -47,8 +47,8 @@ func singleUpdate(n *PlayNoteBase, jt float64) {
 	}
 	now := play.Time.Now()
 	if n.State == stMove {
-		if now-n.Time > missSeconds {
-			finishSingle(n, gradeMiss, jtNormal, timingNone, missSeconds, now)
+		if n.missDue(now) {
+			finishSingle(n, gradeMiss, jtNormal, timingNone, now-n.Time, now)
 			return
 		}
 		if math.Abs(now-n.Time) <= 9*frameSeconds {
@@ -123,7 +123,7 @@ func flickUpdate(n *PlayNoteBase) {
 	case stWait:
 		n.Frames += frameStep()
 		if n.Frames >= flickWaitFrames {
-			finishSingle(n, gradeMiss, jtNormal, timingNone, missSeconds, play.Time.Now())
+			finishSingle(n, gradeMiss, jtNormal, timingNone, play.Time.Now()-n.Time, play.Time.Now())
 			return
 		}
 		registerOwned(n)
@@ -135,7 +135,7 @@ func flickUpdate(n *PlayNoteBase) {
 // no state filter).
 func registerOwned(n *PlayNoteBase) {
 	if math.Abs(play.Time.Now()-n.Time) <= 9*frameSeconds {
-		registerCandidate(play.Entity.Info().Index, n.SpanStart, n.Width, n.Time, Layout.G, false, true)
+		registerCandidate(play.Entity.Info().Index, n.SpanStart, n.Width, n.Time, n.WaitY, false, true)
 	}
 }
 
@@ -147,6 +147,7 @@ func flickTouch(n *PlayNoteBase, dir, count, jt float64) {
 		n.Finger = n.Assigned
 		n.Assigned = -1
 		n.State = stWait
+		n.WaitY = notePos(n.Lane, math.Min(curveOf(n.progress(now)), 1)).Y
 		n.Frames = 0
 		return
 	}
@@ -217,6 +218,9 @@ func (n *PlayDirectionalMember) UpdateParallel() {
 		play.Entity.SetDespawn(true)
 		return
 	}
+	if n.Leader.Get().GroupTouched {
+		return
+	}
 	drawDirectional(&n.PlayNoteBase, n.Arrow, n.IconStart, n.Left.Index > 0 || n.Right.Index > 0, groupFirst(n.Leader.Get().Lane, n.Count), n.Right.Index)
 }
 
@@ -234,8 +238,11 @@ type PlayDirectionalNote struct {
 	GroupTiming    float64                                  `archetype:"shared"`
 	GroupError     float64                                  `archetype:"shared"`
 	GroupLane      float64                                  `archetype:"shared"`
-	Reported       bool                                     `archetype:"shared"`
-	IconStart      float64                                  `archetype:"memory"`
+	// GroupTouched: a member was touched down; NoteMultipleDirectionalFlick's
+	// ExecTouchBegan hides every member's sprite and back line
+	// (setSpriteEnabledForRight/LeftSideNotes)
+	GroupTouched bool    `archetype:"shared"`
+	IconStart    float64 `archetype:"memory"`
 }
 
 func (n *PlayDirectionalNote) Preprocess() {
@@ -254,37 +261,15 @@ func (n *PlayDirectionalNote) Initialize() {
 }
 func (n *PlayDirectionalNote) UpdateSequential() {
 	directionalUpdate(&n.PlayNoteBase, n.Leader)
-	if n.GroupDone && !n.Reported {
-		n.Reported = true
-		jt := jtDirectional
-		if n.Count > 1 {
-			jt = jtMultiDir
-		}
-		if n.GroupGrade == gradeMiss {
-			jt = jtNormal
-		}
-		// the body particle starts at the group's flick-start end, the finger
-		// particle on the member that was flicked
-		left := n.Lane
-		if Config.Mirror {
-			left -= n.Count - 1 // the leader is the group's first (leftmost) member
-		}
-		lane := dirBodyLane(left, n.Count, n.Direction)
-		applyJudgement(play.Time.Now(), judgement{
-			Grade: n.GroupGrade, Type: jt, Timing: n.GroupTiming, X: laneX(lane), Lane: lane,
-			Count: n.Count, Direction: n.Direction, Key: n.Time, Divisor: 1,
-			FingerX: laneX(n.GroupLane), HasFinger: true,
-		})
-	}
 }
 func (n *PlayDirectionalNote) Touch() { directionalTouch(&n.PlayNoteBase, n.Leader, n.Count) }
 func (n *PlayDirectionalNote) UpdateParallel() {
-	if n.Reported {
+	if n.GroupDone {
 		writeResult(n.GroupGrade, n.GroupError, Buckets.Directional)
 		play.Entity.SetDespawn(true)
 		return
 	}
-	if n.GroupDone || n.State == stDone {
+	if n.State == stDone || n.GroupTouched {
 		return
 	}
 	drawDirectional(&n.PlayNoteBase, n.Arrow, n.IconStart, n.Left.Index > 0 || n.Right.Index > 0, groupFirst(n.Leader.Get().Lane, n.Count), n.Right.Index)
@@ -297,6 +282,27 @@ func groupFinish(leader sonolus.EntityRef[PlayDirectionalNote], grade, timing, e
 	}
 	l.GroupDone = true
 	l.GroupGrade, l.GroupTiming, l.GroupError, l.GroupLane = grade, timing, err, lane
+	// judged in the callback that decides it (judgeFrontNote runs inside the
+	// input dispatch or the member's own update), not on the leader's next one
+	jt := jtDirectional
+	if l.Count > 1 {
+		jt = jtMultiDir
+	}
+	if grade == gradeMiss {
+		jt = jtNormal
+	}
+	// the body particle starts at the group's flick-start end, the finger
+	// particle on the member that was flicked
+	left := l.Lane
+	if Config.Mirror {
+		left -= l.Count - 1 // the leader is the group's first (leftmost) member
+	}
+	body := dirBodyLane(left, l.Count, l.Direction)
+	applyJudgement(play.Time.Now(), judgement{
+		Grade: grade, Type: jt, Timing: timing, X: laneX(body), Lane: body,
+		Count: l.Count, Direction: l.Direction, Key: l.Time, Divisor: 1,
+		FingerX: laneX(lane), HasFinger: true,
+	})
 }
 
 func directionalUpdate(n *PlayNoteBase, leader sonolus.EntityRef[PlayDirectionalNote]) {
@@ -306,9 +312,9 @@ func directionalUpdate(n *PlayNoteBase, leader sonolus.EntityRef[PlayDirectional
 	now := play.Time.Now()
 	switch n.State {
 	case stMove:
-		if now-n.Time > missSeconds {
+		if n.missDue(now) {
 			n.State = stDone
-			groupFinish(leader, gradeMiss, timingNone, missSeconds, n.Lane)
+			groupFinish(leader, gradeMiss, timingNone, now-n.Time, n.Lane)
 			return
 		}
 		if math.Abs(now-n.Time) <= 9*frameSeconds {
@@ -319,7 +325,7 @@ func directionalUpdate(n *PlayNoteBase, leader sonolus.EntityRef[PlayDirectional
 		n.Frames += frameStep()
 		if n.Frames >= flickWaitFrames {
 			n.State = stDone
-			groupFinish(leader, gradeMiss, timingNone, missSeconds, n.Lane)
+			groupFinish(leader, gradeMiss, timingNone, now-n.Time, n.Lane)
 			return
 		}
 		registerOwned(n)
@@ -334,7 +340,9 @@ func directionalTouch(n *PlayNoteBase, leader sonolus.EntityRef[PlayDirectionalN
 		n.Finger = n.Assigned
 		n.Assigned = -1
 		n.State = stWait
+		n.WaitY = notePos(n.Lane, math.Min(curveOf(n.progress(play.Time.Now())), 1)).Y
 		n.Frames = 0
+		leader.Get().GroupTouched = true
 		return
 	}
 	if n.State != stWait {

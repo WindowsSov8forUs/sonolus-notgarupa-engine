@@ -46,9 +46,9 @@ type HudState struct {
 	HudAlpha   float64 // opening fade of the gameplay HUD layer (updateStagePose)
 	// judgement particles per owner (receiver half-lane × prefab family),
 	// restarted by the next judgement of the same owner
-	Fx0           [126]sonolus.ParticleHandle
-	Fx1           [126]sonolus.ParticleHandle
-	Fx2           [126]sonolus.ParticleHandle
+	Fx0           [224]sonolus.ParticleHandle // fxKey: 14 half-lanes × fxOwnerFamilies
+	Fx1           [224]sonolus.ParticleHandle
+	Fx2           [224]sonolus.ParticleHandle
 	SilencePos    float64
 	SilenceType   float64
 	SilenceGrade  float64

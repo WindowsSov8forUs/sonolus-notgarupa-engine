@@ -68,7 +68,7 @@ Archetype、数据字段与计分链见 [LEVEL_DATA.md](LEVEL_DATA.md)。转换�
 - 自动 Miss：单点 `13/60 s`；Long 头超时两次 Miss（各半伤害）；Slide 头在 13/60 s 与“到下一可见节点一半”二者较早者；中间节点同理并在下一可见节点停止时失效（伤害 ÷5）；Flick 尾停在线上 7 帧后 Miss；其余尾 13/60 s。
 - 超时起点：Long 头在越过判定线（progress > 1）后进入 Wait，只有 Wait 中的头会超时；Wait 中的头继续移动越过判定线（`NoteLong.WaitState` 调用 `NoteBase.Move`），超时后整条 Long 消失，尾部到达判定线后不再绘制主体；按住时头从按下起就停在线上（提前按下也是，NoteLong.StopState），尾到线后停在线上直到判定。Slide 头在越过判定线且到达虚拟完美线（τ ≤ 0）后才进入等待。SV 下 progress 是视觉进度，所以速度为 0 停在线上的头要等轴恢复移动后才超时（原作停止条件：progress > 1 且越过虚拟完美线）。中间节点停在真实判定线，终点停在虚拟完美线，因此中间节点的“下一节点已停止”判断对终点使用虚拟完美线。
 - 尾部手势块（ExecTouchMoved，调整值 B = 0）：按住时每次在中间节点上的 Moved（手势节点也一样）都会检查 Flick 族终点。刚经过最后一个中间节点时，终点手势在同一帧判定；仍有中间节点未判定时，终点的接触与原点照常推进，一旦 Flick 完成，就按松手处理，未判定的节点 Miss（中间节点 ÷5）。Directional 终点在此处重置原点，所以实际只有 Flick 终点会这样完成。
-- Flick：按下时缓存等级；2D 位移 > 0.04 rate（0.0711 世界单位）完成；7 个 ExecuteFrame 内未完成 → Miss。方向键：x 方向 + 水平 > 0.01 rate；宽方向键另需 2D > count·0.01 rate。Long 的宽方向键尾按原作 Multiple 分支：只看方向与按成员数放大的距离，不要求判定窗口与 grace，在窗口外完成即 Miss。
+- Flick：按下时缓存等级；2D 位移 > 0.04 rate（0.0711 世界单位）完成；7 个 ExecuteFrame 内未完成 → Miss。方向键：x 方向 + 水平 > 0.01 rate；宽方向键另需 2D > count·0.01 rate。按下宽方向键组的任一成员即隐藏整组的精灵与连线（NoteMultipleDirectionalFlick.ExecTouchBegan → setSpriteEnabledForRight/LeftSideNotes），组的判定在决定它的回调中立即生效。单点与方向键的超时计数从音符时刻前的最后一次更新起算（NoteSingleBase.MoveState），可比 T + 13/60 s 早至一帧。已按下等待手势的 Flick 留在按下时的位置参加按钮仲裁。音乐开始前（关卡时刻 < 0，原作的开场演出）不处理输入。Long 的宽方向键尾按原作 Multiple 分支：只看方向与按成员数放大的距离，不要求判定窗口与 grace，在窗口外完成即 Miss。
 - 松手：中间节点待判时该节点 Miss，Slide 存活并可由任何新按下接续；普通尾在“甜区”（半径² × 1.08）内松手按 τ 评级；flick 类尾未完成手势即 Miss。
 - 一个触摸至多判定一个音符；已被占有的音符胜出时该触摸被消耗。
 - 扩展（GarupaEditor）：
@@ -112,13 +112,13 @@ Sonolus 自身的生命值只能在 preprocess 中静态配置（`AddLifeSchedul
 - 保持循环音（SE_RHYTHM_TAP_LONG）同时最多 4 个，新的开始会停止最早的一个（原作 cue 上限），被停止的那一个松手时也不再播放释放音。Play 在关卡内存中记录 4 个句柄；Watch 与 #EFFECT_AUTO 由 Stage 的 preprocess 沿计分链按开始顺序排程（音符在 preprocess 中把持续结束时间记在开始的计分单位上）；旧转换器生成、没有计分链的关卡仍由音符直接排程，不受上限约束。单次音效无法中止，不受此限。
 - 舞台：舞台根缩放 `0.92·(1 − 0.23·HAR)`（背景 UI 根，整数 activeHeight，无安全区系数）、上移 14·HAR；背景四边形按同一变换放置。12 盏灯按 7 项色表每 0.2 s 插值，浅色项每盏灯在预处理时随机选取一次。音箱按判定跨度含 lane 0 / 6 触发，使用原作 `speaker_normal` / `_exciting` / `_continuous` 动画片段（Root 缩放与跳动、半透明叠加层、两个发光的位置 / 缩放 / 透明度，60 Hz 采样）。可用“Stage lights”关闭。
 - SS 特效：kira 按原作旋转（静态与动画），在面板裁剪两端 20 单位内淡出（Flash 无法做软裁剪）。
-- 判定粒子：同一判定位置（半 lane）与同一预制体族的新判定先销毁旧粒子再生成（restartIfActive）。
+- 判定粒子：同一判定位置（半 lane）与同一预制体族的新判定先销毁旧粒子再生成（restartIfActive）。方向键的主体按数量变体（_1/_2/_3）与方向分开，手指粒子以被滑动的 lane 为自己的位置；空按的 effect_tap 也按 lane 重启。同一帧的判定文字代表在 Play 中按同一更新时刻分组（Watch 的 preprocess 按 1/60 s 分组）。
 - 曲线表（音箱、星、闪电）在预处理时写入关卡数据，运行时原地读取，避免每次动态下标复制整表。
 
 ## 7. 模式
 
 - **Play**：见上。`#EFFECT_AUTO` 开启时所有判定音效改为在预处理中按谱面时刻调度（同类音效最小间隔 1 帧合并同时音符），保持循环音同样按谱面调度。
-- **Watch**：非回放时为 Auto Live；回放时读取 `#JUDGMENT`、`#ACCURACY`，Good 依精度还原为 Good/Bad，判定时刻 = 命中时刻 + 精度。Stage 在 preprocess 中沿 `firstScored → scoreNext` 链逐个应用判定并把 HUD 快照写入各音符 shared memory，同时调度全部判定音效；运行时只按时间查找最近快照，因此任意跳转（`Skip`）都无需回滚状态。粒子与 lane 光柱在 Stage 的 updateSequential 中随游标前进触发（跳转帧不触发）。
+- **Watch**：非回放时为 Auto Live；回放时读取 `#JUDGMENT`、`#ACCURACY`，Good 依精度还原为 Good/Bad，判定时刻 = 命中时刻 + 精度；Miss 的精度记录 Miss 实际发生的时刻（相对音符时刻，不截断，只截断桶值），回放因此在同一时刻显示 Miss。回放中前端音符（单点、Flick、方向键、Long 与可见 Slide 头）的非 Miss 判定点亮该 lane 一次（On + OffReserve），近似 Play 中触摸的按下与松开。Stage 在 preprocess 中沿 `firstScored → scoreNext` 链逐个应用判定并把 HUD 快照写入各音符 shared memory，同时调度全部判定音效；运行时只按时间查找最近快照，因此任意跳转（`Skip`）都无需回滚状态。粒子与 lane 光柱在 Stage 的 updateSequential 中随游标前进触发（跳转帧不触发）。
 - **Preview**：从左到右的列，每列 2 s，lane 竖直、时间向上；绘制 lane 线、拍线（每 4 拍加粗）、全部音符、Long/Slide 主体（跨列分段）、同时押线；列底打印时间，BPM 变化处打印 BPM。SV 不影响预览（按真实时间）。
 - **Tutorial**：循环演示 Tap、Flick、Directional、Long、Slide 五段，带手势图标、说明文字、判定音效与粒子；上一个/下一个切换段落。
 
@@ -146,7 +146,7 @@ Sonolus 框架限制（引擎无法实现，sonolus-go 无法弥补）：
 | 同一音效最多 4 个声部 | `Play` 返回 0，单次播放无法中止 | 单次音效不限制；保持循环音已实现上限（见 §6） |
 | 粒子位于音符之下、加色混合 | 粒子没有 z，皮肤 / 粒子数据没有混合模式 | 粒子由平台绘制在最上层 |
 | 同一帧中超时先于触摸处理 | 回调顺序固定为 updateSequential → touch | 按 Sonolus 顺序 |
-| 按手指槽位区分的空按音效 | 触摸 ID 不是固定槽位 | 按触摸 ID 近似 |
+| 按手指槽位区分的空按音效 | 触摸 ID 不是固定槽位 | 按本帧触摸的枚举顺序近似（前 4 个播放） |
 | 跨 BPM 时的判定偏移 | 偏移在时间上施加 | 按时间偏移 |
 
 此前可以实现但未实现的部分已经补上：保持循环音的声部上限、同时押线的尾按运行时速度过期、停止的终点与未按住的吸附头使用目标缩放、中间节点 Moved 上的终点手势（D15）、SV 下的超时起点（D17）。荧光棒不实现：普通 live 中它在舞台入场开始 1.5 s 后用 45 帧淡出，早于音乐开始，之后只会被 GarupaEditor 的演出命令（谱面中没有）重新唤起。

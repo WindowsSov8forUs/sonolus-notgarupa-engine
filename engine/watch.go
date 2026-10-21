@@ -180,6 +180,11 @@ func (*WatchStage) UpdateSequential() {
 				laneOff(n.ALaneOff)
 			}
 			judgementLights(now, j)
+			if !j.Auto && n.JFront && j.Grade != gradeMiss {
+				// a replay has no touches: the touched lane lights at the
+				// front judgement (Play lights it on Began, fades on Ended)
+				laneOnReserve(j.Lane, now)
+			}
 			if j.Auto && n.ALanePulse >= 0 {
 				laneOnReserve(n.ALanePulse, now)
 			}

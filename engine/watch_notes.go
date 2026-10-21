@@ -40,6 +40,9 @@ type WatchNoteBase struct {
 	// WatchStage schedules them in chain order under the cue limit
 	HoldUntil float64 `archetype:"shared"`
 	JSlide    bool    `archetype:"shared"`
+	// JFront: a front note (tap, flick, directional, Long or visible Slide
+	// head); a replay lights its lane at the judgement, as Play's touch does
+	JFront bool `archetype:"data"`
 	// Auto Live tap-lane extras of a Slide (−1 none): Off on the previous
 	// target before this judgement's pulse, and a further pulse after it
 	// (the head's Began pulses the first node's lane).
@@ -94,6 +97,7 @@ func (n *WatchNoteBase) prepare(sweet, jt float64, scored bool, bucket sonolus.B
 	n.JCount = 1
 	n.JDivisor = 1
 	n.ALaneOff, n.ALanePulse = -1, -1
+	n.JFront = true
 	if !isAuto() {
 		n.JGrade = replayGrade(n.Judgment, n.Accuracy, sweet)
 		n.JTime = n.Time + n.Accuracy
@@ -268,6 +272,7 @@ func (n *WatchLongTail) Preprocess() {
 		jt = jtLongEndMulti
 	}
 	n.prepare(1, jt, true, Buckets.LongTail)
+	n.JFront = false
 	// as Play: a directional tail's body particle sits at its flick-start end
 	// and a wide one counts its members
 	if n.Kind == NodeDirectional || n.Kind == NodeMultiDir {
@@ -374,6 +379,7 @@ func (n *WatchSlideNode) Preprocess() {
 		bucket = Buckets.SlideTail
 	}
 	n.prepare(0, endType(n.Kind), true, bucket)
+	n.JFront = false
 	n.JMid, n.JSlide = !n.Terminal, true
 	if n.Kind == NodeDirectional || n.Kind == NodeMultiDir {
 		n.JLane = dirBodyLane(n.SpanStart, n.Width, n.Direction)
@@ -397,6 +403,7 @@ func (n *WatchSlideNode) Preprocess() {
 
 func (n *WatchSlideHidden) Preprocess() {
 	n.prepare(0, jtSlide, false, Buckets.SlideNode)
+	n.JFront = false
 	if Config.Mirror {
 		n.Exit = -n.Exit
 	}
@@ -489,6 +496,7 @@ func watchFirstVisible(node sonolus.EntityRef[WatchSlideNodeBase]) sonolus.Entit
 
 func (n *WatchSlideBase) Preprocess() {
 	n.prepare(0, endType(n.Kind), !n.Hidden, Buckets.SlideHead)
+	n.JFront = !n.Hidden
 	n.JMid, n.JSlide = true, true
 	if n.Kind == NodeDirectional || n.Kind == NodeMultiDir {
 		n.JLane = dirBodyLane(n.SpanStart, n.Width, n.Direction)

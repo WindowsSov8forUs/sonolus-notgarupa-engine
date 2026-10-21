@@ -86,12 +86,12 @@ func (n *PlayLongHead) UpdateSequential() {
 		}
 		if n.State == stWait && now-n.Time > missSeconds {
 			// execOverWaitState: two Miss entries (head and tail), half damage each
-			n.Grade, n.Error = gradeMiss, missSeconds
+			n.Grade, n.Error = gradeMiss, now-n.Time // when it happens (replay)
 			lane := receiverLane(n.SpanStart, n.Width)
 			j := judgement{Width: n.Width, Grade: gradeMiss, Type: jtLongMiss, X: laneX(lane), Lane: lane, Key: n.Time, Divisor: 2}
 			applyJudgement(now, j)
 			applyJudgement(now, j)
-			n.finishTail(gradeMiss, missSeconds)
+			n.finishTail(gradeMiss, now-n.TailTime)
 			return
 		}
 		if math.Abs(now-n.Time) <= 9*frameSeconds {
@@ -104,7 +104,7 @@ func (n *PlayLongHead) UpdateSequential() {
 			registerCandidate(play.Entity.Info().Index, n.SpanStart, n.Width, n.Time, Layout.G, false, true)
 		}
 		if now-n.TailTime > missSeconds {
-			n.endHold(now, gradeMiss, timingNone, missSeconds, jtLongMiss)
+			n.endHold(now, gradeMiss, timingNone, now-n.TailTime, jtLongMiss)
 		}
 	}
 }

@@ -312,12 +312,12 @@ func (n *PlaySlideBase) advanceSegment(now float64) {
 // HeadStart, so an early touch leads and a late one restarts from the head's
 // own lane and lags.
 func (n *PlaySlideBase) updateContact(now float64) {
-	ft, fl, fw := n.Time, n.Lane+n.Exit, n.Width
+	ft, fl, fw, fb := n.Time, n.Lane+n.Exit, n.Width, n.Beat
 	start := n.HeadStart
 	next := n.First
 	if !n.SegHead {
 		f := n.Seg.Get()
-		ft, fl, fw = f.Time, f.Lane+f.Exit, f.Width
+		ft, fl, fw, fb = f.Time, f.Lane+f.Exit, f.Width, f.Beat
 		start = ft
 		next = f.Next
 	} else if !n.HeadStarted {
@@ -337,9 +337,46 @@ func (n *PlaySlideBase) updateContact(now float64) {
 	a := next.Get()
 	k := 1.0
 	if a.Time > ft {
-		k = sonolus.Clamp((now-start)/(a.Time-ft), 0, 1)
+		k = playSegmentProgress(start, ft, a.Time, fb, a.Beat, now)
 	}
 	n.ContactLane = fl + (a.Lane-fl)*k
+}
+
+// playSegmentProgress is how far a riding front has moved along a segment
+// from beat fb (time ft) to beat bb (time bt) since start: the original
+// steps by the segment's length at the current BPM (MoveToNextAfterNoteButton
+// with GetSecWithDistance), i.e. evenly in beats, so the speed changes where a
+// BPM change falls inside the segment. With one BPM over the segment that is
+// even in time; a negative BPM (folded time, extension) keeps time.
+func playSegmentProgress(start, ft, bt, fb, bb, now float64) float64 {
+	linear := sonolus.Clamp((now-start)/(bt-ft), 0, 1)
+	if bb <= fb || play.Time.BeatToStartingBeat(bb) <= fb {
+		return linear
+	}
+	nb, ok := playBeatAt(now, bb)
+	sb, ok2 := playBeatAt(start, bb)
+	if !ok || !ok2 {
+		return linear
+	}
+	return sonolus.Clamp((nb-sb)/(bb-fb), 0, 1)
+}
+
+// playBeatAt inverts BeatToTime for time t, walking the BPM changes back
+// from beat hint; false when it meets a non-positive BPM.
+func playBeatAt(t, hint float64) (float64, bool) {
+	b := hint
+	for k := 0; k < 64; k++ {
+		bpm := play.Time.BeatToBPM(b)
+		if bpm <= 0 {
+			return 0, false
+		}
+		sb, st := play.Time.BeatToStartingBeat(b), play.Time.BeatToStartingTime(b)
+		if t >= st || sb <= 0 {
+			return sb + (t-st)*bpm/60, true
+		}
+		b = sb - 1e-6
+	}
+	return 0, false
 }
 
 // headArrived: the head waits once it has crossed the line and reached the

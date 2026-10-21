@@ -585,7 +585,7 @@ func (n *WatchSlideBase) UpdateSequential() {
 	// as Play: the head starts along its segment at its stop on the virtual
 	// perfect line, and again from its own lane at its touch (its judgement
 	// in the replay)
-	ft, fl, fw := n.Time, n.Lane+n.Exit, n.Width
+	ft, fl, fw, fb := n.Time, n.Lane+n.Exit, n.Width, n.Beat
 	start := n.Time + Layout.VPLDelay
 	if !n.Hidden && n.JGrade != gradeMiss && now >= n.JTime {
 		start = n.JTime
@@ -593,7 +593,7 @@ func (n *WatchSlideBase) UpdateSequential() {
 	next := n.First
 	if !n.SegHead {
 		f := n.Seg.Get()
-		ft, fl, fw = f.Time, f.Lane+f.Exit, f.Width
+		ft, fl, fw, fb = f.Time, f.Lane+f.Exit, f.Width, f.Beat
 		start = ft
 		next = f.Next
 	}
@@ -604,7 +604,7 @@ func (n *WatchSlideBase) UpdateSequential() {
 		a := next.Get()
 		k := 1.0
 		if a.Time > ft {
-			k = sonolus.Clamp((now-start)/(a.Time-ft), 0, 1)
+			k = watchSegmentProgress(start, ft, a.Time, fb, a.Beat, now)
 		}
 		n.ContactLane = fl + (a.Lane-fl)*k
 	}
@@ -828,4 +828,35 @@ func watchHold(n *WatchNoteBase, start, end float64) {
 	if Config.SFX {
 		scheduleHoldSound(start, end)
 	}
+}
+
+// watchSegmentProgress is playSegmentProgress.
+func watchSegmentProgress(start, ft, bt, fb, bb, now float64) float64 {
+	linear := sonolus.Clamp((now-start)/(bt-ft), 0, 1)
+	if bb <= fb || watch.Time.BeatToStartingBeat(bb) <= fb {
+		return linear
+	}
+	nb, ok := watchBeatAt(now, bb)
+	sb, ok2 := watchBeatAt(start, bb)
+	if !ok || !ok2 {
+		return linear
+	}
+	return sonolus.Clamp((nb-sb)/(bb-fb), 0, 1)
+}
+
+// watchBeatAt is playBeatAt.
+func watchBeatAt(t, hint float64) (float64, bool) {
+	b := hint
+	for k := 0; k < 64; k++ {
+		bpm := watch.Time.BeatToBPM(b)
+		if bpm <= 0 {
+			return 0, false
+		}
+		sb, st := watch.Time.BeatToStartingBeat(b), watch.Time.BeatToStartingTime(b)
+		if t >= st || sb <= 0 {
+			return sb + (t-st)*bpm/60, true
+		}
+		b = sb - 1e-6
+	}
+	return 0, false
 }

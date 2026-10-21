@@ -161,6 +161,9 @@ func (*WatchStage) UpdateSequential() {
 		}
 		clearAddPops()
 	}
+	// as Play and the original: the OffReserve countdown precedes this
+	// update's lane events, so a pulse shows one full-bright update
+	updateLaneReserve(now)
 	for k := 0; k < 256 && Cursor.Next > 0; k++ {
 		n := sonolus.EntityRef[WatchNoteBase]{Index: Cursor.Next}.Get()
 		if n.JTime > now {
@@ -173,7 +176,13 @@ func (*WatchStage) UpdateSequential() {
 			if Config.NoteEffects {
 				playJudgementParticles(j)
 			}
+			if j.Auto && n.ALaneOff >= 0 {
+				laneOff(n.ALaneOff)
+			}
 			judgementLights(now, j)
+			if j.Auto && n.ALanePulse >= 0 {
+				laneOnReserve(n.ALanePulse, now)
+			}
 		}
 		Cursor.Last = Cursor.Next
 		Cursor.Next = n.ScoreNext.Index
@@ -200,7 +209,6 @@ func (*WatchStage) UpdateSequential() {
 		Hud.GameOver = false
 	}
 	updateCover(now, skip)
-	updateLaneReserve(now)
 }
 
 func (*WatchStage) UpdateParallel() {

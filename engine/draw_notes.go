@@ -38,8 +38,21 @@ func habaRun(spanStart, width float64) int {
 func habaWidthPx(width float64) float64 { return habaPx[int(sonolus.Clamp(width, 1, 7))-1] }
 
 // drawWide draws a note body sprite of the given pixel width.
+// cRide is the curve value of a sprite riding a held Slide's line: the head
+// (slidingMove) and stopped middle nodes (MoveToNextAfterNoteButton) move in
+// button-local space, so they sit at heldPos, with the flash and body front.
+const cRide = -2.0
+
+// spritePos is a note sprite's position for curve c (cRide: riding).
+func spritePos(lane, c float64) sonolus.Vec2 {
+	if c == cRide {
+		return heldPos(lane)
+	}
+	return notePos(lane, c)
+}
+
 func drawWide(sp sonolus.Sprite, px, lane, c, buttons float64, z sonolus.ZIndex, a float64, stopped bool) sonolus.Vec2 {
-	p := notePos(lane, c)
+	p := spritePos(lane, c)
 	if !suddenHides(p.Y) {
 		sp.DrawZ(spriteQuad(p, px, noteSpritePy, notePPU, spriteScale(p.Y, buttons, stopped)), z, a)
 	}
@@ -78,7 +91,7 @@ func slideHoldSprites(width, centre float64) (sonolus.Sprite, sonolus.Sprite, fl
 
 // drawNoteSprite draws a note body sprite at lane position for curve c.
 func drawNoteSprite(sp sonolus.Sprite, lane, c, buttons float64, z sonolus.ZIndex, a float64, stopped bool) sonolus.Vec2 {
-	p := notePos(lane, c)
+	p := spritePos(lane, c)
 	if !suddenHides(p.Y) {
 		sp.DrawZ(noteQuad(p, spriteScale(p.Y, buttons, stopped)), z, a)
 	}
@@ -96,7 +109,7 @@ const (
 // up-flick icon on a Flick gesture node whose gesture still shows (chart
 // extension); a node stopped on the line takes the target-button scale.
 func drawAmong(lane, c, width, kind, iconT float64, stopped bool, z sonolus.ZIndex) {
-	p := notePos(lane, c)
+	p := spritePos(lane, c)
 	if suddenHides(p.Y) {
 		return
 	}
@@ -323,7 +336,9 @@ func drawSimLine(p, q sonolus.Vec2, t float64, aNo, bNo bool) {
 func drawLong(l noteLook, c, tailLane, tailWidth, tc float64, held bool, flashT float64, z, zb sonolus.ZIndex) {
 	head := notePos(l.Lane, c)
 	tp := notePos(tailLane, tc)
-	if tp.Y > head.Y {
+	// the body exists only while the tail is above the line (an unheld head
+	// that moved on past the line leaves no body once the tail arrives)
+	if tp.Y > head.Y && tc < 1 {
 		fh, ah := bodyHalf(head.Y, l.Width), bodyHalf(tp.Y, tailWidth)
 		if held {
 			fh = heldHalf(l.Width)

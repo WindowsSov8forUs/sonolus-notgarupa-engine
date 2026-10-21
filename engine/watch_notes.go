@@ -40,6 +40,11 @@ type WatchNoteBase struct {
 	// WatchStage schedules them in chain order under the cue limit
 	HoldUntil float64 `archetype:"shared"`
 	JSlide    bool    `archetype:"shared"`
+	// Auto Live tap-lane extras of a Slide (−1 none): Off on the previous
+	// target before this judgement's pulse, and a further pulse after it
+	// (the head's Began pulses the first node's lane).
+	ALaneOff   float64 `archetype:"shared"`
+	ALanePulse float64 `archetype:"shared"`
 
 	SCombo      float64 `archetype:"shared"`
 	SComboStart float64 `archetype:"shared"`
@@ -88,6 +93,7 @@ func (n *WatchNoteBase) prepare(sweet, jt float64, scored bool, bucket sonolus.B
 	n.JLane = receiverLane(n.SpanStart, n.Width)
 	n.JCount = 1
 	n.JDivisor = 1
+	n.ALaneOff, n.ALanePulse = -1, -1
 	if !isAuto() {
 		n.JGrade = replayGrade(n.Judgment, n.Accuracy, sweet)
 		n.JTime = n.Time + n.Accuracy
@@ -262,6 +268,12 @@ func (n *WatchLongTail) Preprocess() {
 		jt = jtLongEndMulti
 	}
 	n.prepare(1, jt, true, Buckets.LongTail)
+	// as Play: a directional tail's body particle sits at its flick-start end
+	// and a wide one counts its members
+	if n.Kind == NodeDirectional || n.Kind == NodeMultiDir {
+		n.JLane = dirBodyLane(n.SpanStart, n.Width, n.Direction)
+	}
+	n.JCount = gestureCount(n.Kind, n.Width)
 	h := n.Head.Get()
 	if !isAuto() && replayGrade(h.Judgment, h.Accuracy, 0) == gradeMiss {
 		// head timeout: both entries at once, half damage each
@@ -318,6 +330,9 @@ func (n *WatchLongHead) UpdateParallel() {
 	now := watch.Time.Now()
 	held := n.held(now)
 	c := n.curve(now, held)
+	if held {
+		c = 1 // NoteLong.StopState keeps a held head on its target
+	}
 	if c < 0 {
 		return
 	}
@@ -410,6 +425,9 @@ func (n *WatchSlideNodeBase) UpdateParallel() {
 			if !h.SegHead && h.Seg.Index == watch.Entity.Info().Index {
 				lane -= n.Exit // as Play: the exit offset stays behind the gesture
 			}
+			if !n.Terminal {
+				c = cRide
+			}
 		}
 	}
 	z := noteZ(zNote, h.Time, h.Lane)
@@ -481,6 +499,25 @@ func (n *WatchSlideBase) Preprocess() {
 	n.JCount = gestureCount(n.Kind, n.KindWidth)
 	if n.JGrade == gradeMiss {
 		n.JType = jtSlide
+	}
+	// Auto Live lanes (forcePerfectMoveState / reflectAutoAfterTapLane): the
+	// head also pulses its first node's lane; each visible node switches the
+	// previous target off before its own pulse
+	target := -1.0
+	if !n.Hidden {
+		target = math.Round(receiverLane(n.SpanStart, n.Width))
+		if n.First.Index > 0 {
+			f := n.First.Get()
+			n.ALanePulse = math.Round(receiverLane(f.SpanStart, f.Width))
+		}
+	}
+	for node, k := n.First, 0; k < 4096 && node.Index > 0; k++ {
+		d := node.Get()
+		if !d.Hidden {
+			d.ALaneOff = target
+			target = math.Round(receiverLane(d.SpanStart, d.Width))
+		}
+		node = d.Next
 	}
 	node := n.First
 	lastVisible, firstMiss := -1e9, 1e9
@@ -608,19 +645,24 @@ func (n *WatchSlideBase) UpdateParallel() {
 			lane := n.Lane
 			if l.Stopped {
 				lane = n.anchorLane(now) // as Play: the stopped head rides the contact point
+				if n.HasContact {
+					c = cRide
+				}
 			}
 			drawTerminal(l, n.Kind, n.KindWidth, lane, c, now-n.Spawn, n.z())
 		}
 	}
+	chain, passed := n.chainSprite(now)
+	if chain == chainPassed && n.HasContact {
+		// as Play: a passed node rides also after a Miss ended the hold
+		// feedback (it was passed, so the finger was down)
+		drawAmong(n.anchorLane(now), cRide, passed.Get().Width, NodePlain, 0, true, n.z())
+	}
 	if n.holding(now) {
 		lane := n.anchorLane(now)
 		p := heldPos(lane)
-		chain, passed := n.chainSprite(now)
 		body, flash, px := slideHoldSprites(n.Width, lane)
 		drawHoldFlash(body, flash, p, px, !n.Hidden && chain == chainHead, now-n.HoldStart, n.z())
-		if chain == chainPassed {
-			drawAmong(lane, 1, passed.Get().Width, NodePlain, 0, true, n.z())
-		}
 		moveFx(fxKeep, p.X, n.Keep, n.KeepPlane, n.KeepPlane2)
 	}
 }
@@ -656,6 +698,9 @@ func (n *WatchSlideBase) chainSprite(now float64) (float64, sonolus.EntityRef[Wa
 	from, chain := n.First, chainHead
 	if passed.Index > 0 {
 		from, chain = passed.Get().Next, chainPassed
+	}
+	if chain == chainHead && n.Broken >= 0 || chain == chainPassed && passed.Get().Index <= n.Broken {
+		return chainNone, passed
 	}
 	for k := 0; k < 4096 && from.Index > 0; k++ {
 		d := from.Get()

@@ -103,6 +103,9 @@ func (n *PlaySlideNodeBase) UpdateParallel() {
 			if !h.SegHead && h.Seg.Index == play.Entity.Info().Index {
 				lane -= n.Exit
 			}
+			if !n.Terminal {
+				c = cRide // the terminal snaps in world space; middle nodes ride
+			}
 		}
 	}
 	// a child sorts with its head (head time and lane)
@@ -158,6 +161,9 @@ type PlaySlideBase struct {
 	// moves it the same frame), or its stop on the virtual perfect line.
 	HeadStart   float64 `archetype:"memory"`
 	HeadStarted bool    `archetype:"memory"`
+	// LaneTarget is the Slide's tap-lane target (NoteSlide.laneEffectTarget,
+	// −1 none); the finger's own button lane stays with the touch input.
+	LaneTarget float64 `archetype:"memory"`
 	// A gesture node's own detection state (origin, grace) and touch-down
 	// cache; the original's tail origin/grace (OX, OY, Grace) and tail cache
 	// (Cached…) stay untouched by gesture nodes.
@@ -232,6 +238,7 @@ func (n *PlaySlideBase) Preprocess() {
 	n.Broken = -1
 	n.Cached = -1
 	n.GCached = -1
+	n.LaneTarget = -1
 	n.OnHead = !n.Hidden
 	n.HeadDone = n.Hidden
 	if n.Hidden {
@@ -544,6 +551,13 @@ func (n *PlaySlideBase) Touch() {
 func (n *PlaySlideBase) pickUp(id, now float64) {
 	n.Finger = id
 	n.Touched = true
+	// the tap-lane target is the picked-up note (the touch lights its own button)
+	if n.OnHead {
+		n.LaneTarget = math.Round(receiverLane(n.SpanStart, n.Width))
+	} else {
+		c := n.Cursor.Get()
+		n.LaneTarget = math.Round(receiverLane(c.SpanStart, c.Width))
+	}
 	if n.OnHead {
 		n.HeadStart, n.HeadStarted = now, true
 		n.updateContact(now) // placed and moved in the same frame
@@ -606,8 +620,9 @@ func (n *PlaySlideBase) registerHidden(now float64) {
 			continue
 		}
 		n.Finger, n.Touched = touch.ID, true
+		n.LaneTarget = math.Round(receiverLane(c.SpanStart, c.Width))
 		if !touch.Started {
-			n.moveLane(c.SpanStart, c.Width, now)
+			laneOn(n.LaneTarget) // a held touch: the target lights (Began lights its own button)
 		}
 		if c.Kind == NodePlain {
 			n.judgeNode(n.Cursor, gradePerfect, timingNone, now-c.Time, jtSlide, 1, now)
@@ -689,14 +704,14 @@ func (n *PlaySlideBase) held(p sonolus.Vec2, now float64) bool {
 	if !c.Terminal {
 		if c.Kind == NodePlain {
 			if slideTau(c.Time, now) <= 1 && insideSpan(p, c.SpanStart, c.Width, false) {
-				n.moveLane(c.SpanStart, c.Width, now)
+				n.passLane(c.SpanStart, c.Width, now)
 				n.judgeNode(n.Cursor, gradePerfect, timingNone, now-c.Time, jtSlide, 1, now)
 				n.OX, n.OY = p.X, p.Y
 			}
 		} else {
 			if ok, g, timing, err := n.gestureJudged(p, now, c.Time, c.Kind, c.KindWidth, c.Direction, c.SpanStart, c.Width); ok {
-				// a successful middle node moves the lit lane, gesture or not
-				n.moveLane(c.SpanStart, c.Width, now)
+				// a successful middle node pulses its lane, gesture or not
+				n.passLane(c.SpanStart, c.Width, now)
 				n.judgeNode(n.Cursor, g, timing, err, endType(c.Kind), 1, now)
 				n.OX, n.OY = p.X, p.Y
 			}
@@ -767,6 +782,7 @@ func (n *PlaySlideBase) terminalMoved(p sonolus.Vec2, now float64) {
 	if n.Cached >= 0 {
 		// picked-up end: no VPL or grace requirement
 		if cachedFlickDone(p.X-n.OX, p.Y-n.OY, c.Kind, c.KindWidth) {
+			n.endLane(c.SpanStart, c.Width, true, now)
 			n.judgeNode(n.Cursor, n.Cached, n.CachedTiming, n.CachedError, endType(c.Kind), 1, now)
 		}
 		return
@@ -781,27 +797,49 @@ func (n *PlaySlideBase) terminalMoved(p sonolus.Vec2, now float64) {
 		n.Grace -= frameStep()
 	}
 	if tau <= 0 && n.Grace > 0 && gestureDone(p.X-n.OX, p.Y-n.OY, gestureDir(c.Kind, c.Direction), gestureCount(c.Kind, c.KindWidth)) {
+		n.endLane(c.SpanStart, c.Width, true, now) // the gesture reaches Ended through its button
 		n.judgeNode(n.Cursor, gradePerfect, timingNone, now-c.Time, endType(c.Kind), 1, now)
 	}
 }
 
-// moveLane moves the lit lane of the owning finger to a node's receiver.
-func (n *PlaySlideBase) moveLane(spanStart, width, now float64) {
+// passLane is ExecTouchMoved's beam block for a passed middle node: Off
+// on the old target, On and OffReserve on the node's lane.
+func (n *PlaySlideBase) passLane(spanStart, width, now float64) {
+	if n.LaneTarget < 0 {
+		return
+	}
+	laneOff(n.LaneTarget)
+	n.LaneTarget = math.Round(receiverLane(spanStart, width))
+	laneOnReserve(n.LaneTarget, now)
+}
+
+// endLane is NoteSlide.ExecTouchEnded's beam: Off on the old target, On on
+// the current note's lane, then OffReserve (a terminal released inside, or
+// any flick-family terminal) or Off.
+func (n *PlaySlideBase) endLane(spanStart, width float64, reserve bool, now float64) {
+	if n.LaneTarget < 0 {
+		return
+	}
+	laneOff(n.LaneTarget)
 	lane := math.Round(receiverLane(spanStart, width))
-	old, ok := Input.TouchLane.GetOK(n.Finger)
-	if ok && old != lane {
-		laneOff(old)
+	if reserve {
+		laneOnReserve(lane, now)
+	} else {
+		laneOff(lane)
 	}
-	laneOn(lane)
-	if ok || !Input.TouchLane.IsFull() {
-		Input.TouchLane.Set(n.Finger, lane)
-	}
+	n.LaneTarget = -1
 }
 
 // release is ExecTouchEnded of the owning finger.
 func (n *PlaySlideBase) release(p sonolus.Vec2, t, now float64) {
 	n.Finger = -1
 	n.stopFeedback()
+	if n.OnHead {
+		n.endLane(n.SpanStart, n.Width, false, now)
+	} else {
+		c := n.Cursor.Get()
+		n.endLane(c.SpanStart, c.Width, c.Terminal && (c.Kind != NodePlain || insideSpan(p, c.SpanStart, c.Width, true)), now)
+	}
 	if n.OnHead {
 		// gesture head released before its gesture: a non-final node's
 		// release is onMiss (type 8), as for a middle node
@@ -867,24 +905,28 @@ func (n *PlaySlideBase) UpdateParallel() {
 			// in Wait and Stop alike) until its Miss hides it
 			l := n.look()
 			l.Stopped = pr >= 1
-			lane := n.Lane
+			lane, c := n.Lane, math.Min(curveOf(pr), 1)
 			if l.Stopped {
 				lane = n.anchorLane()
+				if n.HasContact {
+					c = cRide
+				}
 			}
-			drawTerminal(l, n.Kind, n.KindWidth, lane, math.Min(curveOf(pr), 1), now-n.SpawnTime, n.z())
+			drawTerminal(l, n.Kind, n.KindWidth, lane, c, now-n.SpawnTime, n.z())
 		}
+	}
+	chain := n.chainSprite(now)
+	if chain == chainPassed && n.HasContact {
+		// a passed middle node rides as a plain one (note_slide_among only),
+		// with or without the hold: only hides take it away
+		drawAmong(n.anchorLane(), cRide, n.Passed.Get().Width, NodePlain, 0, true, n.z())
 	}
 	if n.Feedback {
 		lane := n.anchorLane()
 		p := heldPos(lane)
-		chain := n.chainSprite(now)
 		body, flash, px := slideHoldSprites(n.Width, lane)
 		// the held body replaces a gesture head only once it is judged
 		drawHoldFlash(body, flash, p, px, !n.Hidden && n.HeadDone && chain == chainHead, now-n.FlashStart, n.z())
-		if chain == chainPassed {
-			// a passed middle node rides as a plain one: note_slide_among only
-			drawAmong(lane, 1, n.Passed.Get().Width, NodePlain, 0, true, n.z())
-		}
 		moveFx(fxKeep, p.X, n.Keep, n.KeepPlane, n.KeepPlane2)
 	}
 }
@@ -915,6 +957,10 @@ func (n *PlaySlideBase) chainSprite(now float64) float64 {
 	from, chain := n.First, chainHead
 	if n.Passed.Index > 0 {
 		from, chain = n.Passed.Get().Next, chainPassed
+	}
+	// a Miss hides the note and everything before it (hideNote(root, current, true))
+	if chain == chainHead && n.Broken >= 0 || chain == chainPassed && n.Passed.Get().Index <= n.Broken {
+		return chainNone
 	}
 	for k := 0; k < 4096 && from.Index > 0; k++ {
 		d := from.Get()

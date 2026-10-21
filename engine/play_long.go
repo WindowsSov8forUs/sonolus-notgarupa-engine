@@ -183,10 +183,26 @@ func (n *PlayLongHead) Touch() {
 		}
 		dir, count := 0.0, 1.0
 		jt := jtLongEndFlick
-		if tail.Kind == NodeDirectional {
+		switch tail.Kind {
+		case NodeDirectional:
 			dir, jt = tail.Direction, jtLongEndDir
+		case NodeMultiDir:
+			dir, count, jt = tail.Direction, tail.Width, jtLongEndMulti
 		}
-		if gestureDone(p.X-n.OX, p.Y-n.OY, dir, count) && r != gradeNone && n.Grace > 0 {
+		if !gestureDone(p.X-n.OX, p.Y-n.OY, dir, count) {
+			continue
+		}
+		if tail.Kind == NodeMultiDir {
+			// NoteLong.ExecTouchMoved's Multiple branch flicks without the
+			// judgement and grace gates; outside the window it is a Miss
+			grade, timing := r, timeTiming(r, n.TailTime-now)
+			if grade == gradeNone {
+				grade, timing, jt = gradeMiss, timingNone, jtLongMiss
+			}
+			n.endHold(now, grade, timing, now-n.TailTime, jt)
+			return
+		}
+		if r != gradeNone && n.Grace > 0 {
 			n.endHold(now, r, timeTiming(r, n.TailTime-now), now-n.TailTime, jt)
 			return
 		}
@@ -197,8 +213,11 @@ func (n *PlayLongHead) Touch() {
 func (n *PlayLongHead) endHold(now, grade, timing, err, jt float64) {
 	tail := n.tailNote()
 	lane := receiverLane(tail.SpanStart, tail.Width)
+	if tail.Kind == NodeDirectional || tail.Kind == NodeMultiDir {
+		lane = dirBodyLane(tail.SpanStart, tail.Width, tail.Direction)
+	}
 	applyJudgement(now, judgement{Width: tail.Width, Grade: grade, Type: jt, Timing: timing, Skill: tail.Skill,
-		X: laneX(lane), Lane: lane, Key: n.TailTime, Direction: tail.Direction, Count: 1, Divisor: 1})
+		X: laneX(lane), Lane: lane, Key: n.TailTime, Direction: tail.Direction, Count: gestureCount(tail.Kind, tail.Width), Divisor: 1})
 	n.finishTail(grade, err)
 	n.stopFeedback()
 }
@@ -231,7 +250,7 @@ func (n *PlayLongHead) UpdateParallel() {
 	held := n.State == stHold
 	var c float64
 	if held {
-		c = math.Min(curveOf(n.progress(now)), 1)
+		c = 1 // NoteLong.StopState keeps a held head on its target, an early one too
 	} else {
 		pr := n.progress(now)
 		if pr < 0 {

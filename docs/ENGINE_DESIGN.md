@@ -66,9 +66,9 @@ Archetype、数据字段与计分链见 [LEVEL_DATA.md](LEVEL_DATA.md)。转换�
 - 时间窗：`f = |Δt|·60`，银行家舍入为整数帧 `r`；`r < sweet+3` Perfect，`+6` Great，`+7` Good，`+8` Bad，否则不判定。sweet：头/单点 0，Long 尾 1。
 - Slide 节点（位置判定）的时间等价：`τ = (t_vpl − t)·60`，`t_vpl = T + δ`，`δ = ceil(arrival·60)/60 − arrival`；`τ ≤ 3` Perfect，`≤ 6` Great，`≤ 7` Good，`≤ 8` Bad；晚侧恒为 Perfect，直到超时。按住经过中间节点的条件：手指在节点 lane 判定圆内且 `τ ≤ 1`。
 - 自动 Miss：单点 `13/60 s`；Long 头超时两次 Miss（各半伤害）；Slide 头在 13/60 s 与“到下一可见节点一半”二者较早者；中间节点同理并在下一可见节点停止时失效（伤害 ÷5）；Flick 尾停在线上 7 帧后 Miss；其余尾 13/60 s。
-- 超时起点：Long 头在越过判定线（progress > 1）后进入 Wait，只有 Wait 中的头会超时；Wait 中的头继续移动越过判定线（`NoteLong.WaitState` 调用 `NoteBase.Move`），超时后整条 Long 消失；按住时头停在线上，尾到线后停在线上直到判定。Slide 头在越过判定线且到达虚拟完美线（τ ≤ 0）后才进入等待。SV 下 progress 是视觉进度，所以速度为 0 停在线上的头要等轴恢复移动后才超时（原作停止条件：progress > 1 且越过虚拟完美线）。中间节点停在真实判定线，终点停在虚拟完美线，因此中间节点的“下一节点已停止”判断对终点使用虚拟完美线。
+- 超时起点：Long 头在越过判定线（progress > 1）后进入 Wait，只有 Wait 中的头会超时；Wait 中的头继续移动越过判定线（`NoteLong.WaitState` 调用 `NoteBase.Move`），超时后整条 Long 消失，尾部到达判定线后不再绘制主体；按住时头从按下起就停在线上（提前按下也是，NoteLong.StopState），尾到线后停在线上直到判定。Slide 头在越过判定线且到达虚拟完美线（τ ≤ 0）后才进入等待。SV 下 progress 是视觉进度，所以速度为 0 停在线上的头要等轴恢复移动后才超时（原作停止条件：progress > 1 且越过虚拟完美线）。中间节点停在真实判定线，终点停在虚拟完美线，因此中间节点的“下一节点已停止”判断对终点使用虚拟完美线。
 - 尾部手势块（ExecTouchMoved，调整值 B = 0）：按住时每次在中间节点上的 Moved（手势节点也一样）都会检查 Flick 族终点。刚经过最后一个中间节点时，终点手势在同一帧判定；仍有中间节点未判定时，终点的接触与原点照常推进，一旦 Flick 完成，就按松手处理，未判定的节点 Miss（中间节点 ÷5）。Directional 终点在此处重置原点，所以实际只有 Flick 终点会这样完成。
-- Flick：按下时缓存等级；2D 位移 > 0.04 rate（0.0711 世界单位）完成；7 个 ExecuteFrame 内未完成 → Miss。方向键：x 方向 + 水平 > 0.01 rate；宽方向键另需 2D > count·0.01 rate。
+- Flick：按下时缓存等级；2D 位移 > 0.04 rate（0.0711 世界单位）完成；7 个 ExecuteFrame 内未完成 → Miss。方向键：x 方向 + 水平 > 0.01 rate；宽方向键另需 2D > count·0.01 rate。Long 的宽方向键尾按原作 Multiple 分支：只看方向与按成员数放大的距离，不要求判定窗口与 grace，在窗口外完成即 Miss。
 - 松手：中间节点待判时该节点 Miss，Slide 存活并可由任何新按下接续；普通尾在“甜区”（半径² × 1.08）内松手按 τ 评级；flick 类尾未完成手势即 Miss。
 - 一个触摸至多判定一个音符；已被占有的音符胜出时该触摸被消耗。
 - 扩展（GarupaEditor）：
@@ -126,9 +126,9 @@ Sonolus 自身的生命值只能在 preprocess 中静态配置（`AddLifeSchedul
 
 - 按住、停止或吸附在判定线上的精灵使用目标按钮缩放 `rate·N`（世界 ×P），不再用移动中的混合缩放（停止的 Slide 节点含终点，以及未按住、吸附在线上的 Slide 头）；主体前端在按住点用同一缩放；尚未出现的节点端点用虚拟缩放 `rate·N·|Ly/safe − Y0/P| / |(Ly − G)/safe|`。按住中的 Slide 接触点在按钮局部空间移动，世界坐标为 `(x, G)·P/M`。接触点按原作 MoveToNextAfterNoteButton 以该段的谱面速度（两节点的 lane 差 / 时间差）向下一节点移动并在其 lane 处停住，下一节点停下时到达该节点；头部一段从头部开始移动的时刻起算：按下时（ExecTouchBegan 把头放回自己的目标位置，同一帧 slidingMove 即开始移动），未按住则从停在虚拟完美线时起。因此提前按下时头部领先，晚按时头部先回到自己的 lane 再落后。Watch 以回放中头部的判定时刻作为按下时刻。
 - 方向键连线宽 = 局部缩放 × 0.75；判定线随音符大小缩放；音符大小设置 10%–200%（HABAHIRO 钳制到 80%–150%）。
-- Long / Slide 子节点按头的时刻与 lane 排序；相连的方向键成员 z3 = −first + 2·方向·(lane − first)（first 为组最左 lane，即原作逐成员 ±0.00001 的链式深度）。lane 光柱 OffReserve 为 1 帧，渐灭可重启，7 条光柱同深度按 lane 排序。
+- Long / Slide 子节点按头的时刻与 lane 排序；相连的方向键成员 z3 = −first + 2·方向·(lane − first)（first 为组最左 lane，即原作逐成员 ±0.00001 的链式深度）。lane 光柱 OffReserve 为 1 帧（Play 与 Watch 都先倒计时再处理本次更新的事件），渐灭可重启，7 条光柱同深度按 lane 排序。Slide 的光柱目标（NoteSlide.laneEffectTarget）与手指自己的按钮分开：按下时目标为按下的音符；经过中间节点为 Off(旧目标)、On(该节点)、OffReserve；松手与终点手势完成为 Off(旧目标)、On(当前音符)，再 OffReserve（在范围内松开的终点或 Flick 族终点）或立即 Off；手指自己的按钮在松开时于按下的 lane 渐灭。Auto Live 中 Slide 头另外为第一个节点的 lane 闪一次（forcePerfectMoveState 的 Began），之后每个可见节点先关掉上一个目标。
 - 中间 Flick 节点保持 `note_slide_among` 并带上滑图标，判定后只剩 `note_slide_among`。Slide 主体材质只看后续节点是否有 Hidden。
-- 按住中的 Slide 前端精灵按原作 hide-before（ExecTouchMoved 只隐藏前一个音符，不可见节点经 `killFromInvisibleNotesToVisibleNote` 同样计入）：按住头的主体只显示到经过第一个中间节点为止；之后最后经过的中间节点以 `note_slide_among` 随接触点前进，直到下一个可见节点停下（或经过不可见节点、Miss、松手）；flash 一直在前端。
+- 按住中的 Slide 前端精灵按原作 hide-before（ExecTouchMoved 只隐藏前一个音符，不可见节点经 `killFromInvisibleNotesToVisibleNote` 同样计入）：按住头的主体只显示到经过第一个中间节点为止；之后最后经过的中间节点以 `note_slide_among` 随接触点前进，直到下一个可见节点停下（或经过不可见节点、Miss、松手）；flash 一直在前端。这些精灵只由隐藏请求去掉，与 flash 无关：Miss 后再经过的节点同样随连线前进（没有 flash），Miss 去掉的头部主体不会因重新按下终点而出现。随连线移动的头与中间节点在按钮局部空间，与 flash、主体前端同在 `(x, G)·P/M`；停下的终点按世界坐标吸附。
 - Slide 的节点 Miss（头超时、中间节点超时、松手时待判的节点）按原作 `hideNote(root, current, true)` 去掉该节点及其之前的全部主体段（含从它出发的一段），flash 与 TapKeep 停止；之后到达的段照常绘制。Watch 按回放中的 Miss 时刻同样处理，并在第一次 Miss 时结束按住表现（回放无法得知重新按下）。
 - 新设置：Long 主体亮度（10–100，默认 80，即透明度）与 Sudden（0–100）。Sudden 精确裁剪主体线、同时押线与方向连线，画出现条；音符精灵在中心进入遮罩时整体隐藏（Sonolus 无遮罩）；lane fit 需要贴图裁剪，未实现；lane 光柱不遮罩。
 

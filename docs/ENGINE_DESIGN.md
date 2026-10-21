@@ -132,7 +132,7 @@ Sonolus 自身的生命值只能在 preprocess 中静态配置（`AddLifeSchedul
 - 技能音符的前端（单点、Flick、Long 头、Slide 头）用 `note_skill`（resolveFrontSpriteBinding 先看附加类型）；按住的 Long 保持该精灵，按住的 Slide 头换成居中的 `note_long_3`；终点不用技能精灵。
 - 同时押线在两端都处于 Move 时显示：单点、Flick、方向键在越过判定线后仍处于 Move，直到判定，连线随之下移；Long / Slide 的头与终点在判定线处离开 Move。
 - 宽方向键终点（Long 尾与 Slide 终点）的成员之间在移动中画方向连线（ConnectWithTheNextNote），终点停下时隐藏。
-- 主体颜色：NoteMesh.Activate 设为 meshColorNormal（暂沿用 0.9，见 7.2），手指所在的段（Long 按住时整段；Slide 按下或经过节点后通往下一节点的段）由 NoteAfterBase.Touch 设为 meshColorTouch（白），之后不恢复。
+- 主体颜色：NoteMesh.Activate 设为 meshColorNormal = (0.9, 0.9, 0.9, 1)（NoteAfterBase..ctor 0x3A751E4 从只读数据 0x1534E70 载入，libil2cpp.so 10.1.4/230 实读 `66 66 66 3F ×3, 00 00 80 3F`），手指所在的段（Long 按住时整段；Slide 按下或经过节点后通往下一节点的段）由 NoteAfterBase.Touch 设为 meshColorTouch（白），之后不恢复。
 - HABAHIRO 谱面中按住的 Long 头按 NoteLong.StopState 在判定线的世界 Y 按按钮数取缩放（与移动中的缩放公式相同），普通谱面用目标按钮缩放。Slide 主体材质只看后续节点是否有 Hidden。
 - 按住中的 Slide 前端精灵按原作 hide-before（ExecTouchMoved 只隐藏前一个音符，不可见节点经 `killFromInvisibleNotesToVisibleNote` 同样计入）：按住头的主体只显示到经过第一个中间节点为止；之后最后经过的中间节点以 `note_slide_among` 随接触点前进，直到下一个可见节点停下（或经过不可见节点、Miss、松手）；flash 一直在前端。这些精灵只由隐藏请求去掉，与 flash 无关：Miss 后再经过的节点同样随连线前进（没有 flash），Miss 去掉的头部主体不会因重新按下终点而出现。随连线移动的头与中间节点在按钮局部空间，与 flash、主体前端同在 `(x, G)·P/M`；停下的终点按世界坐标吸附。
 - Slide 的节点 Miss（头超时、中间节点超时、松手时待判的节点）按原作 `hideNote(root, current, true)` 去掉该节点及其之前的全部主体段（含从它出发的一段），flash 与 TapKeep 停止；之后到达的段照常绘制。Watch 按回放中的 Miss 时刻同样处理，并在第一次 Miss 时结束按住表现（回放无法得知重新按下）。
@@ -140,7 +140,6 @@ Sonolus 自身的生命值只能在 preprocess 中静态配置（`AddLifeSchedul
 
 ## 7.2 未实现项与原因
 
-- Long / Slide 主体的 meshColorNormal：其值是 libil2cpp.so（10.1.4/230）只读数据 0x1534E70 处的 16 字节（NoteAfterBase..ctor 0x3A751E8 `ldr q0`），本机没有该二进制；现沿用 0.9。需在 Windows 侧读取该地址确认。
 
 Sonolus 框架限制（引擎无法实现，sonolus-go 无法弥补）：
 

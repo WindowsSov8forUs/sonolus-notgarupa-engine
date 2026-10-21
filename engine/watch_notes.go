@@ -545,21 +545,29 @@ func (n *WatchSlideBase) UpdateSequential() {
 		n.Seg = next
 		n.SegHead = false
 	}
+	// as Play: the head starts along its segment at its stop on the virtual
+	// perfect line, and again from its own lane at its touch (its judgement
+	// in the replay)
 	ft, fl, fw := n.Time, n.Lane+n.Exit, n.Width
+	start := n.Time + Layout.VPLDelay
+	if !n.Hidden && n.JGrade != gradeMiss && now >= n.JTime {
+		start = n.JTime
+	}
 	next := n.First
 	if !n.SegHead {
 		f := n.Seg.Get()
 		ft, fl, fw = f.Time, f.Lane+f.Exit, f.Width
+		start = ft
 		next = f.Next
 	}
-	n.HasContact = now >= ft
+	n.HasContact = now >= start
 	n.ContactWidth = fw
 	n.ContactLane = fl
 	if n.HasContact && next.Index > 0 {
 		a := next.Get()
 		k := 1.0
 		if a.Time > ft {
-			k = sonolus.Clamp((now-ft)/(a.Time-ft), 0, 1)
+			k = sonolus.Clamp((now-start)/(a.Time-ft), 0, 1)
 		}
 		n.ContactLane = fl + (a.Lane-fl)*k
 	}

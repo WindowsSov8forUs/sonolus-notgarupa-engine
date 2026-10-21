@@ -153,6 +153,11 @@ type PlaySlideBase struct {
 	Broken     float64 `archetype:"shared"`
 	FlashStart float64 `archetype:"shared"`
 	GestureAt  float64 `archetype:"memory"` // cursor whose gesture state is set
+	// HeadStart is when the head starts along the first segment: its
+	// touch-down (ExecTouchBegan places it on its own target, slidingMove
+	// moves it the same frame), or its stop on the virtual perfect line.
+	HeadStart   float64 `archetype:"memory"`
+	HeadStarted bool    `archetype:"memory"`
 	// A gesture node's own detection state (origin, grace) and touch-down
 	// cache; the original's tail origin/grace (OX, OY, Grace) and tail cache
 	// (Cached…) stay untouched by gesture nodes.
@@ -256,6 +261,9 @@ func (n *PlaySlideBase) UpdateSequential() {
 		return
 	}
 	now := play.Time.Now()
+	if !n.HeadStarted && n.headArrived(now) {
+		n.HeadStart, n.HeadStarted = now, true
+	}
 	n.advanceSegment(now)
 	n.updateContact(now)
 	if n.JudgeDone {
@@ -292,16 +300,24 @@ func (n *PlaySlideBase) advanceSegment(now float64) {
 }
 
 // updateContact places the contact point on the judge line: the stopped
-// node slides toward the next node, linearly in time.
+// node slides toward the next node at the segment's chart speed
+// (MoveToNextAfterNoteButton), clamped at the next node. The head starts at
+// HeadStart, so an early touch leads and a late one restarts from the head's
+// own lane and lags.
 func (n *PlaySlideBase) updateContact(now float64) {
 	ft, fl, fw := n.Time, n.Lane+n.Exit, n.Width
+	start := n.HeadStart
 	next := n.First
 	if !n.SegHead {
 		f := n.Seg.Get()
 		ft, fl, fw = f.Time, f.Lane+f.Exit, f.Width
+		start = ft
 		next = f.Next
+	} else if !n.HeadStarted {
+		n.HasContact = false
+		return
 	}
-	if now < ft {
+	if now < start {
 		n.HasContact = false
 		return
 	}
@@ -314,7 +330,7 @@ func (n *PlaySlideBase) updateContact(now float64) {
 	a := next.Get()
 	k := 1.0
 	if a.Time > ft {
-		k = sonolus.Clamp((now-ft)/(a.Time-ft), 0, 1)
+		k = sonolus.Clamp((now-start)/(a.Time-ft), 0, 1)
 	}
 	n.ContactLane = fl + (a.Lane-fl)*k
 }
@@ -529,6 +545,8 @@ func (n *PlaySlideBase) pickUp(id, now float64) {
 	n.Finger = id
 	n.Touched = true
 	if n.OnHead {
+		n.HeadStart, n.HeadStarted = now, true
+		n.updateContact(now) // placed and moved in the same frame
 		if n.Kind != NodePlain {
 			// gesture head: the flick tail's touch-down caches the grade; the
 			// gesture shows until it is judged

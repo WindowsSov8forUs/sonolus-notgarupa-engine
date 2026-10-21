@@ -12,6 +12,12 @@ type noteLook struct {
 	// Stopped: held, stopped or snapped on the judge line, drawn at the
 	// target-button scale instead of the motion scale.
 	Stopped bool
+	// Skill: a skill front note (tap, flick, Long or Slide head) is drawn with
+	// note_skill whatever its type (resolveFrontSpriteBinding checks the
+	// additional type first); ends never are
+	Skill bool
+	// LineTime orders a wide directional end's back lines (its head's time)
+	LineTime float64
 }
 
 // spriteScale is a note sprite's world scale: the motion scale at height y,
@@ -168,9 +174,18 @@ func drawTap(l noteLook, skill, offbeat bool, c float64, z sonolus.ZIndex) {
 func drawFlick(l noteLook, c, iconT float64, z sonolus.ZIndex) {
 	var p sonolus.Vec2
 	if Layout.HabaSkin {
-		p = drawWide(Skin.HabaFlick[habaRun(l.SpanStart, l.Width)], habaWidthPx(l.Width), l.Lane, c, l.Width, z, 1, l.Stopped)
+		run := habaRun(l.SpanStart, l.Width)
+		sp := Skin.HabaFlick[run]
+		if l.Skill {
+			sp = Skin.HabaSkill[run]
+		}
+		p = drawWide(sp, habaWidthPx(l.Width), l.Lane, c, l.Width, z, 1, l.Stopped)
 	} else {
-		p = drawNoteSprite(lanePick(Skin.NoteFlick, l.SpriteLane), l.Lane, c, l.Width, z, 1, l.Stopped)
+		sp := lanePick(Skin.NoteFlick, l.SpriteLane)
+		if l.Skill {
+			sp = lanePick(Skin.NoteSkill, l.SpriteLane)
+		}
+		p = drawNoteSprite(sp, l.Lane, c, l.Width, z, 1, l.Stopped)
 	}
 	drawFlickTop(p, l.Width, iconT, z, l.Stopped)
 }
@@ -241,15 +256,30 @@ func drawTerminal(l noteLook, kind, kindWidth, lane, c, iconT float64, z sonolus
 				body = lanePick(Skin.NoteFlickL, l.SpriteLane+ml-l.Lane)
 			}
 			// k grows toward the flick direction: the nearer member on top
-			p = drawNoteSprite(body, ml, c, 1, subZ(z, k), 1, l.Stopped)
+			q := drawNoteSprite(body, ml, c, 1, subZ(z, k), 1, l.Stopped)
+			if k > 0 && !l.Stopped {
+				// the end links to its Add member and each Add to the next
+				// while they move (ConnectWithTheNextNote / DeactivateBackLine)
+				drawBackLine(p, q, l.Direction, l.LineTime)
+			}
+			p = q
 		}
 		drawSideArrow(p, l.Direction, iconT, iconZ(z), l.Stopped)
 	default:
 		if Layout.HabaSkin {
-			drawWide(Skin.HabaLong[habaRun(l.SpanStart+shift, l.Width)], habaWidthPx(l.Width), lane, c, l.Width, z, 1, l.Stopped)
+			run := habaRun(l.SpanStart+shift, l.Width)
+			sp := Skin.HabaLong[run]
+			if l.Skill {
+				sp = Skin.HabaSkill[run]
+			}
+			drawWide(sp, habaWidthPx(l.Width), lane, c, l.Width, z, 1, l.Stopped)
 			return
 		}
-		drawNoteSprite(lanePick(Skin.NoteLong, l.SpriteLane+shift), lane, c, l.Width, z, 1, l.Stopped)
+		sp := lanePick(Skin.NoteLong, l.SpriteLane+shift)
+		if l.Skill {
+			sp = lanePick(Skin.NoteSkill, l.SpriteLane+shift)
+		}
+		drawNoteSprite(sp, lane, c, l.Width, z, 1, l.Stopped)
 	}
 }
 
@@ -257,6 +287,13 @@ func drawTerminal(l noteLook, kind, kindWidth, lane, c, iconT float64, z sonolus
 // their mesh half widths (bodyHalf / heldHalf / waitHalf); Sudden cuts it at
 // the clip line.
 func drawBelt(front sonolus.Vec2, fh float64, after sonolus.Vec2, ah float64, curve bool, z sonolus.ZIndex, alpha float64) {
+	drawBeltLit(front, fh, after, ah, curve, z, alpha, false)
+}
+
+// drawBeltLit draws a body segment; a touched one (the segment the held
+// finger is on: NoteAfterBase.Touch on Began and on each passed node) has
+// meshColorTouch, white, instead of meshColorNormal.
+func drawBeltLit(front sonolus.Vec2, fh float64, after sonolus.Vec2, ah float64, curve bool, z sonolus.ZIndex, alpha float64, touched bool) {
 	if Layout.SuddenR > 0 && after.Y > Layout.SuddenClipY {
 		if front.Y >= Layout.SuddenClipY {
 			return
@@ -266,12 +303,20 @@ func drawBelt(front sonolus.Vec2, fh float64, after sonolus.Vec2, ah float64, cu
 		ah = fh + (ah-fh)*k
 	}
 	sp := Skin.LongLine
-	if Layout.HabaSkin {
+	switch {
+	case Layout.HabaSkin && touched && curve:
+		sp = Skin.HabaLongLine2Touch
+	case Layout.HabaSkin && touched:
+		sp = Skin.HabaLongLineTouch
+	case Layout.HabaSkin && curve:
+		sp = Skin.HabaLongLine2
+	case Layout.HabaSkin:
 		sp = Skin.HabaLongLine
-		if curve {
-			sp = Skin.HabaLongLine2
-		}
-	} else if curve {
+	case touched && curve:
+		sp = Skin.LongLine2Touch
+	case touched:
+		sp = Skin.LongLineTouch
+	case curve:
 		sp = Skin.LongLine2
 	}
 	sp.DrawZ(beltQuad(front, after, fh, ah), z, alpha)
@@ -282,7 +327,11 @@ func drawBelt(front sonolus.Vec2, fh float64, after sonolus.Vec2, ah float64, cu
 // p is the held point on the line and px the sprites' pixel width; both use
 // the target-button scale, and the flash is not covered by Sudden.
 func drawHoldFlash(body, flash sonolus.Sprite, p sonolus.Vec2, px float64, withBody bool, t float64, z sonolus.ZIndex) {
-	s := targetScale()
+	drawHoldFlashAt(body, flash, p, px, withBody, t, z, targetScale())
+}
+
+// drawHoldFlashAt is drawHoldFlash at world scale s.
+func drawHoldFlashAt(body, flash sonolus.Sprite, p sonolus.Vec2, px float64, withBody bool, t float64, z sonolus.ZIndex, s float64) {
 	q := spriteQuad(p, px, noteSpritePy, notePPU, s)
 	if withBody && !suddenHides(p.Y) {
 		body.DrawZ(q, z, 1)
@@ -338,29 +387,48 @@ func drawLong(l noteLook, c, tailLane, tailWidth, tc float64, held bool, flashT 
 	tp := notePos(tailLane, tc)
 	// the body exists only while the tail is above the line (an unheld head
 	// that moved on past the line leaves no body once the tail arrives)
+	// NoteLong.StopState re-places a held head every frame; on a HABAHIRO
+	// (multi-range) chart it rescales at the line's world Y for its button
+	// count, otherwise it takes the target-button scale
+	heldScale := targetScale()
+	if Layout.Habahiro {
+		heldScale = noteScale(Layout.G, l.Width)
+	}
 	if tp.Y > head.Y && tc < 1 {
 		fh, ah := bodyHalf(head.Y, l.Width), bodyHalf(tp.Y, tailWidth)
 		if held {
 			fh = heldHalf(l.Width)
+			if Layout.Habahiro {
+				fh = bodyHalf(Layout.G, l.Width)
+			}
 		}
 		if tc <= 0 {
 			ah = waitHalf(tailWidth) // the tail has not appeared yet
 		}
-		drawBelt(head, fh, tp, ah, false, zb, bodyAlpha())
+		drawBeltLit(head, fh, tp, ah, false, zb, bodyAlpha(), held)
 	}
+	// a held Long keeps its front sprite (a skill head stays note_skill)
 	if Layout.HabaSkin {
 		// a Long's flash uses its real lanes
 		run := habaRun(l.SpanStart, l.Width)
+		body := Skin.HabaLong[run]
+		if l.Skill {
+			body = Skin.HabaSkill[run]
+		}
 		if held {
-			drawHoldFlash(Skin.HabaLong[run], Skin.HabaLongFlash[run], head, habaWidthPx(l.Width), true, flashT, z)
+			drawHoldFlashAt(body, Skin.HabaLongFlash[run], head, habaWidthPx(l.Width), true, flashT, z, heldScale)
 			return
 		}
-		drawWide(Skin.HabaLong[run], habaWidthPx(l.Width), l.Lane, c, l.Width, z, 1, l.Stopped)
+		drawWide(body, habaWidthPx(l.Width), l.Lane, c, l.Width, z, 1, l.Stopped)
 		return
+	}
+	body := lanePick(Skin.NoteLong, l.SpriteLane)
+	if l.Skill {
+		body = lanePick(Skin.NoteSkill, l.SpriteLane)
 	}
 	if held {
-		drawHoldFlash(lanePick(Skin.NoteLong, l.SpriteLane), lanePick(Skin.NoteLongFlash, l.SpriteLane), head, noteSpritePx, true, flashT, z)
+		drawHoldFlashAt(body, lanePick(Skin.NoteLongFlash, l.SpriteLane), head, noteSpritePx, true, flashT, z, heldScale)
 		return
 	}
-	drawNoteSprite(lanePick(Skin.NoteLong, l.SpriteLane), l.Lane, c, l.Width, z, 1, l.Stopped)
+	drawNoteSprite(body, l.Lane, c, l.Width, z, 1, l.Stopped)
 }

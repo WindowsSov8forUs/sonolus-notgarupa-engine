@@ -116,6 +116,7 @@ func (n *PlaySlideNodeBase) UpdateParallel() {
 	}
 	l := n.look()
 	l.Stopped = stopped // a stopped terminal takes the target-button scale
+	l.LineTime = h.Time
 	drawTerminal(l, n.Kind, n.KindWidth, lane, c, now-n.IconStart, z)
 }
 
@@ -939,6 +940,7 @@ func (n *PlaySlideBase) UpdateParallel() {
 			// in Wait and Stop alike) until its Miss hides it
 			l := n.look()
 			l.Stopped = pr >= 1
+			l.Skill = n.Skill // a skill Slide head is note_skill until it is held
 			lane, c := n.Lane, math.Min(curveOf(pr), 1)
 			if l.Stopped {
 				lane = n.anchorLane()
@@ -1067,7 +1069,8 @@ func (n *PlaySlideBase) drawBody(now float64) {
 			ah = heldHalf(a.Width)
 		}
 		if front > n.Broken {
-			drawBelt(fp, fh, ap, ah, n.Curve, z, alpha)
+			// the first segment is the one a held finger is on
+			drawBeltLit(fp, fh, ap, ah, n.Curve, z, alpha, k == 0 && n.Feedback)
 		}
 		if pr < 0 {
 			return
@@ -1121,7 +1124,9 @@ func (l *PlaySimLine) UpdateParallel() {
 		return
 	}
 	pa, pb := a.progress(now), b.progress(now)
-	if pa < 0 || pb < 0 || pa > 1 || pb > 1 {
+	// NoteSyncLine shows while both ends are in Move: a single note stays in
+	// Move below the line until judged; heads and ends leave it at the line
+	if pa < 0 || pb < 0 || !a.Single && pa > 1 || !b.Single && pb > 1 {
 		return
 	}
 	drawSimLine(notePos(l.ALane, curveOf(pa)), notePos(l.BLane, curveOf(pb)), math.Min(a.Time, b.Time), l.ANoMargin, l.BNoMargin)

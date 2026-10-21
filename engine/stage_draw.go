@@ -138,7 +138,9 @@ func drawLaneChangeFlash(now float64) {
 	a, b := flashAlphaA(e), flashAlphaB(e)
 	Skin.HabaFlash[0].Draw(rect(-580, -242, 580, 368), zJudgeLine+0.5, a)
 	Skin.HabaFlash[1].Draw(rect(-580, -242, 580, 368), zJudgeLine+0.5, b)
-	Skin.HabaFlash[2].Draw(rect(-940, -302, 940, -182), zJudgeLine+0.6, a)
+	// obj_scale y −242 ×100, obj2_pos +3.05: game_play_line_flash at −3.0
+	// (centre −237), game_play_line_flash2 at −3.05 (centre −242)
+	Skin.HabaFlash[2].Draw(rect(-940, -297, 940, -177), zJudgeLine+0.6, a)
 	Skin.HabaFlash[3].Draw(rect(-940, -302, 940, -182), zJudgeLine+0.6, b)
 }
 

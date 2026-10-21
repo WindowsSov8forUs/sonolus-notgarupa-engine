@@ -21,6 +21,17 @@ const holdLoopLimit = 4
 // use all of them.
 const holdSlots = 16
 
+// holdFade is how long a released hold sound keeps its voice: the release is
+// a volume fade of the same CRI playback (SoundResource.FadeVolume), so the
+// voice counts toward the cue limit until it ends. A non-looping cue just
+// stops.
+func holdFade() float64 {
+	if HoldSE.Once > 0 {
+		return 0
+	}
+	return 0.3
+}
+
 type HoldSEData struct {
 	sonolus.LevelDataResource
 	Intro float64 // seconds of #intro before #loop starts (0: none)

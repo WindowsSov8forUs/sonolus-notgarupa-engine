@@ -80,15 +80,15 @@ HABAHIRO 条目不是与普通条目并列的皮肤：服务器不在条目列�
 | `judge` | `judge_perfect/great/good/bad/miss/auto/fast/slow`（NGUI，尺寸 = 精灵尺寸） |
 | `hud` | RhythmGameUI（分数面板、分数条、生命条、暂停按钮、AddScore 数字、COMBO 字样…）、IconComboNumber（`icon_number_big_*`、`icon_number_big_AP_*`）、生命警告、生命遮罩 `sub_glow`、SS 特效、`level_mark` |
 | `lane` | `NoteLaneEffect_1..4`（PPU 69，轴心在完整 rect 底边）、`sudden_line` |
-| `stage` | `Tex_miniShine`、`Tex_speaker`、`speaker_effect`、`Pyllium` 及其着色版本 |
+| `stage` | `Tex_miniShine`、`Tex_speaker`（烘焙了 DarkCover 减色）、`speaker_effect`、`Pyllium_penlight` / `Pyllium_core`（同一贴图的右 / 左半）及其着色版本、均匀填充 `notgarupa/black` |
 | `text` | 预渲染字形与文字 |
 
 ### 着色与混合
 
 Sonolus 精灵不能着色，也没有加法混合，因此：
 
-- 原作运行时着色的精灵提供预烘焙版本：`hp_meter@6EFF69`（生命 > 20%）、`hp_meter@FF9999`（≤ 20%）、`additive/hp_meter@5DFF0064`（生命 > 1000 的第二条）、`label_round_white@FF3B72`（Auto 标签）、`ss_overlay@FFDDED`、8 个 `ss_kira@…`、`Tex_miniShine@0037FF` / `@D5FFFF`、`Pyllium@BFEEF0` / `@C8C8C8`、`longNoteLine*@E6E6E6`、开场 BgCover 的 `point_charactor_shadow@000000`。
-- 加法混合的素材（`additive/hp_meter`、`effect_health_caution_*`、`Tex_miniShine`、`speaker_effect`、`Pyllium`、`note_long_flash_*`）已就地转换：`alpha = max(rgb·a)`，`rgb = rgb·a / alpha`。在暗背景上与加法混合结果相同，在亮背景上会略压暗。hold flash 原作把 RGB 在 0.2→0.6→0.2 之间动画，绘制时把该值作为 alpha。
+- 原作运行时着色的精灵提供预烘焙版本：`hp_meter@6EFF69`（生命 > 20%）、`hp_meter@FF9999`（≤ 20%）、`additive/hp_meter@5DFF0064`（生命 > 1000 的第二条）、`label_round_white@FF3B72`（Auto 标签）、`ss_overlay@FFDDED`、8 个 `ss_kira@…`、`Tex_miniShine@0037FF` / `@D5FFFF`、`Pyllium_penlight@BFEEF0` / `Pyllium_core@C8C8C8`、`longNoteLine*@E6E6E6`（未着色的 `longNoteLine*` 用于手指所在的段）、开场 BgCover 的 `point_charactor_shadow@000000`。
+- 加法混合的素材（`additive/hp_meter`、`effect_health_caution_*`、`Tex_miniShine`、`speaker_effect`、`Pyllium_*`、`note_long_flash_*`）已就地转换：`alpha = max(rgb·a)`，`rgb = rgb·a / alpha`。在暗背景上与加法混合结果相同，在亮背景上会略压暗。hold flash 原作把 RGB 在 0.2→0.6→0.2 之间动画，绘制时把该值作为 alpha。
 - 反向减法混合的 `sub_glow`（生命遮罩，中心黑、边缘白）转换为黑色：`alpha = max(rgb·a)`。纯白处与原作同样压成黑色，灰度处由“减去”变为“按比例压暗”。
 
 ### 纹理尺寸

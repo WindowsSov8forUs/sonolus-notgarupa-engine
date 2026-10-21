@@ -109,6 +109,7 @@ func (*PlayStage) UpdateParallel() {
 	now := play.Time.Now()
 	drawStageLights(now, 2)
 	drawSpeakers(now, 3)
+	drawPsyllium(now, 3.2) // StageFront, above the speakers, under BgCover
 	drawCover(now, 4)
 	drawOpeningCovers(now)
 	drawField(now, lineAlpha(now))

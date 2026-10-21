@@ -40,9 +40,10 @@ type WatchNoteBase struct {
 	// WatchStage schedules them in chain order under the cue limit
 	HoldUntil float64 `archetype:"shared"`
 	JSlide    bool    `archetype:"shared"`
-	// JFront: a front note (tap, flick, directional, Long or visible Slide
-	// head); a replay lights its lane at the judgement, as Play's touch does
-	JFront bool `archetype:"data"`
+	// JClass: 0 an end or node, 1 a Long or visible Slide head, 2 a single
+	// note (tap, flick, directional; as PlayNoteBase.Single). A replay lights
+	// the lane at a front (≥ 1) judgement, as Play's touch does.
+	JClass float64 `archetype:"data"`
 	// Auto Live tap-lane extras of a Slide (−1 none): Off on the previous
 	// target before this judgement's pulse, and a further pulse after it
 	// (the head's Began pulses the first node's lane).
@@ -60,6 +61,7 @@ type WatchNoteBase struct {
 	SAddStart   float64 `archetype:"shared"`
 	SJudgeStart float64 `archetype:"shared"` // the frame representative's time
 	SGameOver   bool    `archetype:"shared"`
+	SWarnStart  float64 `archetype:"shared"` // life warning start (Hud.WarnStart)
 }
 
 // replayGrade recovers the original grade from a replay's Sonolus judgment
@@ -97,7 +99,7 @@ func (n *WatchNoteBase) prepare(sweet, jt float64, scored bool, bucket sonolus.B
 	n.JCount = 1
 	n.JDivisor = 1
 	n.ALaneOff, n.ALanePulse = -1, -1
-	n.JFront = true
+	n.JClass = 1
 	if !isAuto() {
 		n.JGrade = replayGrade(n.Judgment, n.Accuracy, sweet)
 		n.JTime = n.Time + n.Accuracy
@@ -149,7 +151,10 @@ type WatchTapNote struct {
 	Offbeat         bool `archetype:"imported,name=offbeat"`
 }
 
-func (n *WatchTapNote) Preprocess()          { n.prepare(0, jtNormal, true, Buckets.Tap) }
+func (n *WatchTapNote) Preprocess() {
+	n.prepare(0, jtNormal, true, Buckets.Tap)
+	n.JClass = 2
+}
 func (n *WatchTapNote) SpawnTime() float64   { return n.Spawn }
 func (n *WatchTapNote) DespawnTime() float64 { return n.JTime }
 func (n *WatchTapNote) UpdateParallel() {
@@ -165,6 +170,7 @@ type WatchFlickNote struct {
 
 func (n *WatchFlickNote) Preprocess() {
 	n.prepare(0, jtFlick, true, Buckets.Flick)
+	n.JClass = 2
 	if n.JGrade == gradeMiss {
 		n.JType = jtNormal
 	}
@@ -174,7 +180,9 @@ func (n *WatchFlickNote) DespawnTime() float64 { return n.JTime }
 func (n *WatchFlickNote) UpdateParallel() {
 	now := watch.Time.Now()
 	if c := n.curve(now, false); c >= 0 {
-		drawFlick(n.look(), c, now-n.Spawn, n.z())
+		l := n.look()
+		l.Skill = n.Skill
+		drawFlick(l, c, now-n.Spawn, n.z())
 	}
 }
 
@@ -206,6 +214,7 @@ func (n *WatchDirectionalNote) Preprocess() {
 		jt = jtMultiDir
 	}
 	n.prepare(0, jt, true, Buckets.Directional)
+	n.JClass = 2
 	n.JCount = n.Count
 	left := n.Lane
 	if Config.Mirror {
@@ -218,6 +227,7 @@ func (n *WatchDirectionalNote) Preprocess() {
 }
 func (n *WatchDirectionalMember) Preprocess() {
 	n.prepare(0, jtDirectional, false, Buckets.Directional)
+	n.JClass = 2
 }
 
 func (n *WatchDirectionalBase) SpawnTime() float64 { return n.Spawn }
@@ -272,7 +282,7 @@ func (n *WatchLongTail) Preprocess() {
 		jt = jtLongEndMulti
 	}
 	n.prepare(1, jt, true, Buckets.LongTail)
-	n.JFront = false
+	n.JClass = 0
 	// as Play: a directional tail's body particle sits at its flick-start end
 	// and a wide one counts its members
 	if n.Kind == NodeDirectional || n.Kind == NodeMultiDir {
@@ -295,7 +305,9 @@ func (n *WatchLongTail) DespawnTime() float64 { return n.JTime }
 func (n *WatchLongTail) UpdateParallel() {
 	now := watch.Time.Now()
 	if c := n.curve(now, true); c >= 0 {
-		drawTerminal(n.look(), n.Kind, n.Width, n.Lane, c, now-n.Spawn, noteZ(zNote, n.Head.Get().Time, n.Head.Get().Lane))
+		l := n.look()
+		l.LineTime = n.Head.Get().Time
+		drawTerminal(l, n.Kind, n.Width, n.Lane, c, now-n.Spawn, noteZ(zNote, n.Head.Get().Time, n.Head.Get().Lane))
 	}
 }
 
@@ -343,7 +355,9 @@ func (n *WatchLongHead) UpdateParallel() {
 	}
 	tail := n.Tail.Get()
 	tc := math.Max(tail.curve(now, true), 0)
-	drawLong(n.look(), c, tail.Lane, tail.Width, tc, held, now-n.JTime, n.z(), lineZ(zBelt, n.Time))
+	l := n.look()
+	l.Skill = n.Skill
+	drawLong(l, c, tail.Lane, tail.Width, tc, held, now-n.JTime, n.z(), lineZ(zBelt, n.Time))
 }
 
 // ---------------------------------------------------------------- slide ----
@@ -379,7 +393,7 @@ func (n *WatchSlideNode) Preprocess() {
 		bucket = Buckets.SlideTail
 	}
 	n.prepare(0, endType(n.Kind), true, bucket)
-	n.JFront = false
+	n.JClass = 0
 	n.JMid, n.JSlide = !n.Terminal, true
 	if n.Kind == NodeDirectional || n.Kind == NodeMultiDir {
 		n.JLane = dirBodyLane(n.SpanStart, n.Width, n.Direction)
@@ -403,7 +417,7 @@ func (n *WatchSlideNode) Preprocess() {
 
 func (n *WatchSlideHidden) Preprocess() {
 	n.prepare(0, jtSlide, false, Buckets.SlideNode)
-	n.JFront = false
+	n.JClass = 0
 	if Config.Mirror {
 		n.Exit = -n.Exit
 	}
@@ -444,6 +458,7 @@ func (n *WatchSlideNodeBase) UpdateParallel() {
 	}
 	l := n.look()
 	l.Stopped = stopped // a stopped terminal takes the target-button scale
+	l.LineTime = h.Time
 	drawTerminal(l, n.Kind, n.KindWidth, lane, c, now-n.Spawn, z)
 }
 
@@ -496,7 +511,10 @@ func watchFirstVisible(node sonolus.EntityRef[WatchSlideNodeBase]) sonolus.Entit
 
 func (n *WatchSlideBase) Preprocess() {
 	n.prepare(0, endType(n.Kind), !n.Hidden, Buckets.SlideHead)
-	n.JFront = !n.Hidden
+	n.JClass = 0
+	if !n.Hidden {
+		n.JClass = 1
+	}
 	n.JMid, n.JSlide = true, true
 	if n.Kind == NodeDirectional || n.Kind == NodeMultiDir {
 		n.JLane = dirBodyLane(n.SpanStart, n.Width, n.Direction)
@@ -650,6 +668,7 @@ func (n *WatchSlideBase) UpdateParallel() {
 			// an unheld head snaps onto the line at the target-button scale
 			l := n.look()
 			l.Stopped = n.progress(now) >= 1
+			l.Skill = n.Skill
 			lane := n.Lane
 			if l.Stopped {
 				lane = n.anchorLane(now) // as Play: the stopped head rides the contact point
@@ -772,7 +791,8 @@ func (n *WatchSlideBase) drawBody(now float64) {
 			ah = heldHalf(a.Width)
 		}
 		if front > n.Broken {
-			drawBelt(fp, fh, ap, ah, n.Curve, z, alpha)
+			// the first segment is the one a held finger is on
+			drawBeltLit(fp, fh, ap, ah, n.Curve, z, alpha, k == 0 && n.holding(now))
 		}
 		if c < 0 {
 			return
@@ -808,13 +828,14 @@ func (l *WatchSimLine) SpawnTime() float64 {
 	return math.Max(l.A.Get().Spawn, l.B.Get().Spawn)
 }
 func (l *WatchSimLine) DespawnTime() float64 {
-	return math.Min(math.Min(l.A.Get().JTime, l.B.Get().JTime), math.Min(l.A.Get().Time, l.B.Get().Time))
+	// a single note keeps its line below the line until it is judged
+	return math.Min(l.A.Get().JTime, l.B.Get().JTime)
 }
 func (l *WatchSimLine) UpdateParallel() {
 	now := watch.Time.Now()
 	a, b := l.A.Get(), l.B.Get()
 	pa, pb := a.progress(now), b.progress(now)
-	if pa < 0 || pb < 0 || pa > 1 || pb > 1 {
+	if pa < 0 || pb < 0 || a.JClass != 2 && pa > 1 || b.JClass != 2 && pb > 1 {
 		return
 	}
 	drawSimLine(notePos(l.ALane, curveOf(pa)), notePos(l.BLane, curveOf(pb)), math.Min(a.Time, b.Time), l.ANoMargin, l.BNoMargin)

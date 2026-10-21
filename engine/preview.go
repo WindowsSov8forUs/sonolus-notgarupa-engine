@@ -38,8 +38,9 @@ func pvPos(lane, t float64) sonolus.Vec2 {
 	}
 }
 
-// pvScale is the world scale of a note sprite (308 px = 1.4 lanes).
-func pvScale() float64 { return PL.W / buttonSpacing }
+// pvScale is the world scale of a note sprite (308 px = 1.4 lanes at note
+// size 1; the note-size setting scales it like Play's noteScale).
+func pvScale() float64 { return PL.W / buttonSpacing * Layout.N }
 
 func pvNote(sp sonolus.Sprite, lane, t float64, z sonolus.ZIndex) sonolus.Vec2 {
 	p := pvPos(lane, t)
@@ -55,12 +56,43 @@ func pvWide(sp sonolus.Sprite, px, lane, t float64, z sonolus.ZIndex) sonolus.Ve
 }
 
 // pvLong draws a Long / Slide head or plain end (HABAHIRO: its lane run).
-func (n *PreviewNoteBase) pvLong(z sonolus.ZIndex) {
+// A skill head is note_skill like a skill tap; ends never are.
+func (n *PreviewNoteBase) pvLong(skill bool, z sonolus.ZIndex) {
 	if Layout.HabaSkin {
-		pvWide(Skin.HabaLong[habaRun(n.SpanStart, n.Width)], habaWidthPx(n.Width), n.Lane, n.Time, z)
+		run := habaRun(n.SpanStart, n.Width)
+		sp := Skin.HabaLong[run]
+		if skill {
+			sp = Skin.HabaSkill[run]
+		}
+		pvWide(sp, habaWidthPx(n.Width), n.Lane, n.Time, z)
 		return
 	}
-	pvNote(lanePick(Skin.NoteLong, n.SpriteLane), n.Lane, n.Time, z)
+	sp := lanePick(Skin.NoteLong, n.SpriteLane)
+	if skill {
+		sp = lanePick(Skin.NoteSkill, n.SpriteLane)
+	}
+	pvNote(sp, n.Lane, n.Time, z)
+}
+
+// pvFlick draws a Flick body with its up-flick icon (a skill Flick note is
+// note_skill, as Play's drawFlick).
+func (n *PreviewNoteBase) pvFlick(skill bool, z sonolus.ZIndex) {
+	var p sonolus.Vec2
+	if Layout.HabaSkin {
+		run := habaRun(n.SpanStart, n.Width)
+		sp := Skin.HabaFlick[run]
+		if skill {
+			sp = Skin.HabaSkill[run]
+		}
+		p = pvWide(sp, habaWidthPx(n.Width), n.Lane, n.Time, z)
+	} else {
+		sp := lanePick(Skin.NoteFlick, n.SpriteLane)
+		if skill {
+			sp = lanePick(Skin.NoteSkill, n.SpriteLane)
+		}
+		p = pvNote(sp, n.Lane, n.Time, z)
+	}
+	pvFlickTop(p, n.Width, z)
 }
 
 // pvFlickTop draws an up-flick icon above p.
@@ -101,8 +133,8 @@ func pvBelt(laneA, tA, laneB, tB, widthA, widthB float64, curve bool, z sonolus.
 			p1.Y = PL.Top
 			p1.X -= PL.ColW // the column end belongs to the previous column
 		}
-		h0 := (widthA + (widthB-widthA)*r0) * PL.W * 0.45 * widthRate(widthA)
-		h1 := (widthA + (widthB-widthA)*r1) * PL.W * 0.45 * widthRate(widthB)
+		h0 := (widthA + (widthB-widthA)*r0) * PL.W * 0.45 * widthRate(widthA) * Layout.N
+		h1 := (widthA + (widthB-widthA)*r1) * PL.W * 0.45 * widthRate(widthB) * Layout.N
 		sp.DrawZ(beltQuad(p0, p1, h0, h1), z, alpha)
 		t0 = t1
 	}
@@ -238,17 +270,12 @@ func (n *PreviewNoteBase) z() sonolus.ZIndex { return noteZ(zNote, n.Time, n.Lan
 
 func (n *PreviewNoteBase) Preprocess() { n.prepare() }
 
-// pvTerminal draws a Long / Slide end or gesture node.
-func (n *PreviewNoteBase) pvTerminal(kind, kindWidth float64, z sonolus.ZIndex) {
+// pvTerminal draws a Slide head, a Long / Slide end or a gesture node; skill
+// (a skill Slide head) applies to a plain body only, as Play's drawTerminal.
+func (n *PreviewNoteBase) pvTerminal(kind, kindWidth float64, skill bool, z sonolus.ZIndex) {
 	switch kind {
 	case NodeFlick:
-		var p sonolus.Vec2
-		if Layout.HabaSkin {
-			p = pvWide(Skin.HabaFlick[habaRun(n.SpanStart, n.Width)], habaWidthPx(n.Width), n.Lane, n.Time, z)
-		} else {
-			p = pvNote(lanePick(Skin.NoteFlick, n.SpriteLane), n.Lane, n.Time, z)
-		}
-		pvFlickTop(p, n.Width, z)
+		n.pvFlick(false, z)
 	case NodeDirectional, NodeMultiDir:
 		members := 1.0
 		if kind == NodeMultiDir {
@@ -265,7 +292,7 @@ func (n *PreviewNoteBase) pvTerminal(kind, kindWidth float64, z sonolus.ZIndex) 
 		}
 		pvArrow(p, n.Direction, iconZ(z))
 	default:
-		n.pvLong(z)
+		n.pvLong(skill, z)
 	}
 }
 
@@ -310,7 +337,7 @@ type PreviewFlickNote struct {
 	preview.Archetype `archetype:"name=FlickNote"`
 }
 
-func (n *PreviewFlickNote) Render() { n.pvTerminal(NodeFlick, 1, n.z()) }
+func (n *PreviewFlickNote) Render() { n.pvFlick(n.Skill, n.z()) }
 
 type PreviewDirectionalBase struct {
 	PreviewNoteBase   `archetype:"base"`
@@ -341,6 +368,15 @@ func (n *PreviewDirectionalBase) Render() {
 	if n.Arrow {
 		pvArrow(p, n.Direction, iconZ(n.z()))
 	}
+	if n.Right.Index > 0 {
+		// the back line to the next member (Play's drawBackLine)
+		r := n.Right.Get()
+		line := Skin.FlickLineR
+		if n.Direction < 0 {
+			line = Skin.FlickLineL
+		}
+		line.DrawZ(lineQuad(p, pvPos(r.Lane, r.Time), pvScale()*0.75/2), lineZ(zDirLine, n.Time), 1)
+	}
 }
 
 type PreviewLongHead struct {
@@ -359,10 +395,10 @@ type PreviewLongTail struct {
 func (n *PreviewLongHead) Render() {
 	t := n.Tail.Get()
 	pvBelt(n.Lane, n.Time, t.Lane, t.Time, n.Width, t.Width, false, lineZ(zBelt, n.Time), bodyAlpha())
-	n.pvLong(n.z())
+	n.pvLong(n.Skill, n.z())
 }
 
-func (n *PreviewLongTail) Render() { n.pvTerminal(n.Kind, n.Width, n.z()) }
+func (n *PreviewLongTail) Render() { n.pvTerminal(n.Kind, n.Width, false, n.z()) }
 
 type PreviewSlideNodeBase struct {
 	PreviewNoteBase   `archetype:"base"`
@@ -424,7 +460,7 @@ func (n *PreviewSlideNodeBase) Render() {
 		}
 		return
 	}
-	n.pvTerminal(n.Kind, n.KindWidth, n.z())
+	n.pvTerminal(n.Kind, n.KindWidth, false, n.z())
 }
 
 type PreviewSlideBase struct {
@@ -461,7 +497,7 @@ func (n *PreviewSlideBase) Render() {
 	if n.Hidden {
 		return
 	}
-	n.pvTerminal(n.Kind, n.KindWidth, n.z())
+	n.pvTerminal(n.Kind, n.KindWidth, n.Skill, n.z())
 }
 
 type PreviewSimLine struct {
@@ -470,10 +506,23 @@ type PreviewSimLine struct {
 	B                 sonolus.EntityRef[PreviewNoteBase] `archetype:"imported,name=b"`
 	ALane             float64                            `archetype:"imported,name=aLane,default=-1000"`
 	BLane             float64                            `archetype:"imported,name=bLane,default=-1000"`
+	SpeedMin          float64                            `archetype:"imported,name=speedMin,default=0"`
+	SpeedMax          float64                            `archetype:"imported,name=speedMax,default=1000"`
+	ANoMargin         bool                               `archetype:"imported,name=aNoMargin"`
+	BNoMargin         bool                               `archetype:"imported,name=bNoMargin"`
 }
 
+// pvSyncAtSpeed is Play's syncLineAtSpeed (feedback.go is play/watch only):
+// a line the converter paired only for some note speeds (option tenths).
+func pvSyncAtSpeed(min, max float64) bool {
+	speed := math.Round(Config.NoteSpeed * 10)
+	return speed >= min && speed <= max
+}
+
+// Render draws the sync line as Play's drawSimLine: ends pulled in by the
+// skin's edge margin except at directional ends, width 0.28 × note scale.
 func (l *PreviewSimLine) Render() {
-	if !Config.SyncLine {
+	if !Config.SyncLine || !pvSyncAtSpeed(l.SpeedMin, l.SpeedMax) {
 		return
 	}
 	a, b := l.A.Get(), l.B.Get()
@@ -482,5 +531,23 @@ func (l *PreviewSimLine) Render() {
 	if math.Abs(p.Y-q.Y) > 1e-6 {
 		return // different columns or times
 	}
-	Skin.SimLine.Draw(lineQuad(p, q, PL.W*0.06), zSyncLine, 1)
+	s := pvScale()
+	if Skin.SyncEdgeMarginOpt.Exists() {
+		dir := 1.0
+		if p.X > q.X {
+			dir = -1
+		}
+		if !l.ANoMargin {
+			p.X += syncEdgeMargin * s * dir
+		}
+		if !l.BNoMargin {
+			q.X -= syncEdgeMargin * s * dir
+		}
+	}
+	z := lineZ(zSyncLine, math.Min(a.Time, b.Time))
+	if Layout.HabaSkin {
+		Skin.HabaSimLine.DrawZ(lineQuad(p, q, s*0.28/2), z, 1)
+		return
+	}
+	Skin.SimLine.DrawZ(lineQuad(p, q, s*0.28/2), z, 1)
 }

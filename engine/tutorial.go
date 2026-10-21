@@ -39,6 +39,7 @@ func Preprocess() {
 	initLayout(tutorial.Screen.Rect(), Config.NoteSpeed, Config.NoteSize, Config.Mirror, false, -1)
 	initHoldSE()
 	initFx()
+	tutorial.Background.Set(tutBackgroundQuad())
 	Tut.Phase = 0
 	Tut.Start = tutorial.Time.Now()
 	Tut.Previous = -1
@@ -117,9 +118,15 @@ func Update() {
 	if t < prev {
 		tutStopHold()
 		prev = -1
+		for i := 0; i < 7; i++ {
+			laneOff(float64(i))
+		}
 	}
 	Tut.Previous = t
+	updateLaneReserve(now)
+	tutorial.Background.Set(tutBackgroundQuad())
 	drawField(now, 1)
+	drawLaneEffects(now, zLaneEffect)
 	h := tutHit()
 	z := noteZ(zNote, 0, 0)
 	g := Layout.G
@@ -170,10 +177,12 @@ func Update() {
 		if crossed(prev, t, h) {
 			tutJudge(laneX(3), jtLongFront)
 			tutStartHold(laneX(3))
+			laneOn(3) // the held touch lights its lane
 		}
 		if crossed(prev, t, end) {
 			tutStopHold()
 			tutJudge(laneX(3), jtLongEnd)
+			laneOnReserve(3, now) // the Long end pulses, the release fades it
 			playHoldRelease(tutorial.Time.Now(), true)
 		}
 		if t < h+0.5 {
@@ -197,48 +206,46 @@ func Update() {
 			}
 		}
 		held := t >= h && t < t2
-		var fp sonolus.Vec2
-		if t >= h {
-			fp = notePos(contact, 1)
-		} else if c := tutCurve(t, h, true); c >= 0 {
-			fp = notePos(2, c)
-		}
-		for i := 1; i < 3; i++ {
-			if t >= times[i] || tutCurve(t, h, true) < 0 {
-				continue
-			}
-			c := math.Max(tutCurve(t, times[i], true), 0)
-			ap := notePos(lanes[i], c)
-			front := fp
-			if t < times[i-1] {
-				front = notePos(lanes[i-1], math.Max(tutCurve(t, times[i-1], true), 0))
-			}
-			drawBelt(front, bodyHalf(front.Y, 1), ap, bodyHalf(ap.Y, 1), false, lineZ(zBelt, 0), bodyAlpha())
-		}
+		tutSlideBody(t, h, contact, lanes, times)
 		if c := tutCurve(t, h, true); c >= 0 && t < h {
 			drawNoteSprite(Skin.NoteLong[2], 2, c, 1, z, 1, false)
 		}
 		if c := tutCurve(t, t1, true); c >= 0 && t < t1 {
-			p := notePos(4, c)
-			Skin.NoteSlideAmong.DrawZ(noteQuad(p, noteScale(p.Y, 1)), z, 1)
+			drawAmong(4, c, 1, NodePlain, 0, false, z)
 		}
 		if c := tutCurve(t, t2, true); c >= 0 && t < t2 {
 			drawTerminal(noteLook{SpriteLane: 5, Lane: 5, Width: 1, SpanStart: 5}, NodePlain, 1, 5, c, t, z)
 		}
 		if held {
-			drawHoldFlash(Skin.NoteLong[3], Skin.NoteLongFlash[3], heldPos(contact), noteSpritePx, true, t-h, subZ(z, 2))
-			moveFx(fxKeep, laneX(contact), Tut.Keep, Tut.KeepP, Tut.KeepQ)
+			// Play's hide-before (chainSprite): the held head body shows
+			// until the middle node is passed; then that node rides the
+			// front as note_slide_among until the hold ends (the terminal
+			// stops on the virtual perfect line after t2)
+			if t >= t1 {
+				drawAmong(contact, cRide, 1, NodePlain, 0, true, z)
+			}
+			p := heldPos(contact)
+			body, flash, px := slideHoldSprites(1, contact)
+			drawHoldFlash(body, flash, p, px, t < t1, t-h, subZ(z, 2))
+			moveFx(fxKeep, p.X, Tut.Keep, Tut.KeepP, Tut.KeepQ)
 		}
 		if crossed(prev, t, h) {
 			tutJudge(laneX(2), jtSlide)
 			tutStartHold(laneX(2))
+			laneOn(2) // the touch lights its lane, the Slide's target
 		}
 		if crossed(prev, t, t1) {
 			tutJudge(laneX(4), jtSlide)
+			// a passed middle node: Off(old target), On, OffReserve
+			laneOff(2)
+			laneOnReserve(4, now)
 		}
 		if crossed(prev, t, t2) {
 			tutStopHold()
 			tutJudge(laneX(5), jtSlide)
+			// the release on the end: Off(old target), On, OffReserve
+			laneOff(4)
+			laneOnReserve(5, now)
 			playHoldRelease(tutorial.Time.Now(), true)
 		}
 		tutText(t, h, Instructions.Follow)
@@ -246,6 +253,56 @@ func Update() {
 			tutHand(laneX(contact), g, t)
 		}
 	}
+}
+
+// tutSlideBody draws the Slide's live segments like Play's drawBody: from the
+// held contact point (heldPos / heldHalf) or the approaching head to each
+// following node until the first one that has not appeared yet.
+func tutSlideBody(t, h, contact float64, lanes, times [3]float64) {
+	if t >= times[2] {
+		return
+	}
+	var fp sonolus.Vec2
+	var fh float64
+	next := 1
+	if t >= h {
+		fp, fh = heldPos(contact), heldHalf(1)
+		if t >= times[1] {
+			next = 2
+		}
+	} else {
+		c := tutCurve(t, h, true)
+		if c < 0 {
+			return
+		}
+		fp = notePos(lanes[0], c)
+		fh = bodyHalf(fp.Y, 1)
+	}
+	for i := next; i < 3; i++ {
+		c := tutCurve(t, times[i], true)
+		ap := notePos(lanes[i], math.Max(c, 0))
+		ah := bodyHalf(ap.Y, 1)
+		switch {
+		case c < 0:
+			ah = waitHalf(1) // not appeared yet: pinned at the spawn row
+		case c >= 1:
+			ah = heldHalf(1)
+		}
+		drawBelt(fp, fh, ap, ah, false, lineZ(zBelt, 0), bodyAlpha())
+		if c < 0 {
+			return
+		}
+		fp, fh = ap, ah
+	}
+}
+
+// tutBackgroundQuad is Play's backgroundQuad (stage_fx.go, play/watch only)
+// at the opening's end pose (Stage scale 0.92, y 0), which the tutorial
+// keeps throughout.
+func tutBackgroundQuad() sonolus.Quad {
+	k := (1 - 0.23*Layout.HAR) * Layout.UB
+	cy := 14 * Layout.HAR * Layout.UB
+	return sonolus.Rect{T: cy + 820*k, R: 883.2 * k, B: cy - 820*k, L: -883.2 * k}.ToQuad()
 }
 
 func tutText(t, h float64, text sonolus.Text) {
@@ -267,6 +324,11 @@ func tutStartHold(x float64) {
 
 // tutJudge plays a Perfect judgement's SE and particles.
 func tutJudge(x, jt float64) {
+	switch jt {
+	case jtNormal, jtFlick, jtDirectional:
+		// a quick tap lights its lane and fades (as Auto does)
+		laneOnReserve(math.Round(x/Layout.W+3), tutorial.Time.Now())
+	}
 	if Config.SFX {
 		switch jt {
 		case jtFlick:

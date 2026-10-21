@@ -41,9 +41,15 @@ type HudState struct {
 	CoverStart float64
 	CoverOn    bool
 	SSStart    float64
-	StageS     float64 // Stage TRS scale and y of the opening (updateStagePose)
-	StageY     float64
-	HudAlpha   float64 // opening fade of the gameplay HUD layer (updateStagePose)
+	// life warning (life ≤ 25 %): its TweenAlpha starts at 0.6 when the
+	// warning switches on; the AP combo pulse starts when it first shows
+	Warn      bool
+	WarnStart float64
+	APShown   bool
+	APStart   float64
+	StageS    float64 // Stage TRS scale and y of the opening (updateStagePose)
+	StageY    float64
+	HudAlpha  float64 // opening fade of the gameplay HUD layer (updateStagePose)
 	// judgement particles per owner (receiver half-lane × prefab family),
 	// restarted by the next judgement of the same owner
 	Fx0           [224]sonolus.ParticleHandle // fxKey: 14 half-lanes × fxOwnerFamilies
@@ -54,9 +60,6 @@ type HudState struct {
 	SilenceGrade  float64
 	SilenceCount  float64
 	SilenceTime   float64
-	LaneOn        [7]float64 // 1 idle, 2 fading, 0 off
-	LaneStart     [7]float64
-	LaneReserve   [7]float64
 	SpeakerKind   [2]float64 // 0 idle, 1 normal, 2 exciting, 3 continuous
 	SpeakerStart  [2]float64
 	LightPale     [12]float64 // colour-table entry each light shows pale (random once)
@@ -237,7 +240,9 @@ func drawAddPop(value, t float64, live bool, z float64) {
 	}
 	phase := math.Floor(f / 9)
 	within := f - 9*phase
-	e := t - phase*0.15
+	// AddScoreObject.MoveNext resumes on the creation frame: the first frame
+	// is already one step in
+	e := (within + 1) / 60
 	off, alpha := 0.0, 1.0
 	switch phase {
 	case 0:
@@ -306,7 +311,7 @@ func drawCombo(now, z float64) {
 	ap := Config.ComboAP && Hud.AllPerfect
 	apAlpha := 1.0
 	if ap {
-		ph := math.Mod(now, 0.8333333134651184)
+		ph := math.Mod(math.Max(now-Hud.APStart, 0), 0.8333333134651184)
 		if ph < 0.41666666 {
 			apAlpha = 1 - 0.5*sonolus.Smoothstep(ph/0.41666666)
 		} else {
@@ -323,9 +328,10 @@ func drawCombo(now, z float64) {
 		}
 	}
 	c := uiPoint(rx-6*s, ry-72*s)
-	Skin.ComboText.Draw(uiRect(c, 150*s, 42*s), z, Hud.HudAlpha)
+	// the COMBO unit (depth 6) sits above the digits (depth 5)
+	Skin.ComboText.Draw(uiRect(c, 150*s, 42*s), z+0.02, Hud.HudAlpha)
 	if ap {
-		Skin.ComboTextAP.Draw(uiRect(c, 150*s, 42*s), z+0.01, apAlpha*Hud.HudAlpha)
+		Skin.ComboTextAP.Draw(uiRect(c, 150*s, 42*s), z+0.03, apAlpha*Hud.HudAlpha)
 	}
 }
 
@@ -384,16 +390,17 @@ func drawLife(now, z float64) {
 		sliced3(Skin.LifeFill2, f0.X, f0.X+(16+208*second)*Layout.U, f0.Y, f1.Y, 8, 8, z+0.2, 1)
 	}
 	if life/1000 <= 0.25 { // also at game over
-		ph := math.Mod(now, 2)
+		ph := math.Mod(math.Max(now-Hud.WarnStart, 0), 2)
 		tw := ph
 		if ph > 1 {
 			tw = 2 - ph
 		}
 		wa := 0.6000000238418579 + 0.4*tw
 		w := uiTopRight(-224, 58)
-		sliced3(Skin.LifeWarning, w.X-287/2*Layout.U, w.X+287/2*Layout.U, w.Y-83/2*Layout.U, w.Y+83/2*Layout.U, 15, 158, z+0.3, wa)
+		// the warning (depth 44) sits above the life label (depth 42)
+		sliced3(Skin.LifeWarning, w.X-287/2*Layout.U, w.X+287/2*Layout.U, w.Y-83/2*Layout.U, w.Y+83/2*Layout.U, 15, 158, z+0.45, wa)
 		wb := uiTopRight(-213, 46)
-		sliced9(Skin.LifeWarningBody, wb.X-114*Layout.U, wb.X+114*Layout.U, wb.Y-13.5*Layout.U, wb.Y+13.5*Layout.U, 6, 6, 5, 5, z+0.3, 0.703*wa)
+		sliced9(Skin.LifeWarningBody, wb.X-114*Layout.U, wb.X+114*Layout.U, wb.Y-13.5*Layout.U, wb.Y+13.5*Layout.U, 6, 6, 5, 5, z+0.45, 0.703*wa)
 	}
 	// "current/1000": right edge x = −104, centre y_down 74, size 18.
 	right := uiTopRight(-104, 74)
@@ -434,46 +441,6 @@ func drawAutoCaption(z float64) {
 	glyph(Skin.AutoText, c.X-138/2*Layout.U, baseline, 140, 24, 0.5, 2.8828125, 1, z+0.1, 1)
 }
 
-// Lane tap effect (NoteLaneEffect_1..4): idle, or a 1/6 s fade to scale 0.7.
-var laneEffectSprite = [7]int{0, 1, 2, 3, 2, 1, 0}
-var laneEffectSize = [4][3]float64{{467, 500, 0.1711825579404831}, {342, 500, 0.23051762580871582}, {218, 500, 0.3616914451122284}, {154, 500, 0.5}}
-
-func drawLaneEffects(now, z float64) {
-	if !Config.LaneEffect || Layout.Habahiro {
-		return // HABAHIRO lives have no lane tap beams
-	}
-	for lane := 0; lane < 7; lane++ {
-		state := Hud.LaneOn[lane]
-		if state == 0 {
-			continue
-		}
-		scale, a := 1.0, 1.0
-		if state == 2 {
-			t := (now - Hud.LaneStart[lane]) / 0.1666666716337204
-			if t >= 1 {
-				continue
-			}
-			scale = 1 - 0.3*t
-			a = 1 - t
-		}
-		idx := laneEffectSprite[lane]
-		size := laneEffectSize[idx]
-		k := Layout.Rate * Layout.M / laneEffectPPU * scale
-		w, h, px := size[0]*k, size[1]*k, size[2]
-		x := laneX(float64(lane))
-		l := x - px*w
-		r := x + (1-px)*w
-		if lane >= 4 { // flipX
-			l, r = x+px*w, x-(1-px)*w
-		}
-		q := sonolus.Quad{
-			BL: sonolus.Vec2{X: l, Y: Layout.G}, TL: sonolus.Vec2{X: l, Y: Layout.G + h},
-			TR: sonolus.Vec2{X: r, Y: Layout.G + h}, BR: sonolus.Vec2{X: r, Y: Layout.G},
-		}
-		Skin.LaneEffect[idx].DrawZ(q, sonolus.ZIndex{Z1: z, Z2: float64(lane)}, a) // equal depth: slot order
-	}
-}
-
 // initHud resets the HUD model for a level of noteCount scoring units.
 func initHud(noteCount float64) {
 	Hud.NoteCount = noteCount
@@ -493,14 +460,15 @@ func resetHudState() {
 	clearAddPops()
 	Hud.Life = 1000
 	Hud.AllPerfect = true
+	Hud.Warn, Hud.WarnStart, Hud.APShown, Hud.APStart = false, 0, false, 0
 	Hud.PerfectCount, Hud.GreatCount, Hud.Judged = 0, 0, 0
 	Hud.GameOver = false
 	resetCover()
 	Hud.JudgeSprite, Hud.JudgeTiming, Hud.JudgeStart, Hud.JudgeGrade = -1, timingNone, 0, -1
 	Hud.SilencePos, Hud.SilenceTime = -1e9, -1e9
 	for i := 0; i < 7; i++ {
-		Hud.LaneOn[i] = 0
-		Hud.LaneReserve[i] = 0
+		LaneFx.On[i] = 0
+		LaneFx.Reserve[i] = 0
 	}
 }
 
@@ -579,7 +547,7 @@ func drawPauseButton(z float64) {
 // drawHud draws every HUD element in its original layer.
 func drawHud(now float64) {
 	drawScore(zHUD)
-	drawSSEffect(now, zHUD+0.35)
+	drawSSEffect(now, zHUD+0.5) // its own panel above the score panel's rank marks
 	drawLife(now, zHUD+1)
 	drawPauseButton(zHUD + 1)
 	drawCombo(now, zInfo)

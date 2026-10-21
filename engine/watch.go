@@ -108,16 +108,19 @@ func (*WatchStage) Preprocess() {
 		n.SAllPerfect, n.SJudge, n.STiming, n.SJudgeStart = Hud.AllPerfect, Hud.JudgeSprite, Hud.JudgeTiming, Hud.JudgeStart
 		n.SAddValue, n.SAddStart = Hud.LastAdded, n.JTime
 		n.SGameOver = Hud.GameOver
+		n.SWarnStart = Hud.WarnStart
 		if Hud.SSStart <= 0 && Hud.Score >= Hud.RankThreshold[4] && Hud.Score > 0 {
 			Hud.SSStart = n.JTime
 		}
+		// only the same-position rule (judgementClip) silences a judge SE;
+		// two notes' identical clips in one frame both play
 		clip := judgementClip(n.JTime, j)
 		if Config.SFX {
 			if skillSE(j) {
-				Effects.Skill.PlayScheduled(n.JTime, frameSeconds)
+				Effects.Skill.PlayScheduled(n.JTime, 0)
 			}
 			if clip != clipNone {
-				clipOf(clip).PlayScheduled(n.JTime, frameSeconds)
+				clipOf(clip).PlayScheduled(n.JTime, 0)
 			}
 		}
 		first = n.ScoreNext
@@ -180,7 +183,7 @@ func (*WatchStage) UpdateSequential() {
 				laneOff(n.ALaneOff)
 			}
 			judgementLights(now, j)
-			if !j.Auto && n.JFront && j.Grade != gradeMiss {
+			if !j.Auto && n.JClass >= 1 && j.Grade != gradeMiss {
 				// a replay has no touches: the touched lane lights at the
 				// front judgement (Play lights it on Began, fades on Ended)
 				laneOnReserve(j.Lane, now)
@@ -209,6 +212,7 @@ func (*WatchStage) UpdateSequential() {
 		Hud.Combo, Hud.ComboStart, Hud.Score, Hud.Life = n.SCombo, n.SComboStart, n.SScore, n.SLife
 		Hud.AllPerfect, Hud.JudgeSprite, Hud.JudgeTiming, Hud.JudgeStart = n.SAllPerfect, n.SJudge, n.STiming, n.SJudgeStart
 		Hud.GameOver = n.SGameOver
+		Hud.WarnStart = n.SWarnStart
 	} else {
 		Hud.Combo, Hud.Score, Hud.Life, Hud.AllPerfect, Hud.JudgeSprite = 0, 0, 1000, true, -1
 		Hud.GameOver = false
@@ -220,6 +224,7 @@ func (*WatchStage) UpdateParallel() {
 	now := watch.Time.Now()
 	drawStageLights(now, 2)
 	drawSpeakers(now, 3)
+	drawPsyllium(now, 3.2) // StageFront, above the speakers, under BgCover
 	drawCover(now, 4)
 	drawOpeningCovers(now)
 	drawField(now, lineAlpha(now))

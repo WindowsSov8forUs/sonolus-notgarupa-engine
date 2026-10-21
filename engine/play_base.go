@@ -124,6 +124,9 @@ type PlayNoteBase struct {
 	ScoreNext      sonolus.EntityRef[PlayNoteBase]    `archetype:"imported,name=scoreNext"`
 	Time           float64                            `archetype:"data"`
 	SpawnTime      float64                            `archetype:"data"`
+	// Single: a Tap / Flick / Directional, which stays in Move below the
+	// line until judged (a sync line follows it down)
+	Single bool `archetype:"data"`
 
 	HoldUntil float64 `archetype:"shared"` // #EFFECT_AUTO hold loop starting here ends then
 	State     float64 `archetype:"shared"`
@@ -285,14 +288,24 @@ func scheduleAuto(code, t float64, skill bool) {
 // the cue is full (HoldSE.Limit). The handle's ID identifies its slot.
 func startHoldLoop() sonolus.LoopedEffectHandle {
 	now := play.Time.Now()
-	slot := 0
-	for i := 1; i < int(HoldSE.Limit); i++ {
-		if Input.Loops[slot] > 0 && (Input.Loops[i] <= 0 || Input.LoopOrder[i] < Input.LoopOrder[slot]) {
+	slot := -1
+	for i := 0; i < int(HoldSE.Limit) && slot < 0; i++ {
+		if Input.Loops[i] <= 0 && Input.LoopFade[i] <= now {
 			slot = i
 		}
 	}
-	if Input.Loops[slot] > 0 {
-		stopHoldSound(Input.Loops[slot], Input.LoopIntro[slot], now, true)
+	if slot < 0 {
+		// every voice plays or fades: the oldest one goes (a fading release
+		// is a separate clip here and cannot be cut)
+		slot = 0
+		for i := 1; i < int(HoldSE.Limit); i++ {
+			if Input.LoopOrder[i] < Input.LoopOrder[slot] {
+				slot = i
+			}
+		}
+		if Input.Loops[slot] > 0 {
+			stopHoldSound(Input.Loops[slot], Input.LoopIntro[slot], now, true)
+		}
 	}
 	main, intro := startHoldSound(now, true)
 	Input.LoopSeq++
@@ -307,6 +320,7 @@ func releaseHoldLoop(loop sonolus.LoopedEffectHandle) {
 		if Input.Loops[i] == loop.ID {
 			releaseHoldSound(Input.Loops[i], Input.LoopIntro[i], play.Time.Now(), true)
 			Input.Loops[i], Input.LoopIntro[i] = 0, 0
+			Input.LoopFade[i] = play.Time.Now() + holdFade()
 		}
 	}
 }

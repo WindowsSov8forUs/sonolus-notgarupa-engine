@@ -20,6 +20,7 @@ type PlayTapNote struct {
 
 func (n *PlayTapNote) Preprocess() {
 	n.prepare()
+	n.Single = true
 	scheduleAuto(clipPerfect, n.Time, n.Skill)
 }
 func (n *PlayTapNote) SpawnOrder() float64 { return n.SpawnTime }
@@ -90,6 +91,7 @@ type PlayFlickNote struct {
 
 func (n *PlayFlickNote) Preprocess() {
 	n.prepare()
+	n.Single = true
 	scheduleAuto(clipFlick, n.Time, n.Skill)
 }
 func (n *PlayFlickNote) SpawnOrder() float64 { return n.SpawnTime }
@@ -113,7 +115,9 @@ func (n *PlayFlickNote) UpdateParallel() {
 	if pr < 0 {
 		return
 	}
-	drawFlick(n.look(), curveOf(pr), now-n.IconStart, n.z())
+	l := n.look()
+	l.Skill = n.Skill
+	drawFlick(l, curveOf(pr), now-n.IconStart, n.z())
 }
 
 func flickUpdate(n *PlayNoteBase) {
@@ -201,7 +205,10 @@ type PlayDirectionalMember struct {
 	IconStart      float64                                  `archetype:"memory"`
 }
 
-func (n *PlayDirectionalMember) Preprocess()         { n.prepare() }
+func (n *PlayDirectionalMember) Preprocess() {
+	n.prepare()
+	n.Single = true
+}
 func (n *PlayDirectionalMember) SpawnOrder() float64 { return n.SpawnTime }
 func (n *PlayDirectionalMember) ShouldSpawn() bool   { return play.Time.Now() >= n.SpawnTime }
 func (n *PlayDirectionalMember) Initialize() {
@@ -247,6 +254,7 @@ type PlayDirectionalNote struct {
 
 func (n *PlayDirectionalNote) Preprocess() {
 	n.prepare()
+	n.Single = true
 	kind := NodeDirectional
 	if n.Count > 1 {
 		kind = NodeMultiDir

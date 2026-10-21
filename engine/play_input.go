@@ -23,6 +23,7 @@ type InputState struct {
 	Loops     [holdSlots]float64
 	LoopIntro [holdSlots]float64
 	LoopOrder [holdSlots]float64
+	LoopFade  [holdSlots]float64 // a released sound's voice is busy until then
 	LoopSeq   float64
 }
 

@@ -41,7 +41,9 @@ func (n *PlayLongTail) UpdateParallel() {
 		return
 	}
 	// stops on the line while its Long is held, as in watch mode
-	drawTerminal(n.look(), n.Kind, n.Width, n.Lane, math.Min(curveOf(pr), 1), now-n.IconStart, noteZ(zNote, n.Head.Get().Time, n.Head.Get().Lane))
+	l := n.look()
+	l.LineTime = n.Head.Get().Time
+	drawTerminal(l, n.Kind, n.Width, n.Lane, math.Min(curveOf(pr), 1), now-n.IconStart, noteZ(zNote, n.Head.Get().Time, n.Head.Get().Lane))
 }
 
 // PlayLongHead owns the Long: hold state, body, flash, loop SE and TapKeep.
@@ -264,5 +266,7 @@ func (n *PlayLongHead) UpdateParallel() {
 	if tpr := tail.progress(now); tpr >= 0 {
 		tc = math.Min(curveOf(tpr), 1)
 	}
-	drawLong(n.look(), c, tail.Lane, tail.Width, tc, held, now-n.HoldStart, n.z(), lineZ(zBelt, n.Time))
+	l := n.look()
+	l.Skill = n.Skill
+	drawLong(l, c, tail.Lane, tail.Width, tc, held, now-n.HoldStart, n.z(), lineZ(zBelt, n.Time))
 }

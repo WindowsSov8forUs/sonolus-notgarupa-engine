@@ -110,7 +110,8 @@ Sonolus 自身的生命值只能在 preprocess 中静态配置（`AddLifeSchedul
 - 通关演出（通关音效与语音、隐藏场地、FC/AP 字样、烟花、舞台退场）不实现：原作在 BGM 结束时通关，之后才播放约 3.2 s 的演出与 4 s 的舞台退场；Sonolus 在 BGM 结束时结束关卡，引擎无法延长或结束关卡，演出没有可显示的时间。结果由 Sonolus 结算界面展示（Next-RUSH 同样不实现原作的通关演出）。
 - 开场：原作在歌曲信息页之后按开场时钟 O 进行：BgCover（`point_charactor_shadow` 着黑，2000² × 2.5，x 80）从 0.92 每帧减 0.0075；O = 0.5 起舞台 TRS 以 OutQuad 在 3 s 内由（缩放 0.7、y 111）到（0.92、0），舞台背景亮度 0.75 s 内 0.5 → 1；O = 2.5 起 lane、判定线与 Sudden 线 1 s 淡入；O = 0 起 HUD 层 0.5 s 淡入；O = 3 起播放音乐。Sonolus 的关卡从音乐前 2 s 开始（实测首帧关卡时刻 −2.000），因此开场整体加速 1.5 倍、O = 3 对齐关卡时刻 0：舞台与 lane 与原作一样在音乐开始后约 0.33 s 完成。背景四边形、舞台灯光与音箱随舞台姿态绘制；背景亮度用黑色 BgCover 精灵按 0.5·(1 − 进度) 叠在背景之上、灯光之下近似。歌曲信息页（封面、曲名、乐队与作词作曲编曲）不实现：引擎无法读取关卡封面与文字，Sonolus 在开始前的关卡详情中已展示这些信息（Next-RUSH 同样不还原原作的封面开场，只在 −2 → −1 s 淡入 UI）；SD 角色不实现。HUD 层（分数、生命、连击、判定文字、AddScore、Auto 标签、暂停按钮与 SS 特效）按原作在开场起点 0.5 s 内淡入（加速后为 −2.00 → −1.67 s）；它位于 BgCover 之前，不被遮住。
 - 保持循环音（SE_RHYTHM_TAP_LONG）同时最多 4 个，新的开始会停止最早的一个（原作 cue 上限），被停止的那一个松手时也不再播放释放音。Play 在关卡内存中记录 4 个句柄；Watch 与 #EFFECT_AUTO 由 Stage 的 preprocess 沿计分链按开始顺序排程（音符在 preprocess 中把持续结束时间记在开始的计分单位上）；旧转换器生成、没有计分链的关卡仍由音符直接排程，不受上限约束。单次音效无法中止，不受此限。
-- 舞台：舞台根缩放 `0.92·(1 − 0.23·HAR)`（背景 UI 根，整数 activeHeight，无安全区系数）、上移 14·HAR；背景四边形按同一变换放置。12 盏灯按 7 项色表每 0.2 s 插值，浅色项每盏灯在预处理时随机选取一次。音箱按判定跨度含 lane 0 / 6 触发，使用原作 `speaker_normal` / `_exciting` / `_continuous` 动画片段（Root 缩放与跳动、半透明叠加层、两个发光的位置 / 缩放 / 透明度，60 Hz 采样）。可用“Stage lights”关闭。
+- 开场背景的亮度压暗为均匀着色（0.5 + 0.5·进度）。
+- 舞台：舞台根缩放 `0.92·(1 − 0.23·HAR)`（背景 UI 根，整数 activeHeight，无安全区系数）、上移 14·HAR；背景四边形按同一变换放置。12 盏灯按 7 项色表每 0.2 s 插值，浅色项每盏灯在预处理时随机选取一次。音箱按判定跨度含 lane 0 / 6 触发，使用原作 `speaker_normal` / `_exciting` / `_continuous` 动画片段（Root 缩放与跳动、半透明叠加层、两个发光的位置 / 缩放 / 透明度；按原 clip 的三次分段曲线在 60 Hz 取样）。灯光色表从舞台创建（关卡开始）起循环。音箱主体在 DarkCover（RevSubtraction）之下，其减色已烘焙进皮肤。可用“Stage lights”关闭。
 - SS 特效：kira 按原作旋转（静态与动画），在面板裁剪两端 20 单位内淡出（Flash 无法做软裁剪）。
 - 判定粒子：同一判定位置（半 lane）与同一预制体族的新判定先销毁旧粒子再生成（restartIfActive）。方向键的主体按数量变体（_1/_2/_3）与方向分开，手指粒子以被滑动的 lane 为自己的位置；空按的 effect_tap 也按 lane 重启。同一帧的判定文字代表在 Play 中按同一更新时刻分组（Watch 的 preprocess 按 1/60 s 分组）。
 - 曲线表（音箱、星、闪电）在预处理时写入关卡数据，运行时原地读取，避免每次动态下标复制整表。
@@ -127,12 +128,19 @@ Sonolus 自身的生命值只能在 preprocess 中静态配置（`AddLifeSchedul
 - 按住、停止或吸附在判定线上的精灵使用目标按钮缩放 `rate·N`（世界 ×P），不再用移动中的混合缩放（停止的 Slide 节点含终点，以及未按住、吸附在线上的 Slide 头）；主体前端在按住点用同一缩放；尚未出现的节点端点用虚拟缩放 `rate·N·|Ly/safe − Y0/P| / |(Ly − G)/safe|`。按住中的 Slide 接触点在按钮局部空间移动，世界坐标为 `(x, G)·P/M`。接触点按原作 MoveToNextAfterNoteButton 每帧前进 lane 差 / GetSecWithDistance(两节点的谱面距离, 当前 BPM)，即按拍均匀向下一节点移动并在其 lane 处停住：段内有 BPM 变化时在变化处换速（用 BeatToStartingBeat / BeatToStartingTime / BeatToBPM 由时刻反推拍），段内单一 BPM 时与按时间均匀相同；段内遇到负 BPM（折叠时间，扩展）时按时间均匀。下一节点停下时到达该节点；头部一段从头部开始移动的时刻起算：按下时（ExecTouchBegan 把头放回自己的目标位置，同一帧 slidingMove 即开始移动），未按住则从停在虚拟完美线时起。因此提前按下时头部领先，晚按时头部先回到自己的 lane 再落后。Watch 以回放中头部的判定时刻作为按下时刻。
 - 方向键连线宽 = 局部缩放 × 0.75；判定线随音符大小缩放；音符大小设置 10%–200%（HABAHIRO 钳制到 80%–150%）。
 - Long / Slide 子节点按头的时刻与 lane 排序；相连的方向键成员 z3 = −first + 2·方向·(lane − first)（first 为组最左 lane，即原作逐成员 ±0.00001 的链式深度）。lane 光柱 OffReserve 为 1 帧（Play 与 Watch 都先倒计时再处理本次更新的事件），渐灭可重启，7 条光柱同深度按 lane 排序。Slide 的光柱目标（NoteSlide.laneEffectTarget）与手指自己的按钮分开：按下时目标为按下的音符；经过中间节点为 Off(旧目标)、On(该节点)、OffReserve；松手与终点手势完成为 Off(旧目标)、On(当前音符)，再 OffReserve（在范围内松开的终点或 Flick 族终点）或立即 Off；手指自己的按钮在松开时于按下的 lane 渐灭。Auto Live 中 Slide 头另外为第一个节点的 lane 闪一次（forcePerfectMoveState 的 Began），之后每个可见节点先关掉上一个目标。
-- 中间 Flick 节点保持 `note_slide_among` 并带上滑图标，判定后只剩 `note_slide_among`。Slide 主体材质只看后续节点是否有 Hidden。
+- 中间 Flick 节点保持 `note_slide_among` 并带上滑图标，判定后只剩 `note_slide_among`。
+- 技能音符的前端（单点、Flick、Long 头、Slide 头）用 `note_skill`（resolveFrontSpriteBinding 先看附加类型）；按住的 Long 保持该精灵，按住的 Slide 头换成居中的 `note_long_3`；终点不用技能精灵。
+- 同时押线在两端都处于 Move 时显示：单点、Flick、方向键在越过判定线后仍处于 Move，直到判定，连线随之下移；Long / Slide 的头与终点在判定线处离开 Move。
+- 宽方向键终点（Long 尾与 Slide 终点）的成员之间在移动中画方向连线（ConnectWithTheNextNote），终点停下时隐藏。
+- 主体颜色：NoteMesh.Activate 设为 meshColorNormal（暂沿用 0.9，见 7.2），手指所在的段（Long 按住时整段；Slide 按下或经过节点后通往下一节点的段）由 NoteAfterBase.Touch 设为 meshColorTouch（白），之后不恢复。
+- HABAHIRO 谱面中按住的 Long 头按 NoteLong.StopState 在判定线的世界 Y 按按钮数取缩放（与移动中的缩放公式相同），普通谱面用目标按钮缩放。Slide 主体材质只看后续节点是否有 Hidden。
 - 按住中的 Slide 前端精灵按原作 hide-before（ExecTouchMoved 只隐藏前一个音符，不可见节点经 `killFromInvisibleNotesToVisibleNote` 同样计入）：按住头的主体只显示到经过第一个中间节点为止；之后最后经过的中间节点以 `note_slide_among` 随接触点前进，直到下一个可见节点停下（或经过不可见节点、Miss、松手）；flash 一直在前端。这些精灵只由隐藏请求去掉，与 flash 无关：Miss 后再经过的节点同样随连线前进（没有 flash），Miss 去掉的头部主体不会因重新按下终点而出现。随连线移动的头与中间节点在按钮局部空间，与 flash、主体前端同在 `(x, G)·P/M`；停下的终点按世界坐标吸附。
 - Slide 的节点 Miss（头超时、中间节点超时、松手时待判的节点）按原作 `hideNote(root, current, true)` 去掉该节点及其之前的全部主体段（含从它出发的一段），flash 与 TapKeep 停止；之后到达的段照常绘制。Watch 按回放中的 Miss 时刻同样处理，并在第一次 Miss 时结束按住表现（回放无法得知重新按下）。
 - 新设置：Long 主体亮度（10–100，默认 80，即透明度）与 Sudden（0–100）。Sudden 精确裁剪主体线、同时押线与方向连线，画出现条；音符精灵在中心进入遮罩时整体隐藏（Sonolus 无遮罩）；lane fit 需要贴图裁剪，未实现；lane 光柱不遮罩。
 
 ## 7.2 未实现项与原因
+
+- Long / Slide 主体的 meshColorNormal：其值是 libil2cpp.so（10.1.4/230）只读数据 0x1534E70 处的 16 字节（NoteAfterBase..ctor 0x3A751E8 `ldr q0`），本机没有该二进制；现沿用 0.9。需在 Windows 侧读取该地址确认。
 
 Sonolus 框架限制（引擎无法实现，sonolus-go 无法弥补）：
 
@@ -149,7 +157,7 @@ Sonolus 框架限制（引擎无法实现，sonolus-go 无法弥补）：
 | 按手指槽位区分的空按音效 | 触摸 ID 不是固定槽位 | 按本帧触摸的枚举顺序近似（前 4 个播放） |
 | 跨 BPM 时的判定偏移 | 偏移在时间上施加 | 按时间偏移 |
 
-此前可以实现但未实现的部分已经补上：保持循环音的声部上限、同时押线的尾按运行时速度过期、停止的终点与未按住的吸附头使用目标缩放、中间节点 Moved 上的终点手势（D15）、SV 下的超时起点（D17）。荧光棒不实现：普通 live 中它在舞台入场开始 1.5 s 后用 45 帧淡出，早于音乐开始，之后只会被 GarupaEditor 的演出命令（谱面中没有）重新唤起。
+此前可以实现但未实现的部分已经补上：保持循环音的声部上限、同时押线的尾按运行时速度过期、停止的终点与未按住的吸附头使用目标缩放、中间节点 Moved 上的终点手势（D15）、SV 下的超时起点（D17）。荧光棒按原作在开场显示：舞台出现即显示 73 根（StageFront，镜像只翻转 x 缩放），按 StartIdle 4 s 循环摆动；舞台入场开始 1.5 s 后用 45 帧把 RGB 淡到 0（随开场时钟一起加速 1.5 倍）。之后只会被演出指令（谱面中没有）重新唤起。
 
 sonolus-go：上表没有一项受其阻碍。N8–N10 已在 v2.5.1 修复；N11（在实体视图上选取内嵌基类：崩溃或静默生成错误代码）已在 v2.5.2 修复并支持该写法，引擎的隐藏头 Slide 保持音登记已改回经辅助函数写入。
 

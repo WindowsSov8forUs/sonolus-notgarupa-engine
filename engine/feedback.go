@@ -78,6 +78,14 @@ func hudApply(now float64, j judgement) float64 {
 			}
 		}
 	}
+	warn := Hud.Life/1000 <= 0.25
+	if warn && !Hud.Warn {
+		Hud.WarnStart = now
+	}
+	Hud.Warn = warn
+	if Hud.AllPerfect && Hud.Combo > 0 && !Hud.APShown {
+		Hud.APShown, Hud.APStart = true, now
+	}
 	// one representative result per frame: the highest raw result, the first
 	// on ties (scoreLifeStateManager)
 	sameFrame := math.Floor(now*60) == math.Floor(Hud.JudgeStart*60)
@@ -376,69 +384,6 @@ func playJudgementParticles(j judgement) {
 	}
 }
 
-// laneIndex returns the integer lane 0..6 of a receiver lane, or −1.
-func laneIndex(lane float64) int {
-	l := math.Round(lane)
-	if l != lane || l < 0 || l > 6 {
-		return -1
-	}
-	return int(l)
-}
-
-// laneOn lights a lane (NoteLaneEffectOn).
-func laneOn(lane float64) {
-	i := laneIndex(lane)
-	if i < 0 {
-		return
-	}
-	Hud.LaneOn[i] = 1
-}
-
-// laneOnReserve lights a lane for one update, then fades (On + OffReserve);
-// events apply before the countdown of the same update (tapLaneEffectOwner).
-func laneOnReserve(lane, now float64) {
-	i := laneIndex(lane)
-	if i < 0 {
-		return
-	}
-	Hud.LaneOn[i] = 1
-	Hud.LaneReserve[i] = 1
-}
-
-// laneAnimatedOff starts the 1/6 s fade (restarts it while fading); it does
-// nothing on a switched-off lane.
-func laneAnimatedOff(lane, now float64) {
-	i := laneIndex(lane)
-	if i < 0 || Hud.LaneOn[i] == 0 {
-		return
-	}
-	Hud.LaneOn[i] = 2
-	Hud.LaneStart[i] = now
-}
-
-// laneOff switches a lane off immediately.
-func laneOff(lane float64) {
-	i := laneIndex(lane)
-	if i < 0 {
-		return
-	}
-	Hud.LaneOn[i] = 0
-}
-
-// updateLaneReserve counts the OffReserve counters down once per update.
-func updateLaneReserve(now float64) {
-	for i := 0; i < 7; i++ {
-		if Hud.LaneReserve[i] > 0 {
-			Hud.LaneReserve[i]--
-			if Hud.LaneReserve[i] == 0 && Hud.LaneOn[i] != 0 {
-				// the fade started with the previous update's countdown
-				Hud.LaneOn[i] = 2
-				Hud.LaneStart[i] = now - frameSeconds
-			}
-		}
-	}
-}
-
 // triggerSpeaker drives the stage speakers from outer-lane judgements.
 func triggerSpeaker(j judgement, now float64) {
 	// any judgement whose lane span contains lane 0 / 6 (both for a note
@@ -486,6 +431,8 @@ func (s *holdLoopSchedule) retire(i int) {
 	s.Live[i] = false
 }
 
+// start schedules a hold sound from t to end. A released sound keeps its
+// voice through its fade (holdFade); with every voice busy the oldest goes.
 func (s *holdLoopSchedule) start(t, end float64) {
 	limit := int(HoldSE.Limit)
 	slot := -1
@@ -493,7 +440,7 @@ func (s *holdLoopSchedule) start(t, end float64) {
 		if s.Live[i] && s.End[i] <= t {
 			s.retire(i)
 		}
-		if !s.Live[i] && slot < 0 {
+		if !s.Live[i] && (s.Order[i] == 0 || s.End[i]+holdFade() <= t) && slot < 0 {
 			slot = i
 		}
 	}
@@ -504,7 +451,9 @@ func (s *holdLoopSchedule) start(t, end float64) {
 				slot = i
 			}
 		}
-		stopHoldSound(s.Loops[slot], s.Intro[slot], t, false)
+		if s.Live[slot] {
+			stopHoldSound(s.Loops[slot], s.Intro[slot], t, false)
+		}
 	}
 	s.Loops[slot], s.Intro[slot] = startHoldSound(t, false)
 	s.Seq++

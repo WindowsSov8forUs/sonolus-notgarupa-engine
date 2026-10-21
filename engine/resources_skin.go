@@ -23,11 +23,14 @@ type SkinData struct {
 	SyncEdgeMarginOpt sonolus.Sprite
 	LongLine          sonolus.Sprite
 	LongLine2         sonolus.Sprite
-	FlickLineL        sonolus.Sprite
-	FlickLineR        sonolus.Sprite
-	Field             sonolus.Sprite
-	JudgeLine         sonolus.Sprite
-	LaneEffect        [4]sonolus.Sprite
+	// a touched body segment: NoteAfterBase.Touch sets meshColorTouch (white)
+	LongLineTouch  sonolus.Sprite
+	LongLine2Touch sonolus.Sprite
+	FlickLineL     sonolus.Sprite
+	FlickLineR     sonolus.Sprite
+	Field          sonolus.Sprite
+	JudgeLine      sonolus.Sprite
+	LaneEffect     [4]sonolus.Sprite
 	// JudgeText: the item's judge atlas, except judge_auto, which comes from
 	// the default atlas (Auto Live never uses a special judge skin).
 	JudgeText       [8]sonolus.Sprite
@@ -68,25 +71,30 @@ type SkinData struct {
 	LightPale       sonolus.Sprite
 	LightWhite      sonolus.Sprite
 	Speaker         sonolus.Sprite
+	PsyPen          sonolus.Sprite // psyllium penlight / core halves, tinted
+	PsyCore         sonolus.Sprite
+	Black           sonolus.Sprite // uniform black fill
 	SpeakerGlow     sonolus.Sprite
 	SuddenLine      [3]sonolus.Sprite
 	// HABAHIRO (wide-note) sprites of the separate HABAHIRO skin item; a
 	// family array is indexed by run (start lane s, width w):
 	// (w−1)(16−w)/2 + s. See the skin generator's HABAHIRO.md.
-	HabaNormal    [28]sonolus.Sprite
-	HabaNormal16  [28]sonolus.Sprite
-	HabaSkill     [28]sonolus.Sprite
-	HabaFlick     [28]sonolus.Sprite
-	HabaLong      [28]sonolus.Sprite
-	HabaLongFlash [28]sonolus.Sprite
-	HabaAmong     [7]sonolus.Sprite
-	HabaFlickTop  [3]sonolus.Sprite
-	HabaSimLine   sonolus.Sprite
-	HabaLongLine  sonolus.Sprite
-	HabaLongLine2 sonolus.Sprite
-	HabaField     sonolus.Sprite
-	HabaJudgeLine sonolus.Sprite
-	HabaFlash     [4]sonolus.Sprite
+	HabaNormal         [28]sonolus.Sprite
+	HabaNormal16       [28]sonolus.Sprite
+	HabaSkill          [28]sonolus.Sprite
+	HabaFlick          [28]sonolus.Sprite
+	HabaLong           [28]sonolus.Sprite
+	HabaLongFlash      [28]sonolus.Sprite
+	HabaAmong          [7]sonolus.Sprite
+	HabaFlickTop       [3]sonolus.Sprite
+	HabaSimLine        sonolus.Sprite
+	HabaLongLine       sonolus.Sprite
+	HabaLongLine2      sonolus.Sprite
+	HabaLongLineTouch  sonolus.Sprite
+	HabaLongLine2Touch sonolus.Sprite
+	HabaField          sonolus.Sprite
+	HabaJudgeLine      sonolus.Sprite
+	HabaFlash          [4]sonolus.Sprite
 }
 
 var Skin = &SkinData{
@@ -107,6 +115,8 @@ var Skin = &SkinData{
 	SyncEdgeMarginOpt: sonolus.SkinSprite("notgarupa/noteSyncEdgeMargin_1.1"),
 	LongLine:          sonolus.SkinSprite("longNoteLine@E6E6E6"),
 	LongLine2:         sonolus.SkinSprite("longNoteLine2@E6E6E6"),
+	LongLineTouch:     sonolus.SkinSprite("longNoteLine"),
+	LongLine2Touch:    sonolus.SkinSprite("longNoteLine2"),
 	FlickLineL:        sonolus.SkinSprite("FlickNoteLine_l"),
 	FlickLineR:        sonolus.SkinSprite("FlickNoteLine_r"),
 	Field:             sonolus.SkinSprite("bg_line_rhythm"),
@@ -150,19 +160,24 @@ var Skin = &SkinData{
 	LightPale:         sonolus.SkinSprite("Tex_miniShine@D5FFFF"),
 	LightWhite:        sonolus.SkinSprite("Tex_miniShine"),
 	Speaker:           sonolus.SkinSprite("Tex_speaker"),
+	PsyPen:            sonolus.SkinSprite("Pyllium_penlight@BFEEF0"),
+	PsyCore:           sonolus.SkinSprite("Pyllium_core@C8C8C8"),
+	Black:             sonolus.SkinSprite("notgarupa/black"),
 	SpeakerGlow:       sonolus.SkinSprite("speaker_effect"),
 	SuddenLine:        [3]sonolus.Sprite{sonolus.SkinSprite("sudden_line#L"), sonolus.SkinSprite("sudden_line#M"), sonolus.SkinSprite("sudden_line#R")}, HabaNormal: [28]sonolus.Sprite{sonolus.SkinSprite("habahiro/note_normal_0"), sonolus.SkinSprite("habahiro/note_normal_1"), sonolus.SkinSprite("habahiro/note_normal_2"), sonolus.SkinSprite("habahiro/note_normal_3"), sonolus.SkinSprite("habahiro/note_normal_4"), sonolus.SkinSprite("habahiro/note_normal_5"), sonolus.SkinSprite("habahiro/note_normal_6"), sonolus.SkinSprite("habahiro/note_normal_0_1"), sonolus.SkinSprite("habahiro/note_normal_1_2"), sonolus.SkinSprite("habahiro/note_normal_2_3"), sonolus.SkinSprite("habahiro/note_normal_3_4"), sonolus.SkinSprite("habahiro/note_normal_4_5"), sonolus.SkinSprite("habahiro/note_normal_5_6"), sonolus.SkinSprite("habahiro/note_normal_0_1_2"), sonolus.SkinSprite("habahiro/note_normal_1_2_3"), sonolus.SkinSprite("habahiro/note_normal_2_3_4"), sonolus.SkinSprite("habahiro/note_normal_3_4_5"), sonolus.SkinSprite("habahiro/note_normal_4_5_6"), sonolus.SkinSprite("habahiro/note_normal_0_1_2_3"), sonolus.SkinSprite("habahiro/note_normal_1_2_3_4"), sonolus.SkinSprite("habahiro/note_normal_2_3_4_5"), sonolus.SkinSprite("habahiro/note_normal_3_4_5_6"), sonolus.SkinSprite("habahiro/note_normal_0_1_2_3_4"), sonolus.SkinSprite("habahiro/note_normal_1_2_3_4_5"), sonolus.SkinSprite("habahiro/note_normal_2_3_4_5_6"), sonolus.SkinSprite("habahiro/note_normal_0_1_2_3_4_5"), sonolus.SkinSprite("habahiro/note_normal_1_2_3_4_5_6"), sonolus.SkinSprite("habahiro/note_normal_0_1_2_3_4_5_6")},
-	HabaNormal16:  [28]sonolus.Sprite{sonolus.SkinSprite("habahiro/note_normal_16_0"), sonolus.SkinSprite("habahiro/note_normal_16_1"), sonolus.SkinSprite("habahiro/note_normal_16_2"), sonolus.SkinSprite("habahiro/note_normal_16_3"), sonolus.SkinSprite("habahiro/note_normal_16_4"), sonolus.SkinSprite("habahiro/note_normal_16_5"), sonolus.SkinSprite("habahiro/note_normal_16_6"), sonolus.SkinSprite("habahiro/note_normal_16_0_1"), sonolus.SkinSprite("habahiro/note_normal_16_1_2"), sonolus.SkinSprite("habahiro/note_normal_16_2_3"), sonolus.SkinSprite("habahiro/note_normal_16_3_4"), sonolus.SkinSprite("habahiro/note_normal_16_4_5"), sonolus.SkinSprite("habahiro/note_normal_16_5_6"), sonolus.SkinSprite("habahiro/note_normal_16_0_1_2"), sonolus.SkinSprite("habahiro/note_normal_16_1_2_3"), sonolus.SkinSprite("habahiro/note_normal_16_2_3_4"), sonolus.SkinSprite("habahiro/note_normal_16_3_4_5"), sonolus.SkinSprite("habahiro/note_normal_16_4_5_6"), sonolus.SkinSprite("habahiro/note_normal_16_0_1_2_3"), sonolus.SkinSprite("habahiro/note_normal_16_1_2_3_4"), sonolus.SkinSprite("habahiro/note_normal_16_2_3_4_5"), sonolus.SkinSprite("habahiro/note_normal_16_3_4_5_6"), sonolus.SkinSprite("habahiro/note_normal_16_0_1_2_3_4"), sonolus.SkinSprite("habahiro/note_normal_16_1_2_3_4_5"), sonolus.SkinSprite("habahiro/note_normal_16_2_3_4_5_6"), sonolus.SkinSprite("habahiro/note_normal_16_0_1_2_3_4_5"), sonolus.SkinSprite("habahiro/note_normal_16_1_2_3_4_5_6"), sonolus.SkinSprite("habahiro/note_normal_16_0_1_2_3_4_5_6")},
-	HabaSkill:     [28]sonolus.Sprite{sonolus.SkinSprite("habahiro/note_skill_0"), sonolus.SkinSprite("habahiro/note_skill_1"), sonolus.SkinSprite("habahiro/note_skill_2"), sonolus.SkinSprite("habahiro/note_skill_3"), sonolus.SkinSprite("habahiro/note_skill_4"), sonolus.SkinSprite("habahiro/note_skill_5"), sonolus.SkinSprite("habahiro/note_skill_6"), sonolus.SkinSprite("habahiro/note_skill_0_1"), sonolus.SkinSprite("habahiro/note_skill_1_2"), sonolus.SkinSprite("habahiro/note_skill_2_3"), sonolus.SkinSprite("habahiro/note_skill_3_4"), sonolus.SkinSprite("habahiro/note_skill_4_5"), sonolus.SkinSprite("habahiro/note_skill_5_6"), sonolus.SkinSprite("habahiro/note_skill_0_1_2"), sonolus.SkinSprite("habahiro/note_skill_1_2_3"), sonolus.SkinSprite("habahiro/note_skill_2_3_4"), sonolus.SkinSprite("habahiro/note_skill_3_4_5"), sonolus.SkinSprite("habahiro/note_skill_4_5_6"), sonolus.SkinSprite("habahiro/note_skill_0_1_2_3"), sonolus.SkinSprite("habahiro/note_skill_1_2_3_4"), sonolus.SkinSprite("habahiro/note_skill_2_3_4_5"), sonolus.SkinSprite("habahiro/note_skill_3_4_5_6"), sonolus.SkinSprite("habahiro/note_skill_0_1_2_3_4"), sonolus.SkinSprite("habahiro/note_skill_1_2_3_4_5"), sonolus.SkinSprite("habahiro/note_skill_2_3_4_5_6"), sonolus.SkinSprite("habahiro/note_skill_0_1_2_3_4_5"), sonolus.SkinSprite("habahiro/note_skill_1_2_3_4_5_6"), sonolus.SkinSprite("habahiro/note_skill_0_1_2_3_4_5_6")},
-	HabaFlick:     [28]sonolus.Sprite{sonolus.SkinSprite("habahiro/note_flick_0"), sonolus.SkinSprite("habahiro/note_flick_1"), sonolus.SkinSprite("habahiro/note_flick_2"), sonolus.SkinSprite("habahiro/note_flick_3"), sonolus.SkinSprite("habahiro/note_flick_4"), sonolus.SkinSprite("habahiro/note_flick_5"), sonolus.SkinSprite("habahiro/note_flick_6"), sonolus.SkinSprite("habahiro/note_flick_0_1"), sonolus.SkinSprite("habahiro/note_flick_1_2"), sonolus.SkinSprite("habahiro/note_flick_2_3"), sonolus.SkinSprite("habahiro/note_flick_3_4"), sonolus.SkinSprite("habahiro/note_flick_4_5"), sonolus.SkinSprite("habahiro/note_flick_5_6"), sonolus.SkinSprite("habahiro/note_flick_0_1_2"), sonolus.SkinSprite("habahiro/note_flick_1_2_3"), sonolus.SkinSprite("habahiro/note_flick_2_3_4"), sonolus.SkinSprite("habahiro/note_flick_3_4_5"), sonolus.SkinSprite("habahiro/note_flick_4_5_6"), sonolus.SkinSprite("habahiro/note_flick_0_1_2_3"), sonolus.SkinSprite("habahiro/note_flick_1_2_3_4"), sonolus.SkinSprite("habahiro/note_flick_2_3_4_5"), sonolus.SkinSprite("habahiro/note_flick_3_4_5_6"), sonolus.SkinSprite("habahiro/note_flick_0_1_2_3_4"), sonolus.SkinSprite("habahiro/note_flick_1_2_3_4_5"), sonolus.SkinSprite("habahiro/note_flick_2_3_4_5_6"), sonolus.SkinSprite("habahiro/note_flick_0_1_2_3_4_5"), sonolus.SkinSprite("habahiro/note_flick_1_2_3_4_5_6"), sonolus.SkinSprite("habahiro/note_flick_0_1_2_3_4_5_6")},
-	HabaLong:      [28]sonolus.Sprite{sonolus.SkinSprite("habahiro/note_long_0"), sonolus.SkinSprite("habahiro/note_long_1"), sonolus.SkinSprite("habahiro/note_long_2"), sonolus.SkinSprite("habahiro/note_long_3"), sonolus.SkinSprite("habahiro/note_long_4"), sonolus.SkinSprite("habahiro/note_long_5"), sonolus.SkinSprite("habahiro/note_long_6"), sonolus.SkinSprite("habahiro/note_long_0_1"), sonolus.SkinSprite("habahiro/note_long_1_2"), sonolus.SkinSprite("habahiro/note_long_2_3"), sonolus.SkinSprite("habahiro/note_long_3_4"), sonolus.SkinSprite("habahiro/note_long_4_5"), sonolus.SkinSprite("habahiro/note_long_5_6"), sonolus.SkinSprite("habahiro/note_long_0_1_2"), sonolus.SkinSprite("habahiro/note_long_1_2_3"), sonolus.SkinSprite("habahiro/note_long_2_3_4"), sonolus.SkinSprite("habahiro/note_long_3_4_5"), sonolus.SkinSprite("habahiro/note_long_4_5_6"), sonolus.SkinSprite("habahiro/note_long_0_1_2_3"), sonolus.SkinSprite("habahiro/note_long_1_2_3_4"), sonolus.SkinSprite("habahiro/note_long_2_3_4_5"), sonolus.SkinSprite("habahiro/note_long_3_4_5_6"), sonolus.SkinSprite("habahiro/note_long_0_1_2_3_4"), sonolus.SkinSprite("habahiro/note_long_1_2_3_4_5"), sonolus.SkinSprite("habahiro/note_long_2_3_4_5_6"), sonolus.SkinSprite("habahiro/note_long_0_1_2_3_4_5"), sonolus.SkinSprite("habahiro/note_long_1_2_3_4_5_6"), sonolus.SkinSprite("habahiro/note_long_0_1_2_3_4_5_6")},
-	HabaLongFlash: [28]sonolus.Sprite{sonolus.SkinSprite("habahiro/note_long_flash_0"), sonolus.SkinSprite("habahiro/note_long_flash_1"), sonolus.SkinSprite("habahiro/note_long_flash_2"), sonolus.SkinSprite("habahiro/note_long_flash_3"), sonolus.SkinSprite("habahiro/note_long_flash_4"), sonolus.SkinSprite("habahiro/note_long_flash_5"), sonolus.SkinSprite("habahiro/note_long_flash_6"), sonolus.SkinSprite("habahiro/note_long_flash_0_1"), sonolus.SkinSprite("habahiro/note_long_flash_1_2"), sonolus.SkinSprite("habahiro/note_long_flash_2_3"), sonolus.SkinSprite("habahiro/note_long_flash_3_4"), sonolus.SkinSprite("habahiro/note_long_flash_4_5"), sonolus.SkinSprite("habahiro/note_long_flash_5_6"), sonolus.SkinSprite("habahiro/note_long_flash_0_1_2"), sonolus.SkinSprite("habahiro/note_long_flash_1_2_3"), sonolus.SkinSprite("habahiro/note_long_flash_2_3_4"), sonolus.SkinSprite("habahiro/note_long_flash_3_4_5"), sonolus.SkinSprite("habahiro/note_long_flash_4_5_6"), sonolus.SkinSprite("habahiro/note_long_flash_0_1_2_3"), sonolus.SkinSprite("habahiro/note_long_flash_1_2_3_4"), sonolus.SkinSprite("habahiro/note_long_flash_2_3_4_5"), sonolus.SkinSprite("habahiro/note_long_flash_3_4_5_6"), sonolus.SkinSprite("habahiro/note_long_flash_0_1_2_3_4"), sonolus.SkinSprite("habahiro/note_long_flash_1_2_3_4_5"), sonolus.SkinSprite("habahiro/note_long_flash_2_3_4_5_6"), sonolus.SkinSprite("habahiro/note_long_flash_0_1_2_3_4_5"), sonolus.SkinSprite("habahiro/note_long_flash_1_2_3_4_5_6"), sonolus.SkinSprite("habahiro/note_long_flash_0_1_2_3_4_5_6")},
-	HabaAmong:     [7]sonolus.Sprite{sonolus.SkinSprite("habahiro/note_slide_among"), sonolus.SkinSprite("habahiro/note_slide_among_2"), sonolus.SkinSprite("habahiro/note_slide_among_3"), sonolus.SkinSprite("habahiro/note_slide_among_4"), sonolus.SkinSprite("habahiro/note_slide_among_5"), sonolus.SkinSprite("habahiro/note_slide_among_6"), sonolus.SkinSprite("habahiro/note_slide_among_7")},
-	HabaFlickTop:  [3]sonolus.Sprite{sonolus.SkinSprite("habahiro/note_flick_top"), sonolus.SkinSprite("habahiro/note_flick_top_2"), sonolus.SkinSprite("habahiro/note_flick_top_3")},
-	HabaSimLine:   sonolus.SkinSprite("habahiro/simultaneous_line"),
-	HabaLongLine:  sonolus.SkinSprite("habahiro/longNoteLine@E6E6E6"),
-	HabaLongLine2: sonolus.SkinSprite("habahiro/longNoteLine2@E6E6E6"),
-	HabaField:     sonolus.SkinSprite("habahiro/bg_line_rhythm"),
-	HabaJudgeLine: sonolus.SkinSprite("habahiro/game_play_line"),
-	HabaFlash:     [4]sonolus.Sprite{sonolus.SkinSprite("habahiro/bg_line_rhythm_flash"), sonolus.SkinSprite("habahiro/bg_line_rhythm_flash2"), sonolus.SkinSprite("habahiro/game_play_line_flash"), sonolus.SkinSprite("habahiro/game_play_line_flash2")},
+	HabaNormal16:       [28]sonolus.Sprite{sonolus.SkinSprite("habahiro/note_normal_16_0"), sonolus.SkinSprite("habahiro/note_normal_16_1"), sonolus.SkinSprite("habahiro/note_normal_16_2"), sonolus.SkinSprite("habahiro/note_normal_16_3"), sonolus.SkinSprite("habahiro/note_normal_16_4"), sonolus.SkinSprite("habahiro/note_normal_16_5"), sonolus.SkinSprite("habahiro/note_normal_16_6"), sonolus.SkinSprite("habahiro/note_normal_16_0_1"), sonolus.SkinSprite("habahiro/note_normal_16_1_2"), sonolus.SkinSprite("habahiro/note_normal_16_2_3"), sonolus.SkinSprite("habahiro/note_normal_16_3_4"), sonolus.SkinSprite("habahiro/note_normal_16_4_5"), sonolus.SkinSprite("habahiro/note_normal_16_5_6"), sonolus.SkinSprite("habahiro/note_normal_16_0_1_2"), sonolus.SkinSprite("habahiro/note_normal_16_1_2_3"), sonolus.SkinSprite("habahiro/note_normal_16_2_3_4"), sonolus.SkinSprite("habahiro/note_normal_16_3_4_5"), sonolus.SkinSprite("habahiro/note_normal_16_4_5_6"), sonolus.SkinSprite("habahiro/note_normal_16_0_1_2_3"), sonolus.SkinSprite("habahiro/note_normal_16_1_2_3_4"), sonolus.SkinSprite("habahiro/note_normal_16_2_3_4_5"), sonolus.SkinSprite("habahiro/note_normal_16_3_4_5_6"), sonolus.SkinSprite("habahiro/note_normal_16_0_1_2_3_4"), sonolus.SkinSprite("habahiro/note_normal_16_1_2_3_4_5"), sonolus.SkinSprite("habahiro/note_normal_16_2_3_4_5_6"), sonolus.SkinSprite("habahiro/note_normal_16_0_1_2_3_4_5"), sonolus.SkinSprite("habahiro/note_normal_16_1_2_3_4_5_6"), sonolus.SkinSprite("habahiro/note_normal_16_0_1_2_3_4_5_6")},
+	HabaSkill:          [28]sonolus.Sprite{sonolus.SkinSprite("habahiro/note_skill_0"), sonolus.SkinSprite("habahiro/note_skill_1"), sonolus.SkinSprite("habahiro/note_skill_2"), sonolus.SkinSprite("habahiro/note_skill_3"), sonolus.SkinSprite("habahiro/note_skill_4"), sonolus.SkinSprite("habahiro/note_skill_5"), sonolus.SkinSprite("habahiro/note_skill_6"), sonolus.SkinSprite("habahiro/note_skill_0_1"), sonolus.SkinSprite("habahiro/note_skill_1_2"), sonolus.SkinSprite("habahiro/note_skill_2_3"), sonolus.SkinSprite("habahiro/note_skill_3_4"), sonolus.SkinSprite("habahiro/note_skill_4_5"), sonolus.SkinSprite("habahiro/note_skill_5_6"), sonolus.SkinSprite("habahiro/note_skill_0_1_2"), sonolus.SkinSprite("habahiro/note_skill_1_2_3"), sonolus.SkinSprite("habahiro/note_skill_2_3_4"), sonolus.SkinSprite("habahiro/note_skill_3_4_5"), sonolus.SkinSprite("habahiro/note_skill_4_5_6"), sonolus.SkinSprite("habahiro/note_skill_0_1_2_3"), sonolus.SkinSprite("habahiro/note_skill_1_2_3_4"), sonolus.SkinSprite("habahiro/note_skill_2_3_4_5"), sonolus.SkinSprite("habahiro/note_skill_3_4_5_6"), sonolus.SkinSprite("habahiro/note_skill_0_1_2_3_4"), sonolus.SkinSprite("habahiro/note_skill_1_2_3_4_5"), sonolus.SkinSprite("habahiro/note_skill_2_3_4_5_6"), sonolus.SkinSprite("habahiro/note_skill_0_1_2_3_4_5"), sonolus.SkinSprite("habahiro/note_skill_1_2_3_4_5_6"), sonolus.SkinSprite("habahiro/note_skill_0_1_2_3_4_5_6")},
+	HabaFlick:          [28]sonolus.Sprite{sonolus.SkinSprite("habahiro/note_flick_0"), sonolus.SkinSprite("habahiro/note_flick_1"), sonolus.SkinSprite("habahiro/note_flick_2"), sonolus.SkinSprite("habahiro/note_flick_3"), sonolus.SkinSprite("habahiro/note_flick_4"), sonolus.SkinSprite("habahiro/note_flick_5"), sonolus.SkinSprite("habahiro/note_flick_6"), sonolus.SkinSprite("habahiro/note_flick_0_1"), sonolus.SkinSprite("habahiro/note_flick_1_2"), sonolus.SkinSprite("habahiro/note_flick_2_3"), sonolus.SkinSprite("habahiro/note_flick_3_4"), sonolus.SkinSprite("habahiro/note_flick_4_5"), sonolus.SkinSprite("habahiro/note_flick_5_6"), sonolus.SkinSprite("habahiro/note_flick_0_1_2"), sonolus.SkinSprite("habahiro/note_flick_1_2_3"), sonolus.SkinSprite("habahiro/note_flick_2_3_4"), sonolus.SkinSprite("habahiro/note_flick_3_4_5"), sonolus.SkinSprite("habahiro/note_flick_4_5_6"), sonolus.SkinSprite("habahiro/note_flick_0_1_2_3"), sonolus.SkinSprite("habahiro/note_flick_1_2_3_4"), sonolus.SkinSprite("habahiro/note_flick_2_3_4_5"), sonolus.SkinSprite("habahiro/note_flick_3_4_5_6"), sonolus.SkinSprite("habahiro/note_flick_0_1_2_3_4"), sonolus.SkinSprite("habahiro/note_flick_1_2_3_4_5"), sonolus.SkinSprite("habahiro/note_flick_2_3_4_5_6"), sonolus.SkinSprite("habahiro/note_flick_0_1_2_3_4_5"), sonolus.SkinSprite("habahiro/note_flick_1_2_3_4_5_6"), sonolus.SkinSprite("habahiro/note_flick_0_1_2_3_4_5_6")},
+	HabaLong:           [28]sonolus.Sprite{sonolus.SkinSprite("habahiro/note_long_0"), sonolus.SkinSprite("habahiro/note_long_1"), sonolus.SkinSprite("habahiro/note_long_2"), sonolus.SkinSprite("habahiro/note_long_3"), sonolus.SkinSprite("habahiro/note_long_4"), sonolus.SkinSprite("habahiro/note_long_5"), sonolus.SkinSprite("habahiro/note_long_6"), sonolus.SkinSprite("habahiro/note_long_0_1"), sonolus.SkinSprite("habahiro/note_long_1_2"), sonolus.SkinSprite("habahiro/note_long_2_3"), sonolus.SkinSprite("habahiro/note_long_3_4"), sonolus.SkinSprite("habahiro/note_long_4_5"), sonolus.SkinSprite("habahiro/note_long_5_6"), sonolus.SkinSprite("habahiro/note_long_0_1_2"), sonolus.SkinSprite("habahiro/note_long_1_2_3"), sonolus.SkinSprite("habahiro/note_long_2_3_4"), sonolus.SkinSprite("habahiro/note_long_3_4_5"), sonolus.SkinSprite("habahiro/note_long_4_5_6"), sonolus.SkinSprite("habahiro/note_long_0_1_2_3"), sonolus.SkinSprite("habahiro/note_long_1_2_3_4"), sonolus.SkinSprite("habahiro/note_long_2_3_4_5"), sonolus.SkinSprite("habahiro/note_long_3_4_5_6"), sonolus.SkinSprite("habahiro/note_long_0_1_2_3_4"), sonolus.SkinSprite("habahiro/note_long_1_2_3_4_5"), sonolus.SkinSprite("habahiro/note_long_2_3_4_5_6"), sonolus.SkinSprite("habahiro/note_long_0_1_2_3_4_5"), sonolus.SkinSprite("habahiro/note_long_1_2_3_4_5_6"), sonolus.SkinSprite("habahiro/note_long_0_1_2_3_4_5_6")},
+	HabaLongFlash:      [28]sonolus.Sprite{sonolus.SkinSprite("habahiro/note_long_flash_0"), sonolus.SkinSprite("habahiro/note_long_flash_1"), sonolus.SkinSprite("habahiro/note_long_flash_2"), sonolus.SkinSprite("habahiro/note_long_flash_3"), sonolus.SkinSprite("habahiro/note_long_flash_4"), sonolus.SkinSprite("habahiro/note_long_flash_5"), sonolus.SkinSprite("habahiro/note_long_flash_6"), sonolus.SkinSprite("habahiro/note_long_flash_0_1"), sonolus.SkinSprite("habahiro/note_long_flash_1_2"), sonolus.SkinSprite("habahiro/note_long_flash_2_3"), sonolus.SkinSprite("habahiro/note_long_flash_3_4"), sonolus.SkinSprite("habahiro/note_long_flash_4_5"), sonolus.SkinSprite("habahiro/note_long_flash_5_6"), sonolus.SkinSprite("habahiro/note_long_flash_0_1_2"), sonolus.SkinSprite("habahiro/note_long_flash_1_2_3"), sonolus.SkinSprite("habahiro/note_long_flash_2_3_4"), sonolus.SkinSprite("habahiro/note_long_flash_3_4_5"), sonolus.SkinSprite("habahiro/note_long_flash_4_5_6"), sonolus.SkinSprite("habahiro/note_long_flash_0_1_2_3"), sonolus.SkinSprite("habahiro/note_long_flash_1_2_3_4"), sonolus.SkinSprite("habahiro/note_long_flash_2_3_4_5"), sonolus.SkinSprite("habahiro/note_long_flash_3_4_5_6"), sonolus.SkinSprite("habahiro/note_long_flash_0_1_2_3_4"), sonolus.SkinSprite("habahiro/note_long_flash_1_2_3_4_5"), sonolus.SkinSprite("habahiro/note_long_flash_2_3_4_5_6"), sonolus.SkinSprite("habahiro/note_long_flash_0_1_2_3_4_5"), sonolus.SkinSprite("habahiro/note_long_flash_1_2_3_4_5_6"), sonolus.SkinSprite("habahiro/note_long_flash_0_1_2_3_4_5_6")},
+	HabaAmong:          [7]sonolus.Sprite{sonolus.SkinSprite("habahiro/note_slide_among"), sonolus.SkinSprite("habahiro/note_slide_among_2"), sonolus.SkinSprite("habahiro/note_slide_among_3"), sonolus.SkinSprite("habahiro/note_slide_among_4"), sonolus.SkinSprite("habahiro/note_slide_among_5"), sonolus.SkinSprite("habahiro/note_slide_among_6"), sonolus.SkinSprite("habahiro/note_slide_among_7")},
+	HabaFlickTop:       [3]sonolus.Sprite{sonolus.SkinSprite("habahiro/note_flick_top"), sonolus.SkinSprite("habahiro/note_flick_top_2"), sonolus.SkinSprite("habahiro/note_flick_top_3")},
+	HabaSimLine:        sonolus.SkinSprite("habahiro/simultaneous_line"),
+	HabaLongLine:       sonolus.SkinSprite("habahiro/longNoteLine@E6E6E6"),
+	HabaLongLine2:      sonolus.SkinSprite("habahiro/longNoteLine2@E6E6E6"),
+	HabaLongLineTouch:  sonolus.SkinSprite("habahiro/longNoteLine"),
+	HabaLongLine2Touch: sonolus.SkinSprite("habahiro/longNoteLine2"),
+	HabaField:          sonolus.SkinSprite("habahiro/bg_line_rhythm"),
+	HabaJudgeLine:      sonolus.SkinSprite("habahiro/game_play_line"),
+	HabaFlash:          [4]sonolus.Sprite{sonolus.SkinSprite("habahiro/bg_line_rhythm_flash"), sonolus.SkinSprite("habahiro/bg_line_rhythm_flash2"), sonolus.SkinSprite("habahiro/game_play_line_flash"), sonolus.SkinSprite("habahiro/game_play_line_flash2")},
 }

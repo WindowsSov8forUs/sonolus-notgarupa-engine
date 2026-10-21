@@ -29,7 +29,6 @@ type PlaySlideNodeBase struct {
 	Prev           sonolus.EntityRef[PlaySlideNodeBase] `archetype:"imported,name=prev"`
 	Next           sonolus.EntityRef[PlaySlideNodeBase] `archetype:"imported,name=next"`
 	Judged         bool                                 `archetype:"shared"`
-	Closed         bool                                 `archetype:"shared"` // gesture sprite closed by a touch-down (S5)
 	IconStart      float64                              `archetype:"memory"`
 }
 
@@ -101,18 +100,13 @@ func (n *PlaySlideNodeBase) UpdateParallel() {
 			// a stopped node rides the contact point, gesture or not; the
 			// front's own exit offset stays behind it while its gesture shows
 			lane = h.ContactLane
-			if !h.SegHead && h.Seg.Index == play.Entity.Info().Index && !n.Closed {
+			if !h.SegHead && h.Seg.Index == play.Entity.Info().Index {
 				lane -= n.Exit
 			}
 		}
 	}
 	// a child sorts with its head (head time and lane)
 	z := noteZ(zNote, h.Time, h.Lane)
-	if n.Closed {
-		// a touch-down closed its gesture: a plain middle node from here
-		drawAmong(lane, c, n.Width, NodePlain, now-n.IconStart, stopped, z)
-		return
-	}
 	if !n.Terminal && (n.Kind == NodePlain || n.Kind == NodeFlick) {
 		drawAmong(lane, c, n.Width, n.Kind, now-n.IconStart, stopped, z)
 		return
@@ -168,7 +162,6 @@ type PlaySlideBase struct {
 	GCached      float64 `archetype:"memory"`
 	GCachedTime  float64 `archetype:"memory"`
 	GCachedError float64 `archetype:"memory"`
-	HeadClosed   bool    `archetype:"memory"` // gesture head sprite closed by its touch-down
 	// Passed is the last middle node the hold has judged; the original keeps
 	// its sprite riding at the front (ExecTouchMoved hides only the note
 	// before it), so the held head body shows only until the first one.
@@ -537,10 +530,9 @@ func (n *PlaySlideBase) pickUp(id, now float64) {
 	n.Touched = true
 	if n.OnHead {
 		if n.Kind != NodePlain {
-			// gesture head: the flick tail's touch-down (cache, sprite closed);
-			// it then looks like a held plain head
+			// gesture head: the flick tail's touch-down caches the grade; the
+			// gesture shows until it is judged
 			n.cacheGesture(n.AGrade, n.ATiming, n.ATime-n.Time)
-			n.HeadClosed = true
 			n.startFeedback(now)
 			return
 		}
@@ -566,7 +558,6 @@ func (n *PlaySlideBase) pickUp(id, now float64) {
 		// intermediate gesture: the flick tail's touch-down as well
 		n.cacheGesture(n.AGrade, n.ATiming, n.ATime-c.Time)
 		n.GestureAt = float64(n.Cursor.Index)
-		c.Closed = true
 		n.startFeedback(now)
 	default:
 		n.judgeNode(n.Cursor, n.AGrade, n.ATiming, n.ATime-c.Time, jtSlide, 1, now)
@@ -847,8 +838,11 @@ func (n *PlaySlideBase) UpdateParallel() {
 	}
 	now := play.Time.Now()
 	n.drawBody(now)
-	if !n.Hidden && !n.HeadDone && !n.HeadClosed {
+	if !n.Hidden && !n.HeadDone {
 		pr := n.progress(now)
+		if n.Feedback {
+			pr = math.Max(pr, 1) // a touched-down gesture head is placed on the line
+		}
 		if pr >= 0 {
 			// an unheld head snaps onto the line at the target-button scale
 			// and, like a held one, rides the contact point (slidingMove runs
@@ -867,7 +861,8 @@ func (n *PlaySlideBase) UpdateParallel() {
 		p := heldPos(lane)
 		chain := n.chainSprite(now)
 		body, flash, px := slideHoldSprites(n.Width, lane)
-		drawHoldFlash(body, flash, p, px, !n.Hidden && chain == chainHead, now-n.FlashStart, n.z())
+		// the held body replaces a gesture head only once it is judged
+		drawHoldFlash(body, flash, p, px, !n.Hidden && n.HeadDone && chain == chainHead, now-n.FlashStart, n.z())
 		if chain == chainPassed {
 			// a passed middle node rides as a plain one: note_slide_among only
 			drawAmong(lane, 1, n.Passed.Get().Width, NodePlain, 0, true, n.z())
@@ -885,10 +880,10 @@ func (n *PlaySlideBase) anchorLane() float64 {
 	}
 	lane := n.ContactLane
 	if n.SegHead {
-		if !n.HeadDone && !n.HeadClosed {
+		if !n.HeadDone {
 			lane -= n.Exit
 		}
-	} else if f := n.Seg.Get(); !f.Judged && !f.Closed {
+	} else if f := n.Seg.Get(); !f.Judged {
 		lane -= f.Exit
 	}
 	return lane

@@ -20,10 +20,10 @@
 
 | 类型 | 条目名 | 默认 | HABAHIRO |
 |---|---|---|---|
-| Skin | `notgarupa-<音符>-<lane>-<方向键>[-<判定>]`（判定为 skin00 时省略） | `notgarupa-skin00-skin00-skin00` | `notgarupa-habahiro-<方向键>` |
-| Effect | `notgarupa-<打击音效>` | `notgarupa-skin00` | （同普通） |
-| Particle | `notgarupa-<打击特效>-<方向键><normal\|light>` | `notgarupa-skin00-skin00normal` | `notgarupa-habahiro-<方向键><normal\|light>` |
-| Background | `notgarupa-<背景>` | `notgarupa-skin00` | `notgarupa-habahiro` |
+| Skin | `garupa-<音符>-<lane>-<方向键>[-<判定>]`（判定为 skin00 时省略；特殊行固定的各轴只写一次，为该组合的第一个 bundle） | `garupa-skin00-skin00-skin00` | `garupa-habahiro-<方向键>` |
+| Effect | `garupa-<打击音效>` | `garupa-skin00` | （同普通） |
+| Particle | `garupa-<打击特效>-<方向键><normal\|light>` | `garupa-skin00-skin00normal` | `garupa-habahiro-<方向键><normal\|light>` |
+| Background | `garupa-<背景>` | `garupa-skin00` | `garupa-habahiro` |
 
 HABAHIRO 条目不是与普通条目并列的皮肤：服务器不在条目列表中提供它们（仍可按名称获取），只让 `#HABAHIRO` 关卡使用。原作的 HABAHIRO 保留玩家的方向键皮肤与方向键特效，服务器用两个配置项（`habahiroDirectional`、`habahiroDirectionalEffect`，随每个请求发送）为 HABAHIRO 关卡选出对应的 HABAHIRO 条目，默认 skin00 / normal。
 
@@ -155,7 +155,7 @@ TapKeep 平面部分的周期为 1、6 或 9 s（skin00 为 6 s，使旋转环�
 
 ### HABAHIRO 粒子条目
 
-HABAHIRO 条目 `notgarupa-habahiro-<方向键特效>` 的打击特效取自原作 `ingameskin/tapeffect/habahiro`（原作对多宽度谱面强制使用），方向键特效保留玩家设置，另加宽度变体：`effect_tap_good` / `_great` / `_perfect`、`effect_tap_skill_good` / `_great` / `_perfect`、`effect_tap_swipe`、`effect_TapKeep` 各自的 `_2`…`_7`（`#planeNN` 部分与基础特效相同，时长相同）。引擎对宽度 w 的音符使用 `_<w>`，锚点为接收 lane（偶数宽在两 lane 之间）；Slide 的 TapKeep 始终用基础特效。
+HABAHIRO 条目 `garupa-habahiro-<方向键特效>` 的打击特效取自原作 `ingameskin/tapeffect/habahiro`（原作对多宽度谱面强制使用），方向键特效保留玩家设置，另加宽度变体：`effect_tap_good` / `_great` / `_perfect`、`effect_tap_skill_good` / `_great` / `_perfect`、`effect_tap_swipe`、`effect_TapKeep` 各自的 `_2`…`_7`（`#planeNN` 部分与基础特效相同，时长相同）。引擎对宽度 w 的音符使用 `_<w>`，锚点为接收 lane（偶数宽在两 lane 之间）；Slide 的 TapKeep 始终用基础特效。
 
 标准名：`#NOTE_*_TAP_*` → `effect_tap_perfect`，`#NOTE_*_ALTERNATIVE_*` → `effect_tap_swipe`，`#NOTE_*_HOLD_*` → `effect_TapKeep`，`#LANE_*` `#SLOT_*` `#JUDGE_LINE_*` → `effect_tap`（只复制主特效）。
 
@@ -173,8 +173,8 @@ HABAHIRO 条目 `notgarupa-habahiro-<方向键特效>` 的打击特效取自原�
 
 | 资源 | 条目 | 输出 |
 |---|---|---|
-| Skin | `notgarupa-habahiro-<方向键>`（普通命名的精灵为 skin00 音符与换道前的 skin00 lane，另加 `habahiro/*`，纹理 4096×8192，全分辨率） | `sonolus-notgarupa-skin-generator/out/pack` |
-| Particle | `notgarupa-habahiro-<方向键特效>` | `sonolus-notgarupa-particle-generator/out/pack` |
-| Background | `notgarupa-habahiro`（`ingameskin/bgskin/habahiro`） | `sonolus-notgarupa-background-generator/out/pack` |
+| Skin | `garupa-habahiro-<方向键>`（普通命名的精灵为 skin00 音符与换道前的 skin00 lane，另加 `habahiro/*`，纹理 4096×8192，全分辨率） | `sonolus-notgarupa-skin-generator/out/pack` |
+| Particle | `garupa-habahiro-<方向键特效>` | `sonolus-notgarupa-particle-generator/out/pack` |
+| Background | `garupa-habahiro`（`ingameskin/bgskin/habahiro`） | `sonolus-notgarupa-background-generator/out/pack` |
 
 宽音符精灵 `habahiro/note_<族>_<s>_<s+1>_…_<s+w−1>`（族：`note_normal`、`note_normal_16`、`note_skill`、`note_flick`、`note_long`、`note_long_flash`；每族 28 个 run，下标 `(w−1)(16−w)/2 + s`），像素宽 308 / 524 / 736 / 952 / 1164 / 1380 / 1596 × 120，PPU 100，pivot 中心；`habahiro/note_slide_among`、`_2`…`_7`；`habahiro/note_flick_top`、`_2`、`_3`（171 / 288 / 400 × 138）；`habahiro/longNoteLine*`、`habahiro/simultaneous_line`；换道后的场地 `habahiro/bg_line_rhythm` 与判定线 `habahiro/game_play_line`（1800×43）；换道闪光 `habahiro/bg_line_rhythm_flash`、`_flash2`、`habahiro/game_play_line_flash`、`_flash2`。几何、换道时间与闪光关键帧见 `sonolus-notgarupa-skin-generator/HABAHIRO.md`。

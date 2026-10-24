@@ -20,7 +20,7 @@
 
 | 类型 | 条目名 | 默认 | HABAHIRO |
 |---|---|---|---|
-| Skin | `garupa-<音符>-<lane>-<方向键>[-<判定>]`（判定为 skin00 时省略；特殊行固定的各轴只写一次，为该组合的第一个 bundle） | `garupa-skin00-skin00-skin00` | `garupa-habahiro-<方向键>` |
+| Skin | `garupa-<音符>-<方向键>-<lane>[-<判定>]`（判定为 skin00 时省略；特殊行固定的各轴只写一次，为该组合的第一个 bundle） | `garupa-skin00-skin00-skin00` | `garupa-habahiro-<方向键>` |
 | Effect | `garupa-<打击音效>` | `garupa-skin00` | （同普通） |
 | Particle | `garupa-<打击特效>-<方向键>` | `garupa-skin00-skin00` | `garupa-habahiro-<方向键>` |
 | Background | `garupa-<背景>` | `garupa-skin00` | `garupa-habahiro` |

@@ -90,7 +90,7 @@ Archetype、数据字段与计分链见 [LEVEL_DATA.md](LEVEL_DATA.md)。转换�
 | Bad | Good | 精度记录真实误差；连击、HUD 与引擎自绘生命按原作 |
 | Miss | Miss | |
 
-Sonolus 自身的生命值只能在 preprocess 中静态配置（`AddLifeScheduled` 与 Entity Life 仅 preprocess 可写）：各计分 archetype Miss −100（全长曲 −50），Long 头 Miss 0（头超时的两次 ½ 伤害合计记在尾上），Slide 中间节点 Miss ÷5（逐实体 Entity Life，Play 与 Watch 分别经 `play.Entity`、`watch.Entity` 写入各自的 Entity Life 块 4007 / 4006）。Bad 在 Sonolus 中与 Good 共用判定，无法扣 50；引擎自绘的生命槽完全按原作。
+Sonolus 自身的生命值只能在 preprocess 中静态配置（`AddLifeScheduled` 与 Entity Life 仅 preprocess 可写）：各计分 archetype Miss −100（关卡 `fullLength` 为全长曲时 −50），Long 头 Miss 0（头超时的两次 ½ 伤害合计记在尾上），Slide 中间节点 Miss ÷5（逐实体 Entity Life，Play 与 Watch 分别经 `play.Entity`、`watch.Entity` 写入各自的 Entity Life 块 4007 / 4006）。Bad 在 Sonolus 中与 Good 共用判定，无法扣 50；引擎自绘的生命槽完全按原作。
 
 ## 6. 计分与 HUD
 

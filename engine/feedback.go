@@ -67,7 +67,7 @@ func hudApply(now float64, j judgement) float64 {
 	// live, life stays at 0 and everything else goes on, the clear included.
 	dmg := 0.0
 	if !Hud.GameOver {
-		dmg = lifeDamage(g, j.Type, Config.FullLength)
+		dmg = lifeDamage(g, j.Type)
 		if j.Divisor > 1 {
 			dmg = math.Trunc(dmg / j.Divisor)
 		}
@@ -473,4 +473,20 @@ func (s *holdLoopSchedule) finish() {
 func syncLineAtSpeed(min, max float64) bool {
 	speed := math.Round(Config.NoteSpeed * 10)
 	return speed >= min && speed <= max
+}
+
+// lifeDamage returns the life change of a grade for a judge note type; a
+// full-length song halves it (DamageUtility.CalcDamage).
+func lifeDamage(grade, judgeType float64) float64 {
+	miss, bad := -100.0, -50.0
+	if Hud.FullLength {
+		miss, bad = -50, -25
+	}
+	switch grade {
+	case gradeMiss:
+		return miss
+	case gradeBad:
+		return bad
+	}
+	return 0
 }

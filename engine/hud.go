@@ -67,6 +67,7 @@ type HudState struct {
 	ScoreMax      float64
 	RankThreshold [5]float64
 	NoteCount     float64
+	FullLength    bool // level flag: halved life damage (original musicDataType "full")
 }
 
 var Hud = HudState{}

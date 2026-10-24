@@ -14,6 +14,7 @@ type PlayInitialization struct {
 	NoteCount           float64                         `archetype:"imported,name=noteCount"`
 	Habahiro            bool                            `archetype:"imported,name=habahiro"`
 	LaneChangeBeat      float64                         `archetype:"imported,name=laneChangeBeat,default=-1"`
+	FullLength          bool                            `archetype:"imported,name=fullLength"`
 	FirstScored         sonolus.EntityRef[PlayNoteBase] `archetype:"imported,name=firstScored"`
 }
 
@@ -26,6 +27,7 @@ func (n *PlayInitialization) Preprocess() {
 	initHoldSE()
 	initFx()
 	initHud(n.NoteCount)
+	Hud.FullLength = n.FullLength
 	initStageLights()
 	initCurves()
 	play.Background.Set(backgroundQuad())
@@ -40,7 +42,7 @@ func (n *PlayInitialization) Preprocess() {
 	// Miss costs the original damage; a Long head timeout counts on the tail
 	// only (2 × ½); Slide among nodes are ÷5 per entity. Bad shares Sonolus
 	// Good and cannot cost life there; the HUD gauge is exact.
-	miss := play.LifeValues{Miss: lifeDamage(gradeMiss, jtNormal, Config.FullLength)}
+	miss := play.LifeValues{Miss: lifeDamage(gradeMiss, jtNormal)}
 	play.Life.SetArchetype(play.ArchetypeID[PlayTapNote](), miss)
 	play.Life.SetArchetype(play.ArchetypeID[PlayFlickNote](), miss)
 	play.Life.SetArchetype(play.ArchetypeID[PlayDirectionalNote](), miss)

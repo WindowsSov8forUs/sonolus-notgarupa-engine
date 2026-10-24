@@ -410,7 +410,7 @@ func (n *WatchSlideNode) Preprocess() {
 	}
 	if !n.Terminal {
 		life := watch.Entity.Life()
-		life.Miss = math.Trunc(lifeDamage(gradeMiss, jtSlide, Config.FullLength) / 5)
+		life.Miss = math.Trunc(lifeDamage(gradeMiss, jtSlide) / 5)
 		watch.Entity.SetLife(life)
 	}
 }

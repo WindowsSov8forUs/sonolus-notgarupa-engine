@@ -166,21 +166,6 @@ func arcadeWeight(grade, streak float64) float64 {
 	return arcadeMultiplier(grade) * (1 + math.Floor(math.Min(streak, arcadeCap)/arcadeStep)*arcadeBonus)
 }
 
-// lifeDamage returns the life change of a grade for a judge note type.
-func lifeDamage(grade, judgeType float64, fullLength bool) float64 {
-	miss, bad := -100.0, -50.0
-	if fullLength {
-		miss, bad = -50, -25
-	}
-	switch grade {
-	case gradeMiss:
-		return miss
-	case gradeBad:
-		return bad
-	}
-	return 0
-}
-
 // The extra particle anchor scale: one particle unit in world units.
 func particleUnit() float64 { return Layout.Rate * Layout.N * Layout.Safe }
 

@@ -22,7 +22,6 @@ type EngineConfiguration struct {
 	ComboAP      bool
 	ComboPos     int
 	Mirror       bool
-	FullLength   bool
 	SFX          bool
 	AutoSFX      bool
 	StageEffects bool
@@ -68,10 +67,6 @@ var Config = EngineConfiguration{
 	Mirror: sonolus.ToggleOption(sonolus.ToggleOptionConfig{
 		Name: "#MIRROR", Scope: scope, Default: false,
 	}),
-	FullLength: sonolus.ToggleOption(sonolus.ToggleOptionConfig{
-		Name: "Full-length song", Scope: scope, Default: false,
-		Description: "Halves life damage, as for full-length songs in the original.",
-	}),
 	SFX: sonolus.ToggleOption(sonolus.ToggleOptionConfig{
 		Name: "#EFFECT", Scope: scope, Default: true,
 	}),
@@ -115,7 +110,7 @@ var Config = EngineConfiguration{
 		JudgmentErrorStyle:     sonolus.UIJudgmentErrorNone,
 		JudgmentErrorPlacement: sonolus.UIJudgmentErrorTop,
 	},
-	Replay: []string{"#NOTE_SPEED", "#NOTE_SIZE", "#MIRROR", "Full-length song"},
+	Replay: []string{"#NOTE_SPEED", "#NOTE_SIZE", "#MIRROR"},
 }
 
 //sonolus:level

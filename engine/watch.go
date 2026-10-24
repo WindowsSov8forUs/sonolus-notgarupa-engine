@@ -31,6 +31,7 @@ type WatchInitialization struct {
 	NoteCount            float64                          `archetype:"imported,name=noteCount"`
 	Habahiro             bool                             `archetype:"imported,name=habahiro"`
 	LaneChangeBeat       float64                          `archetype:"imported,name=laneChangeBeat,default=-1"`
+	FullLength           bool                             `archetype:"imported,name=fullLength"`
 	FirstScored          sonolus.EntityRef[WatchNoteBase] `archetype:"imported,name=firstScored"`
 }
 
@@ -43,6 +44,7 @@ func (n *WatchInitialization) Preprocess() {
 	initHoldSE()
 	initFx()
 	initHud(n.NoteCount)
+	Hud.FullLength = n.FullLength
 	watch.Background.Set(backgroundQuad())
 	// Sonolus' arcade score (Level Score starts at 0); the HUD computes the
 	// same score (arcadeWeight)
@@ -53,7 +55,7 @@ func (n *WatchInitialization) Preprocess() {
 
 	watch.Life.SetInitial(1000)
 	watch.Life.SetMax(2000)
-	miss := watch.LifeValues{Miss: lifeDamage(gradeMiss, jtNormal, Config.FullLength)}
+	miss := watch.LifeValues{Miss: lifeDamage(gradeMiss, jtNormal)}
 	watch.Life.SetArchetype(watch.ArchetypeID[WatchTapNote](), miss)
 	watch.Life.SetArchetype(watch.ArchetypeID[WatchFlickNote](), miss)
 	watch.Life.SetArchetype(watch.ArchetypeID[WatchDirectionalNote](), miss)

@@ -51,7 +51,7 @@ func (n *PlaySlideNodeBase) Preprocess() {
 	if !n.Terminal && !n.Hidden {
 		// a middle node's Miss costs a fifth of the Slide damage (Entity Life)
 		life := play.Entity.Life()
-		life.Miss = math.Trunc(lifeDamage(gradeMiss, jtSlide, Config.FullLength) / 5)
+		life.Miss = math.Trunc(lifeDamage(gradeMiss, jtSlide) / 5)
 		play.Entity.SetLife(life)
 	}
 	if !n.Hidden {

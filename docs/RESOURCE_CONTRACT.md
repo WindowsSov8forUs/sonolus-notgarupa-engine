@@ -22,10 +22,10 @@
 |---|---|---|---|
 | Skin | `garupa-<音符>-<lane>-<方向键>[-<判定>]`（判定为 skin00 时省略；特殊行固定的各轴只写一次，为该组合的第一个 bundle） | `garupa-skin00-skin00-skin00` | `garupa-habahiro-<方向键>` |
 | Effect | `garupa-<打击音效>` | `garupa-skin00` | （同普通） |
-| Particle | `garupa-<打击特效>-<方向键><normal\|light>` | `garupa-skin00-skin00normal` | `garupa-habahiro-<方向键><normal\|light>` |
+| Particle | `garupa-<打击特效>-<方向键>` | `garupa-skin00-skin00` | `garupa-habahiro-<方向键>` |
 | Background | `garupa-<背景>` | `garupa-skin00` | `garupa-habahiro` |
 
-HABAHIRO 条目不是与普通条目并列的皮肤：服务器不在条目列表中提供它们（仍可按名称获取），只让 `#HABAHIRO` 关卡使用。原作的 HABAHIRO 保留玩家的方向键皮肤与方向键特效，服务器用两个配置项（`habahiroDirectional`、`habahiroDirectionalEffect`，随每个请求发送）为 HABAHIRO 关卡选出对应的 HABAHIRO 条目，默认 skin00 / normal。
+HABAHIRO 条目不是与普通条目并列的皮肤：服务器不在条目列表中提供它们（仍可按名称获取），只让 `#HABAHIRO` 关卡使用。原作的 HABAHIRO 保留玩家的方向键皮肤与方向键特效：服务器用配置项 `habahiroDirectional`（随每个请求发送）为 HABAHIRO 关卡选出对应的 HABAHIRO 条目，默认 skin00；方向键特效设置是引擎选项（见 Particle）。
 
 引擎需要的资源名清单在本仓库的 `resources.json`：它列出引擎声明的全部 skin 精灵、effect clip 与 particle 效果名，每类分为 `ordinary`（普通条目与 HABAHIRO 条目都必须提供）、`habahiro`（只有 HABAHIRO 条目另外提供）与 `optional`（各条目不同，引擎用 `Exists()` 判断：条目属性的存在标记、只有部分条目才有的片段与粒子部分）。清单由 `engine/resources_test.go` 从引擎源码中的 `sonolus.SkinSprite` / `EffectClip` / `ParticleEffect` 声明提取：HABAHIRO 专用名是皮肤的 `Haba*` 字段与粒子的宽度变体 `*W` 字段，可选名是 `*Opt` 字段。修改声明后运行 `go test ./engine -run TestResourceList -update` 更新清单，测试保证两者一致。服务器启动时按清单检查实际加载的条目（devserver 的 `-resources`）。NotGarupa 不支持第三方资源，所以 `ordinary` 与 `habahiro` 中的名字缺一不可。
 
@@ -121,6 +121,8 @@ Sonolus 精灵不能着色，也没有加法混合，因此：
 标准名别名：`#PERFECT/#GREAT/#GOOD` → 对应 cue，`#*_ALTERNATIVE` → `flick`，`#HOLD/#HOLD_ALTERNATIVE` → `SE_RHYTHM_TAP_LONG#loop`（不循环时为整个 cue），`#STAGE` → `game_button`，`#MISS*` → `miss`。
 
 ## Particle
+
+原作的方向键特效设置（左右フリックアイコンエフェクト 大 / 小）选用 `directionalflick<方向键>normal` 或 `…light`。它不分条目：每个粒子条目同时含两者，normal 用 prefab 原名，light 加前缀 `light/`（`light/effect_tap_directional_flick_l`、`_2`、`_3`、`light/effect_tap_directional_flick_l_finger` 及其 lane 平面部件，`r` 同），引擎的选项「Directional flick effect」（大 / 小）选择其中一组。
 
 每个打击特效（`ingameskin/tapeffect/<id>`）与方向键特效（`directionalflick<方向键><normal|light>`）的 prefab 由官方 CDN 上原作 bundle 中的 Unity ParticleSystem 序列化数据逐系统转换（发射、形状、速度 / 力随寿命变化、速度限制与阻力、重力、角速度与随速度旋转、大小 / 颜色随寿命变化、贴图序列帧、拉伸 billboard、Quad 与 3D 网格）。原作中处于 inactive 状态、`Play` 不会播放的子系统不转换。转换细节与近似见粒子生成器的 README。
 

@@ -331,17 +331,17 @@ func playJudgementParticles(j judgement) {
 		if j.Direction < 0 {
 			k := fxKey(j.Lane, 7+idx)
 			fxRestart(k)
-			Hud.Fx0[k] = Particles.DirL[idx].Spawn(q1, dur, false)
+			Hud.Fx0[k] = dirEffect(false, idx).Spawn(q1, dur, false)
 			kf := fxKey(fingerLane, 13)
 			fxRestart(kf)
-			Hud.Fx0[kf], Hud.Fx1[kf], _ = spawnFx(fxFingerL, fx, durFinger, durFinger, false)
+			Hud.Fx0[kf], Hud.Fx1[kf], _ = spawnFx(dirFinger(false), fx, durFinger, durFinger, false)
 		} else {
 			k := fxKey(j.Lane, 10+idx)
 			fxRestart(k)
-			Hud.Fx0[k] = Particles.DirR[idx].Spawn(q1, dur, false)
+			Hud.Fx0[k] = dirEffect(true, idx).Spawn(q1, dur, false)
 			kf := fxKey(fingerLane, 14)
 			fxRestart(kf)
-			Hud.Fx0[kf], Hud.Fx1[kf], _ = spawnFx(fxFingerR, fx, durFinger, durFinger, false)
+			Hud.Fx0[kf], Hud.Fx1[kf], _ = spawnFx(dirFinger(true), fx, durFinger, durFinger, false)
 		}
 	case j.Type == jtFlick || j.Type == jtLongEndFlick:
 		k := fxKey(j.Lane, 6)

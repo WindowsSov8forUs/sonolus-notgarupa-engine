@@ -179,7 +179,7 @@ sonolus-go：上表没有一项受其阻碍。N8–N10 已在 v2.5.1 修复；N1
 
 ## 9. HABAHIRO
 
-- `Header #HABAHIRO` 的关卡强制使用 HABAHIRO 皮肤、粒子与背景条目（HABAHIRO 条目不在条目列表中；原作中方向键皮肤与方向键特效保留玩家设置，生成器为每种设置各生成一个 HABAHIRO 条目，devserver 按配置项 `habahiroDirectional` / `habahiroDirectionalEffect` 为每个请求选出 `garupa-habahiro-<方向键>`、`garupa-habahiro-<方向键><normal|light>`，背景为 `garupa-habahiro`）；引擎用 `Exists()` 检查，资源包缺少 HABAHIRO 精灵 / 粒子时回退普通资源。
+- `Header #HABAHIRO` 的关卡强制使用 HABAHIRO 皮肤、粒子与背景条目（HABAHIRO 条目不在条目列表中；原作中方向键皮肤与方向键特效保留玩家设置，生成器为每种设置各生成一个 HABAHIRO 条目，devserver 按配置项 `habahiroDirectional` 为每个请求选出皮肤与粒子 `garupa-habahiro-<方向键>`，背景为 `garupa-habahiro`；方向键特效设置是引擎选项，粒子条目同时含两种设置）；引擎用 `Exists()` 检查，资源包缺少 HABAHIRO 精灵 / 粒子时回退普通资源。
 - 宽音符（宽度直接来自谱面）绘制在跨度中心（偶数宽在两 lane 之间），精灵为 `habahiro/note_<族>_<s>_…_<s+w−1>`，像素宽 308…1596；Slide 中间节点用 `note_slide_among_<w>`，上滑图标按宽度选 `note_flick_top` / `_2` / `_3`；Long 的按住闪光用真实 lane，Slide 的按住头与闪光用居中的 run。主体线使用 HABAHIRO 的 longNoteLine，网格半宽乘 widthRate（w = 2：1.05；w ≥ 3：1.05 + 0.03·HAR）。方向键不变。
 - 判定与按钮不变；lane 光柱关闭；音符大小钳制 80%–150%。
 - 换道（最晚的 `#LANE_CHANGE`）：到点后 1 s 的闪光（4 张贴图，smoothstep 关键帧），0.4167 s 时场地与判定线（43 px）换成 HABAHIRO 版本；无换道时全程为 skin00 场地。

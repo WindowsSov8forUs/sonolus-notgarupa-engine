@@ -18,6 +18,8 @@ const (
 	fxKeep
 	fxFingerL
 	fxFingerR
+	fxFingerLLight // the light directional effect setting (light/ prefix)
+	fxFingerRLight
 	fxFamilies
 )
 
@@ -112,4 +114,33 @@ func spawnKeep(w int, x float64) (sonolus.ParticleHandle, sonolus.ParticleHandle
 		return b, p, none
 	}
 	return spawnFx(fxKeep, x, durKeep, durKeepPlane, true)
+}
+
+// dirEffect is directional effect idx (0: single, 1: count 2, 2: count 3)
+// of the player's directional effect setting (the original live setting
+// 左右フリックアイコンエフェクト: 大 = normal, 小 = light; every particle item
+// has both, the light one under the light/ prefix).
+func dirEffect(right bool, idx int) sonolus.Effect {
+	light := Config.DirEffect == 1
+	switch {
+	case right && light:
+		return Particles.DirRLight[idx]
+	case right:
+		return Particles.DirR[idx]
+	case light:
+		return Particles.DirLLight[idx]
+	}
+	return Particles.DirL[idx]
+}
+
+// dirFinger is the directional finger family of the setting.
+func dirFinger(right bool) int {
+	f := fxFingerL
+	if right {
+		f = fxFingerR
+	}
+	if Config.DirEffect == 1 {
+		f += fxFingerLLight - fxFingerL
+	}
+	return f
 }

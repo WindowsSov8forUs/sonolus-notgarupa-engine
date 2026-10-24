@@ -26,6 +26,7 @@ type EngineConfiguration struct {
 	AutoSFX      bool
 	StageEffects bool
 	NoteEffects  bool
+	DirEffect    int
 	LineBright   float64
 	SuddenRate   float64
 	UI           sonolus.UIConfig
@@ -78,6 +79,10 @@ var Config = EngineConfiguration{
 	}),
 	NoteEffects: sonolus.ToggleOption(sonolus.ToggleOptionConfig{
 		Name: "#NOTE_EFFECT", Scope: scope, Default: true,
+	}),
+	DirEffect: sonolus.SelectOption(sonolus.SelectOptionConfig{
+		Name: "Directional flick effect", Scope: scope, Default: 0, Values: []string{"大", "小"},
+		Description: "Original live setting 左右フリックアイコンエフェクト: 大 uses the normal, 小 the light directional flick effects of the particle item.",
 	}),
 	LineBright: sonolus.SliderOption(sonolus.SliderOptionConfig{
 		Name: "Long note line brightness", Scope: scope, Default: 80, Min: 10, Max: 100, Step: 10,

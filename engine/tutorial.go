@@ -346,8 +346,8 @@ func tutJudge(x, jt float64) {
 	case jtFlick:
 		spawnFx(fxSwipe, x, durSwipe, durSwipe, false)
 	case jtDirectional:
-		Particles.DirR[0].Spawn(particleQuad(x, 1), durDir1, false)
-		spawnFx(fxFingerR, x, durFinger, durFinger, false)
+		dirEffect(true, 0).Spawn(particleQuad(x, 1), durDir1, false)
+		spawnFx(dirFinger(true), x, durFinger, durFinger, false)
 	default:
 		spawnFx(fxPerfect, x, durPerfect, durPerfect, false)
 	}

@@ -26,4 +26,4 @@ sonolus-go build -o notgarupa ./engine  # 输出到 dist/notgarupa/
 
 ## 设置项
 
-`#SPEED`、`#NOTE_SPEED`（1–12，原作速度曲线）、`#NOTE_SIZE`（10%–200%）、`#SIMLINE`、16 分音符配色、`#LANE_EFFECT`、FAST/SLOW、AP 连击配色、连击位置、`#MIRROR`、`#EFFECT`、`#EFFECT_AUTO`、舞台灯光、`#NOTE_EFFECT`、Long 主体亮度（10–100）、Sudden（0–100）。
+`#SPEED`、`#NOTE_SPEED`（1–12，原作速度曲线）、`#NOTE_SIZE`（10%–200%）、`#SIMLINE`、16 分音符配色、`#LANE_EFFECT`、FAST/SLOW、AP 连击配色、连击位置、`#MIRROR`、`#EFFECT`、`#EFFECT_AUTO`、舞台灯光、`#NOTE_EFFECT`、方向键特效（原作「左右フリックアイコンエフェクト」大 / 小）、Long 主体亮度（10–100）、Sudden（0–100）。

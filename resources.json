@@ -515,7 +515,13 @@
       "effect_tap_directional_flick_l_3",
       "effect_tap_directional_flick_r",
       "effect_tap_directional_flick_r_2",
-      "effect_tap_directional_flick_r_3"
+      "effect_tap_directional_flick_r_3",
+      "light/effect_tap_directional_flick_l",
+      "light/effect_tap_directional_flick_l_2",
+      "light/effect_tap_directional_flick_l_3",
+      "light/effect_tap_directional_flick_r",
+      "light/effect_tap_directional_flick_r_2",
+      "light/effect_tap_directional_flick_r_3"
     ],
     "habahiro": [
       "effect_TapKeep_2",
@@ -752,7 +758,33 @@
       "effect_tap_swipe#plane58",
       "effect_tap_swipe#plane60",
       "effect_tap_swipe#plane62",
-      "effect_tap_swipe#plane64"
+      "effect_tap_swipe#plane64",
+      "light/effect_tap_directional_flick_l_finger",
+      "light/effect_tap_directional_flick_l_finger#plane-65",
+      "light/effect_tap_directional_flick_l_finger#plane44",
+      "light/effect_tap_directional_flick_l_finger#plane46",
+      "light/effect_tap_directional_flick_l_finger#plane48",
+      "light/effect_tap_directional_flick_l_finger#plane50",
+      "light/effect_tap_directional_flick_l_finger#plane52",
+      "light/effect_tap_directional_flick_l_finger#plane53",
+      "light/effect_tap_directional_flick_l_finger#plane55",
+      "light/effect_tap_directional_flick_l_finger#plane58",
+      "light/effect_tap_directional_flick_l_finger#plane60",
+      "light/effect_tap_directional_flick_l_finger#plane62",
+      "light/effect_tap_directional_flick_l_finger#plane64",
+      "light/effect_tap_directional_flick_r_finger",
+      "light/effect_tap_directional_flick_r_finger#plane-65",
+      "light/effect_tap_directional_flick_r_finger#plane44",
+      "light/effect_tap_directional_flick_r_finger#plane46",
+      "light/effect_tap_directional_flick_r_finger#plane48",
+      "light/effect_tap_directional_flick_r_finger#plane50",
+      "light/effect_tap_directional_flick_r_finger#plane52",
+      "light/effect_tap_directional_flick_r_finger#plane53",
+      "light/effect_tap_directional_flick_r_finger#plane55",
+      "light/effect_tap_directional_flick_r_finger#plane58",
+      "light/effect_tap_directional_flick_r_finger#plane60",
+      "light/effect_tap_directional_flick_r_finger#plane62",
+      "light/effect_tap_directional_flick_r_finger#plane64"
     ]
   }
 }

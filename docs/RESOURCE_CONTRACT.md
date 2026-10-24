@@ -23,7 +23,7 @@
 | Skin | `notgarupa-<音符>-<lane>-<方向键>[-<判定>]`（判定为 skin00 时省略） | `notgarupa-skin00-skin00-skin00` | `notgarupa-habahiro-<方向键>` |
 | Effect | `notgarupa-<打击音效>` | `notgarupa-skin00` | （同普通） |
 | Particle | `notgarupa-<打击特效>-<方向键><normal\|light>` | `notgarupa-skin00-skin00normal` | `notgarupa-habahiro-<方向键><normal\|light>` |
-| Background | `notgarupa-<背景>-normal` / `-fever` | `notgarupa-skin00-normal` | `notgarupa-habahiro-normal` |
+| Background | `notgarupa-<背景>` | `notgarupa-skin00` | `notgarupa-habahiro` |
 
 HABAHIRO 条目不是与普通条目并列的皮肤：服务器不在条目列表中提供它们（仍可按名称获取），只让 `#HABAHIRO` 关卡使用。原作的 HABAHIRO 保留玩家的方向键皮肤与方向键特效，服务器用两个配置项（`habahiroDirectional`、`habahiroDirectionalEffect`，随每个请求发送）为 HABAHIRO 关卡选出对应的 HABAHIRO 条目，默认 skin00 / normal。
 
@@ -161,7 +161,7 @@ HABAHIRO 条目 `notgarupa-habahiro-<方向键特效>` 的打击特效取自原�
 
 ## Background
 
-`ingameskin/bgskin/<id>` 的 `liveBG_normal`（及 `liveBG_fever`）按原作 Standard live 舞台布局合成：bgImage 1920×1440 UI 单位、中心 y = −170、舞台根缩放 0.92，叠加 DarkCover（`CE/RevSubtraction`，在线性空间中减去灰 121 × linear(0.25)）。画布宽 1766.4 UI 单位（0.92 下的整个 bgImage 部件，宽于 1334 的屏幕）、高 1640 UI 单位，以屏幕中心对齐；引擎通过 RuntimeBackground 把它放在与 HUD 相同的 UI 单位中。DarkCover 纹理为均匀灰且覆盖所有可见位置，因此烘焙在整张画布上。舞台灯光、音箱、荧光棒有动画，由引擎用 skin 中的 `stage` 组精灵绘制。
+`ingameskin/bgskin/<id>` 的 `liveBG_normal` 按原作 Standard live 舞台布局合成：bgImage 1920×1440 UI 单位、中心 y = −170、舞台根缩放 0.92，叠加 DarkCover（`CE/RevSubtraction`，在线性空间中减去灰 121 × linear(0.25)）。画布宽 1766.4 UI 单位（0.92 下的整个 bgImage 部件，宽于 1334 的屏幕）、高 1640 UI 单位，以屏幕中心对齐；引擎通过 RuntimeBackground 把它放在与 HUD 相同的 UI 单位中。DarkCover 纹理为均匀灰且覆盖所有可见位置，因此烘焙在整张画布上。舞台灯光、音箱、荧光棒有动画，由引擎用 skin 中的 `stage` 组精灵绘制。
 
 特殊组合的背景（`skin_persona`、`skin_delta` 等）按同样的布局合成，并叠加该背景 bundle 中舞台特效 prefab 在演奏中可见的部分（如 `skin_delta`、`skin_collabo23_winter_d` 的左右音箱）；开场 / 通关动画、飘雪等动态部分无法用静态背景表示，见 `EXCLUDED_RESOURCES.md`。
 
@@ -175,6 +175,6 @@ HABAHIRO 条目 `notgarupa-habahiro-<方向键特效>` 的打击特效取自原�
 |---|---|---|
 | Skin | `notgarupa-habahiro-<方向键>`（普通命名的精灵为 skin00 音符与换道前的 skin00 lane，另加 `habahiro/*`，纹理 4096×8192，全分辨率） | `sonolus-notgarupa-skin-generator/out/pack` |
 | Particle | `notgarupa-habahiro-<方向键特效>` | `sonolus-notgarupa-particle-generator/out/pack` |
-| Background | `notgarupa-habahiro-normal` / `-fever`（`ingameskin/bgskin/habahiro`） | `sonolus-notgarupa-background-generator/out/pack` |
+| Background | `notgarupa-habahiro`（`ingameskin/bgskin/habahiro`） | `sonolus-notgarupa-background-generator/out/pack` |
 
 宽音符精灵 `habahiro/note_<族>_<s>_<s+1>_…_<s+w−1>`（族：`note_normal`、`note_normal_16`、`note_skill`、`note_flick`、`note_long`、`note_long_flash`；每族 28 个 run，下标 `(w−1)(16−w)/2 + s`），像素宽 308 / 524 / 736 / 952 / 1164 / 1380 / 1596 × 120，PPU 100，pivot 中心；`habahiro/note_slide_among`、`_2`…`_7`；`habahiro/note_flick_top`、`_2`、`_3`（171 / 288 / 400 × 138）；`habahiro/longNoteLine*`、`habahiro/simultaneous_line`；换道后的场地 `habahiro/bg_line_rhythm` 与判定线 `habahiro/game_play_line`（1800×43）；换道闪光 `habahiro/bg_line_rhythm_flash`、`_flash2`、`habahiro/game_play_line_flash`、`_flash2`。几何、换道时间与闪光关键帧见 `sonolus-notgarupa-skin-generator/HABAHIRO.md`。

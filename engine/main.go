@@ -35,6 +35,37 @@ type EngineConfiguration struct {
 
 const scope = "NotGarupa"
 
+// Option titles, descriptions and select values are ##LOCALIZE texts (en
+// first, the fallback for other languages); the names stay as they were, as
+// Sonolus keys saved option values and replays by scope and name. Options
+// that are original live settings use the original's wording of each server
+// (dialog_liveSettings_* of each server's master, or of its wording
+// collection bundle when the master has none: en EN, zhs CN, zht TW, ja JP);
+// standard #names are localized by Sonolus.
+const (
+	titleNoteColor = `##LOCALIZE:{"en":"Off-Beat Coloring","zhs":"节奏的色觉辅助","zht":"節奏支援","ja":"リズムサポート"}`
+	descNoteColor  = `##LOCALIZE:{"en":"Taps off the eighth-note grid use the 16th-note colour.","zhs":"不在八分音符位置上的单键使用十六分音符的颜色。","zht":"不在八分音符位置上的單鍵使用十六分音符的顏色。","ja":"8分音符の位置にないタップノーツを16分音符の色で表示します。"}`
+	titleFastSlow  = `##LOCALIZE:{"en":"Show Fast/Slow","zhs":"FAST/SLOW表示","zht":"顯示FAST/SLOW","ja":"FAST/SLOW表示"}`
+	titleComboAP   = `##LOCALIZE:{"en":"Display Combo Status","zhs":"Perfect状态显示","zht":"COMBO狀態表示","ja":"コンボ状態表示"}`
+	descComboAP    = `##LOCALIZE:{"en":"Shows the All Perfect colour on the combo counter while every note is PERFECT.","zhs":"全部 PERFECT 时连击数以 All Perfect 配色显示。","zht":"全部 PERFECT 時 COMBO 數以 All Perfect 配色顯示。","ja":"すべて PERFECT の間、コンボ数をオールパーフェクトの色で表示します。"}`
+	titleComboPos  = `##LOCALIZE:{"en":"Combo Counter Position","zhs":"连击数显示位置","zht":"COMBO數顯示位置","ja":"コンボ数表示位置"}`
+	comboRightTop  = `##LOCALIZE:{"en":"Right / Top","zhs":"右・上","zht":"右・上","ja":"右・上"}`
+	comboRightMid  = `##LOCALIZE:{"en":"Right / Default","zhs":"右・标准","zht":"右・標準","ja":"右・標準"}`
+	comboRightBot  = `##LOCALIZE:{"en":"Right / Bottom","zhs":"右・下","zht":"右・下","ja":"右・下"}`
+	comboLeftTop   = `##LOCALIZE:{"en":"Left / Top","zhs":"左・上","zht":"左・上","ja":"左・上"}`
+	comboLeftMid   = `##LOCALIZE:{"en":"Left / Default","zhs":"左・标准","zht":"左・標準","ja":"左・標準"}`
+	comboLeftBot   = `##LOCALIZE:{"en":"Left / Bottom","zhs":"左・下","zht":"左・下","ja":"左・下"}`
+	titleStage     = `##LOCALIZE:{"en":"Stage lights","zhs":"舞台灯光","zht":"舞台燈光","ja":"ステージライト"}`
+	descStage      = `##LOCALIZE:{"en":"Stage lights, speakers and psyllium.","zhs":"舞台灯光、音箱与荧光棒。","zht":"舞台燈光、音箱與螢光棒。","ja":"ステージのライト・スピーカー・サイリウム。"}`
+	titleDirEffect = `##LOCALIZE:{"en":"Directional Flick Note Effect","zhs":"左右flick标志 效果","zht":"左右滑動圖案特效","ja":"左右フリックアイコンエフェクト"}`
+	dirEffectLarge = `##LOCALIZE:{"en":"Increase","zhs":"大","zht":"大","ja":"大"}`
+	dirEffectSmall = `##LOCALIZE:{"en":"Decrease","zhs":"小","zht":"小","ja":"小"}`
+	titleLineAlpha = `##LOCALIZE:{"en":"Long Note Transparency","zhs":"长按按键条不透明度","zht":"長壓線的深淺","ja":"長押しラインの濃さ"}`
+	descLineAlpha  = `##LOCALIZE:{"en":"Opacity of Long and Slide bodies.","zhs":"长按与滑条主体的不透明度。","zht":"長壓與滑動主體的不透明度。","ja":"ロング・スライドのラインの不透明度。"}`
+	titleSudden    = `##LOCALIZE:{"en":"Note Position","zhs":"节奏图标的出现位置","zht":"節奏圖示的表示位置","ja":"リズムアイコンの表示位置"}`
+	descSudden     = `##LOCALIZE:{"en":"Covers the upper part of the lanes.","zhs":"遮住轨道的上方部分。","zht":"遮住軌跡的上方部分。","ja":"レーンの上側を隠します。"}`
+)
+
 var Config = EngineConfiguration{
 	Speed: sonolus.SliderOption(sonolus.SliderOptionConfig{
 		Name: "#SPEED", Standard: true, Default: 1, Min: 0.5, Max: 2, Step: 0.05, Unit: "#PERCENTAGE_UNIT",
@@ -49,21 +80,20 @@ var Config = EngineConfiguration{
 		Name: "#SIMLINE", Scope: scope, Default: true,
 	}),
 	NoteColor: sonolus.ToggleOption(sonolus.ToggleOptionConfig{
-		Name: "Off-beat note colour", Scope: scope, Default: true,
-		Description: "Taps off the eighth-note grid use the 16th-note colour.",
+		Name: "Off-beat note colour", Title: titleNoteColor, Description: descNoteColor, Scope: scope, Default: true,
 	}),
 	LaneEffect: sonolus.ToggleOption(sonolus.ToggleOptionConfig{
 		Name: "#LANE_EFFECT", Scope: scope, Default: true,
 	}),
 	FastSlow: sonolus.ToggleOption(sonolus.ToggleOptionConfig{
-		Name: "FAST / SLOW", Scope: scope, Default: true,
+		Name: "FAST / SLOW", Title: titleFastSlow, Scope: scope, Default: true,
 	}),
 	ComboAP: sonolus.ToggleOption(sonolus.ToggleOptionConfig{
-		Name: "All Perfect combo colour", Scope: scope, Default: false,
+		Name: "All Perfect combo colour", Title: titleComboAP, Description: descComboAP, Scope: scope, Default: false,
 	}),
 	ComboPos: sonolus.SelectOption(sonolus.SelectOptionConfig{
-		Name: "Combo position", Scope: scope, Default: 1,
-		Values: []string{"Right top", "Right centre", "Right bottom", "Left top", "Left centre", "Left bottom"},
+		Name: "Combo position", Title: titleComboPos, Scope: scope, Default: 1,
+		Values: []string{comboRightTop, comboRightMid, comboRightBot, comboLeftTop, comboLeftMid, comboLeftBot},
 	}),
 	Mirror: sonolus.ToggleOption(sonolus.ToggleOptionConfig{
 		Name: "#MIRROR", Scope: scope, Default: false,
@@ -75,22 +105,21 @@ var Config = EngineConfiguration{
 		Name: "#EFFECT_AUTO", Scope: scope, Default: false,
 	}),
 	StageEffects: sonolus.ToggleOption(sonolus.ToggleOptionConfig{
-		Name: "Stage lights", Scope: scope, Default: true,
+		Name: "Stage lights", Title: titleStage, Description: descStage, Scope: scope, Default: true,
 	}),
 	NoteEffects: sonolus.ToggleOption(sonolus.ToggleOptionConfig{
 		Name: "#NOTE_EFFECT", Scope: scope, Default: true,
 	}),
 	DirEffect: sonolus.SelectOption(sonolus.SelectOptionConfig{
-		Name: "Directional flick effect", Scope: scope, Default: 0, Values: []string{"大", "小"},
-		Description: "Original live setting 左右フリックアイコンエフェクト: 大 uses the normal, 小 the light directional flick effects of the particle item.",
+		Name: "Directional flick effect", Title: titleDirEffect, Scope: scope, Default: 0,
+		Values: []string{dirEffectLarge, dirEffectSmall},
 	}),
 	LineBright: sonolus.SliderOption(sonolus.SliderOptionConfig{
-		Name: "Long note line brightness", Scope: scope, Default: 80, Min: 10, Max: 100, Step: 10,
-		Description: "Opacity of Long and Slide bodies (original live setting).",
+		Name: "Long note line brightness", Title: titleLineAlpha, Description: descLineAlpha, Scope: scope,
+		Default: 80, Min: 10, Max: 100, Step: 10,
 	}),
 	SuddenRate: sonolus.SliderOption(sonolus.SliderOptionConfig{
-		Name: "Sudden", Scope: scope, Default: 0, Min: 0, Max: 100, Step: 1,
-		Description: "Covers the upper part of the lanes (original live setting).",
+		Name: "Sudden", Title: titleSudden, Description: descSudden, Scope: scope, Default: 0, Min: 0, Max: 100, Step: 1,
 	}),
 	UI: sonolus.UIConfig{
 		Scope:                         scope,

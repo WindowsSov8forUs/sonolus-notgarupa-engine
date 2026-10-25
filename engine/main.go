@@ -32,7 +32,7 @@ type EngineConfiguration struct {
 	Replay      []string
 }
 
-const scope = "NotGarupa"
+const scope = "ExGarupa"
 
 // Option titles, descriptions and select values are ##LOCALIZE texts (en
 // first, the fallback for other languages); the names stay as they were, as

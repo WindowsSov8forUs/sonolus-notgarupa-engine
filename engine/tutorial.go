@@ -302,7 +302,7 @@ func tutSlideBody(t, h, contact float64, lanes, times [3]float64) {
 func tutBackgroundQuad() sonolus.Quad {
 	k := (1 - 0.23*Layout.HAR) * Layout.UB
 	cy := 14 * Layout.HAR * Layout.UB
-	return sonolus.Rect{T: cy + 820*k, R: 883.2 * k, B: cy - 820*k, L: -883.2 * k}.ToQuad()
+	return sonolus.Rect{T: cy + bgCanvasTop*k, R: 883.2 * k, B: cy - 820*k, L: -883.2 * k}.ToQuad()
 }
 
 func tutText(t, h float64, text sonolus.Text) {

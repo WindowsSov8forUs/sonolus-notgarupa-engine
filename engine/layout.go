@@ -27,6 +27,12 @@ const (
 	laneEffectPPU = 69.0
 )
 
+// The generated background is the bgImage widget laid out at stage scale
+// 0.92 on a canvas 1766.4 UI units wide from bgCanvasTop down to −820 (1537 of
+// the composed 1901 px rows over 1640 units; the black rows above the widget
+// are cut, the background colour shows there).
+const bgCanvasTop = 820 - 364*1640/1901.0
+
 var scaleMinRatio = [7]float64{0.98, 0.988, 0.9898, 0.9899, 0.991, 0.9915, 0.9917}
 
 // LayoutData holds the field geometry computed once in preprocess.

@@ -168,7 +168,7 @@ HABAHIRO 条目 `garupa-habahiro-<方向键特效>` 的打击特效取自原作 
 
 ## Background
 
-`ingameskin/bgskin/<id>` 的 `liveBG_normal` 按原作 Standard live 舞台布局合成：bgImage 1920×1440 UI 单位、中心 y = −170、舞台根缩放 0.92，叠加 DarkCover（`CE/RevSubtraction`，在线性空间中减去灰 121 × linear(0.25)）。画布宽 1766.4 UI 单位（0.92 下的整个 bgImage 部件，宽于 1334 的屏幕）、高 1640 UI 单位，以屏幕中心对齐；引擎通过 RuntimeBackground 把它放在与 HUD 相同的 UI 单位中。DarkCover 纹理为均匀灰且覆盖所有可见位置，因此烘焙在整张画布上。舞台灯光、音箱、荧光棒有动画，由引擎用 skin 中的 `stage` 组精灵绘制。
+`ingameskin/bgskin/<id>` 的 `liveBG_normal` 按原作 Standard live 舞台布局合成：bgImage 1920×1440 UI 单位、中心 y = −170、舞台根缩放 0.92，叠加 DarkCover（`CE/RevSubtraction`，在线性空间中减去灰 121 × linear(0.25)）。画布宽 1766.4 UI 单位（0.92 下的整个 bgImage 部件，宽于 1334 的屏幕），以屏幕中心对齐；纵向按 1640 UI 单位（1901 px）合成后裁掉部件顶边以上的 364 行纯黑，图片从 y = 820 − 364 × 1640 / 1901 ≈ 505.97 到 −820（1537 px），`fit` 为 `cover`。裁掉的部分在 Play 中由背景色 `#000000` 显示，画面不变；Preview 中 Sonolus 自己铺背景，不再露出这段黑边。引擎通过 RuntimeBackground 把它放在与 HUD 相同的 UI 单位中。DarkCover 纹理为均匀灰且覆盖所有可见位置，因此烘焙在整张画布上。舞台灯光、音箱、荧光棒有动画，由引擎用 skin 中的 `stage` 组精灵绘制。
 
 特殊组合的背景（`skin_persona`、`skin_delta` 等）按同样的布局合成，并叠加该背景 bundle 中舞台特效 prefab 在演奏中可见的部分（如 `skin_delta`、`skin_collabo23_winter_d` 的左右音箱）；开场 / 通关动画、飘雪等动态部分无法用静态背景表示，见 `EXCLUDED_RESOURCES.md`。
 

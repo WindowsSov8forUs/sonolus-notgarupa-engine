@@ -68,8 +68,7 @@ func stagePoint(x, y float64) sonolus.Vec2 {
 	return sonolus.Vec2{X: x * stageK() * Layout.UB, Y: (y*stageK() + 14*Layout.HAR + Hud.StageY*stageRoot()) * Layout.UB}
 }
 
-// backgroundQuad places the generated background (1766.4 × 1640 UI units:
-// the bgImage widget laid out at stage scale 0.92) under the same stage
+// backgroundQuad places the generated background under the same stage
 // transform. Away from 0.92 the backdrop scales about its own centre, which
 // sits 170·scale below the root and follows the pose's y.
 func backgroundQuad() sonolus.Quad {
@@ -77,7 +76,7 @@ func backgroundQuad() sonolus.Quad {
 	cy := 14 * Layout.HAR * Layout.UB
 	f := Hud.StageS / 0.92
 	c0, c := cy-170*0.92*k, cy+(Hud.StageY-170*Hud.StageS)*k
-	return sonolus.Rect{T: c + (cy+820*k-c0)*f, R: 883.2 * k * f, B: c + (cy-820*k-c0)*f, L: -883.2 * k * f}.ToQuad()
+	return sonolus.Rect{T: c + (cy+bgCanvasTop*k-c0)*f, R: 883.2 * k * f, B: c + (cy-820*k-c0)*f, L: -883.2 * k * f}.ToQuad()
 }
 
 // drawTrimmed draws a trimmed sprite so that its untrimmed full rect of

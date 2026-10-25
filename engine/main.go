@@ -12,25 +12,24 @@ import (
 type EngineConfiguration struct {
 	sonolus.Configuration
 
-	Speed        float64
-	NoteSpeed    float64
-	NoteSize     float64
-	SyncLine     bool
-	NoteColor    bool
-	LaneEffect   bool
-	FastSlow     bool
-	ComboAP      bool
-	ComboPos     int
-	Mirror       bool
-	SFX          bool
-	AutoSFX      bool
-	StageEffects bool
-	NoteEffects  bool
-	DirEffect    int
-	LineBright   float64
-	SuddenRate   float64
-	UI           sonolus.UIConfig
-	Replay       []string
+	Speed       float64
+	NoteSpeed   float64
+	NoteSize    float64
+	SyncLine    bool
+	NoteColor   bool
+	LaneEffect  bool
+	FastSlow    bool
+	ComboAP     bool
+	ComboPos    int
+	Mirror      bool
+	SFX         bool
+	AutoSFX     bool
+	NoteEffects bool
+	DirEffect   int
+	LineBright  float64
+	SuddenRate  float64
+	UI          sonolus.UIConfig
+	Replay      []string
 }
 
 const scope = "NotGarupa"
@@ -55,8 +54,6 @@ const (
 	comboLeftTop   = `##LOCALIZE:{"en":"Left / Top","zhs":"左・上","zht":"左・上","ja":"左・上"}`
 	comboLeftMid   = `##LOCALIZE:{"en":"Left / Default","zhs":"左・标准","zht":"左・標準","ja":"左・標準"}`
 	comboLeftBot   = `##LOCALIZE:{"en":"Left / Bottom","zhs":"左・下","zht":"左・下","ja":"左・下"}`
-	titleStage     = `##LOCALIZE:{"en":"Stage lights","zhs":"舞台灯光","zht":"舞台燈光","ja":"ステージライト"}`
-	descStage      = `##LOCALIZE:{"en":"Stage lights, speakers and psyllium.","zhs":"舞台灯光、音箱与荧光棒。","zht":"舞台燈光、音箱與螢光棒。","ja":"ステージのライト・スピーカー・サイリウム。"}`
 	titleDirEffect = `##LOCALIZE:{"en":"Directional Flick Note Effect","zhs":"左右flick标志 效果","zht":"左右滑動圖案特效","ja":"左右フリックアイコンエフェクト"}`
 	dirEffectLarge = `##LOCALIZE:{"en":"Increase","zhs":"大","zht":"大","ja":"大"}`
 	dirEffectSmall = `##LOCALIZE:{"en":"Decrease","zhs":"小","zht":"小","ja":"小"}`
@@ -103,9 +100,6 @@ var Config = EngineConfiguration{
 	}),
 	AutoSFX: sonolus.ToggleOption(sonolus.ToggleOptionConfig{
 		Name: "#EFFECT_AUTO", Scope: scope, Default: false,
-	}),
-	StageEffects: sonolus.ToggleOption(sonolus.ToggleOptionConfig{
-		Name: "Stage lights", Title: titleStage, Description: descStage, Scope: scope, Default: true,
 	}),
 	NoteEffects: sonolus.ToggleOption(sonolus.ToggleOptionConfig{
 		Name: "#NOTE_EFFECT", Scope: scope, Default: true,

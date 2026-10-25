@@ -26,6 +26,6 @@ sonolus-go build -o notgarupa ./engine  # 输出到 dist/notgarupa/
 
 ## 设置项
 
-`#SPEED`、`#NOTE_SPEED`（1–12，原作速度曲线）、`#NOTE_SIZE`（10%–200%）、`#SIMLINE`、16 分音符配色、`#LANE_EFFECT`、FAST/SLOW、AP 连击配色、连击位置、`#MIRROR`、`#EFFECT`、`#EFFECT_AUTO`、舞台灯光、`#NOTE_EFFECT`、方向键特效（原作「左右フリックアイコンエフェクト」大 / 小）、Long 主体亮度（10–100）、Sudden（0–100）。
+`#SPEED`、`#NOTE_SPEED`（1–12，原作速度曲线）、`#NOTE_SIZE`（10%–200%）、`#SIMLINE`、16 分音符配色、`#LANE_EFFECT`、FAST/SLOW、AP 连击配色、连击位置、`#MIRROR`、`#EFFECT`、`#EFFECT_AUTO`、`#NOTE_EFFECT`、方向键特效（原作「左右フリックアイコンエフェクト」大 / 小）、Long 主体亮度（10–100）、Sudden（0–100）。
 
-非标准设置项的标题、说明与选项值是 `##LOCALIZE:{…}` 文本（en、zhs、zht、ja，en 在前作为其他语言的回退），由 Sonolus 按玩家语言显示；`name` 保持不变，因为 Sonolus 按 scope 与 name 保存设置值和回放。对应原作 live 设置的项用原作各服的措辞（`dialog_liveSettings_*`，取自主数据，主数据没有时取 wordingcollection bundle；en 取 EN 服、zhs 取 CN 服、zht 取 TW 服、ja 取 JP 服）：リズムサポート（16 分音符配色，原作 `NoteColor`，EN「Off-Beat Coloring」）、FAST/SLOW 表示、コンボ状態表示（AP 连击配色，原作 `displayAllPerfectStatus`）、コンボ数表示位置（原作横 / 纵两项，这里合为一项，值为「右・上」等）、左右フリックアイコンエフェクト、長押しラインの濃さ、リズムアイコンの表示位置（Sudden）；舞台灯光原作没有对应设置（原作只有把背景换成卡面、整体轻量化的「軽量モード」），措辞是自己的。`#` 开头的标准名称由 Sonolus 翻译，不加标题。
+非标准设置项的标题、说明与选项值是 `##LOCALIZE:{…}` 文本（en、zhs、zht、ja，en 在前作为其他语言的回退），由 Sonolus 按玩家语言显示；`name` 保持不变，因为 Sonolus 按 scope 与 name 保存设置值和回放。对应原作 live 设置的项用原作各服的措辞（`dialog_liveSettings_*`，取自主数据，主数据没有时取 wordingcollection bundle；en 取 EN 服、zhs 取 CN 服、zht 取 TW 服、ja 取 JP 服）：リズムサポート（16 分音符配色，原作 `NoteColor`，EN「Off-Beat Coloring」）、FAST/SLOW 表示、コンボ状態表示（AP 连击配色，原作 `displayAllPerfectStatus`）、コンボ数表示位置（原作横 / 纵两项，这里合为一项，值为「右・上」等）、左右フリックアイコンエフェクト、長押しラインの濃さ、リズムアイコンの表示位置（Sudden）。`#` 开头的标准名称由 Sonolus 翻译，不加标题。

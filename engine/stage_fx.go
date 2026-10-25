@@ -114,9 +114,6 @@ var whiteW = [12]float64{98.73, 98.73, 98.73, 99.72, 99.72, 99.72, 99.72, 99.72,
 var miniShineTrim = [4]float64{6, 4, 0, 3}
 
 func drawStageLights(now, z float64) {
-	if !Config.StageEffects {
-		return
-	}
 	// ColorFader.PlayColorTable cycles from the stage's creation (the level
 	// starts with the stage, 2 s before the music), not from chart time
 	t := now + 2
@@ -201,9 +198,6 @@ func curve(off, n, f float64) float64 {
 // overlay (rest alpha 0.03) and the two glows, driven by the original clips
 // speaker_normal / _exciting / _continuous.
 func drawSpeakers(now, z float64) {
-	if !Config.StageEffects {
-		return
-	}
 	k := 1.3 * stageScale()
 	for side := 0; side < 2; side++ {
 		nodeX, m := 484.0, 1.0
@@ -391,9 +385,6 @@ func psylliumPose(tau float64) (float64, float64) {
 }
 
 func drawPsyllium(now, z float64) {
-	if !Config.StageEffects {
-		return
-	}
 	o := openingClock(now)
 	k := 1.0
 	if fade := o - 2.0; fade >= 0 { // the entrance starts at O = 0.5

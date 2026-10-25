@@ -1,4 +1,4 @@
-// Package main is the NotGarupa Sonolus engine: a reproduction of BanG
+// Package main is the Ex-Garupa Sonolus engine: a reproduction of BanG
 // Dream! Girls Band Party!'s live gameplay with GarupaEditor's chart
 // extensions. See docs/ENGINE_DESIGN.md.
 package main

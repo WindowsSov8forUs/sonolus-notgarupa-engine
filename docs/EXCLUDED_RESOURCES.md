@@ -24,7 +24,7 @@
 
 ## 原作有、但引擎不使用的组件
 
-这些不是资源缺失，而是 NotGarupa 没有对应的功能，所以生成器不输出：
+这些不是资源缺失，而是 Ex-Garupa 引擎没有对应的功能，所以生成器不输出：
 
 - 技能 cut-in 皮肤（只有已排除的 Collaboration 3 带有）。
 - 舞台结构皮肤 `stageskin/normal|challenge|versus`：只用于 Live2D 演出路线。

@@ -1,4 +1,4 @@
-# NotGarupa 关卡数据约定
+# Ex-Garupa 关卡数据约定
 
 本文件约定 `sonolus-notgarupa-server` 的转换器（`levelconv`）写出、`sonolus-notgarupa-engine` 读取的 Sonolus LevelData：archetype 名、各实体的数据字段及其含义。引擎是关卡数据的使用方，本文件由引擎维护；转换器的算法见 `sonolus-notgarupa-server/docs/CONVERTER.md`。
 

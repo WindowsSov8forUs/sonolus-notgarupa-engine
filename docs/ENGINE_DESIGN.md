@@ -1,4 +1,4 @@
-# NotGarupa 引擎设计
+# Ex-Garupa 引擎设计
 
 本文件记录引擎的设计。行为依据按优先级：原作 → GarupaEditor simulator 的扩展 → Sonolus 平台约束。2026-10-18 起，GarupaEditor 经过算法检查的 simulator（`simulator-check`，7fe388f）是主要参照：其原作路径视为原作行为，扩展路径定义扩展；与逆向结论冲突且该处未经算法检查时，保留逆向结论并在文中注明。资源名称与几何见 [RESOURCE_CONTRACT.md](RESOURCE_CONTRACT.md)。
 

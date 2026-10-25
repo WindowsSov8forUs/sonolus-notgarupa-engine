@@ -1,6 +1,6 @@
 # sonolus-notgarupa-engine
 
-用 [sonolus-go](https://github.com/WindowsSov8forUs/sonolus-go) 编写的 Sonolus 引擎，复刻 BanG Dream! ガールズバンドパーティ！ 的演奏画面与判定，并支持 GarupaEditor simulator 的谱面扩展（小数位置与 lane、宽音符、SV/TimingGroup、Hidden 头/尾/节点、Slide 中的 Flick/Directional 等）。
+用 [sonolus-go](https://github.com/WindowsSov8forUs/sonolus-go) 编写的 Sonolus 引擎 Ex-Garupa，复刻 BanG Dream! ガールズバンドパーティ！ 的演奏画面与判定，并支持 GarupaEditor simulator 的谱面扩展（小数位置与 lane、宽音符、SV/TimingGroup、Hidden 头/尾/节点、Slide 中的 Flick/Directional 等）。
 
 - 设计与原作对照：[docs/ENGINE_DESIGN.md](docs/ENGINE_DESIGN.md)
 - 关卡数据约定（`sonolus-notgarupa-server` 的转换器写出、引擎读取）：[docs/LEVEL_DATA.md](docs/LEVEL_DATA.md)

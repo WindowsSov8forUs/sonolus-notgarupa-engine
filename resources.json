@@ -163,6 +163,9 @@
       "note_skill_6",
       "note_slide_among",
       "notgarupa/black",
+      "notgarupa/preview/lane",
+      "notgarupa/preview/line",
+      "notgarupa/preview/line@B41E28",
       "point_charactor_shadow@000000",
       "score_meter_blue#B",
       "score_meter_blue#BL",
@@ -434,6 +437,7 @@
       "habahiro/note_slide_among_5",
       "habahiro/note_slide_among_6",
       "habahiro/note_slide_among_7",
+      "habahiro/notgarupa/preview/lane",
       "habahiro/simultaneous_line"
     ],
     "optional": [

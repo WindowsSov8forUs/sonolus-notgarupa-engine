@@ -76,12 +76,17 @@ HABAHIRO 条目不是与普通条目并列的皮肤：服务器不在条目列�
 |---|---|
 | `note` | 45 个 note 精灵（`note_normal_*`、`note_normal_16_*`、`note_skill_*`、`note_flick_*`、`note_long_*`、`note_long_flash_*`、`note_slide_among`、`note_flick_top`、`simultaneous_line`），长条贴图 `longNoteLine`、`longNoteLine2` 及其 `@E6E6E6`（激活后的顶点 RGB 0.9 已烘焙，绘制时 alpha 取 0.8） |
 | `directional` | `note_flick_l_*`、`note_flick_r_*`、`note_flick_top_l/_r`、背线贴图 `FlickNoteLine_l/_r` |
-| `field` | `bg_line_rhythm`（1160×610 UI 单位，轴心底边居中，底边在判定线上）、`game_play_line`（PPU 69） |
+| `field` | `bg_line_rhythm`（1160×610 UI 单位，轴心底边居中，底边在判定线上）、`game_play_line`（PPU 69）、preview 轨道 `notgarupa/preview/lane`（见下） |
 | `judge` | `judge_perfect/great/good/bad/miss/auto/fast/slow`（NGUI，尺寸 = 精灵尺寸） |
 | `hud` | RhythmGameUI（分数面板、分数条、生命条、暂停按钮、AddScore 数字、COMBO 字样…）、IconComboNumber（`icon_number_big_*`、`icon_number_big_AP_*`）、生命警告、生命遮罩 `sub_glow`、SS 特效、`level_mark` |
 | `lane` | `NoteLaneEffect_1..4`（PPU 69，轴心在完整 rect 底边）、`sudden_line` |
 | `stage` | `Tex_miniShine`、`Tex_speaker`（烘焙了 DarkCover 减色）、`speaker_effect`、`Pyllium_penlight` / `Pyllium_core`（同一贴图的右 / 左半）及其着色版本、均匀填充 `notgarupa/black` |
 | `text` | 预渲染字形与文字 |
+| `preview` | preview 的拍线 `notgarupa/preview/line`（白色均匀填充）及其深红色着色版本 `@B41E28`（BPM 变化线） |
+
+### Preview 轨道
+
+原作没有谱面预览。Sonolus preview 把谱面画成平面的列，lane 场由生成器从条目自己的 `bg_line_rhythm` 反投影得到：`bg_line_rhythm` 是烘焙了透视的平面图（底边在判定线上），场上一点在判定线上方 h 个 UI 单位处按 k(h) = 1 − 0.95·h / 586.8 向中心收缩（原作音符的运动：生成行在判定线上方 0.95 × 8.870001·S，`launchRate` 0.05；S 换算为 UI 单位是 1334 / (2 × 9.578571)，与宽高比无关），判定线处 lane 间距 2.2·S = 153.2 单位。生成器沿这条透视取样，对判定线上方 12–400 单位的行（k ≥ 0.35；更高处已融入远处的雾化）做预乘平均，得到 580×2 的平面条 `notgarupa/preview/lane`：横向覆盖整张场图的 1160 单位 = 7.572 个 lane（两侧边框在内），引擎沿谱面时间拉伸。HABAHIRO 条目另有 `habahiro/notgarupa/preview/lane`（lane 变更之后的场图）。
 
 ### 着色与混合
 

@@ -120,7 +120,12 @@ Sonolus 自身的生命值只能在 preprocess 中静态配置（`AddLifeSchedul
 
 - **Play**：见上。`#EFFECT_AUTO` 开启时所有判定音效改为在预处理中按谱面时刻调度（同类音效最小间隔 1 帧合并同时音符），保持循环音同样按谱面调度。
 - **Watch**：非回放时为 Auto Live；回放时读取 `#JUDGMENT`、`#ACCURACY`，Good 依精度还原为 Good/Bad，判定时刻 = 命中时刻 + 精度；Miss 的精度记录 Miss 实际发生的时刻（相对音符时刻，不截断，只截断桶值），回放因此在同一时刻显示 Miss。回放中前端音符（单点、Flick、方向键、Long 与可见 Slide 头）的非 Miss 判定点亮该 lane 一次（On + OffReserve），近似 Play 中触摸的按下与松开。Stage 在 preprocess 中沿 `firstScored → scoreNext` 链逐个应用判定并把 HUD 快照写入各音符 shared memory，同时调度全部判定音效；运行时只按时间查找最近快照，因此任意跳转（`Skip`）都无需回滚状态。粒子与 lane 光柱在 Stage 的 updateSequential 中随游标前进触发（跳转帧不触发）。
-- **Preview**：从左到右的列，每列 2 s，lane 竖直、时间向上；绘制 lane 线、拍线（每 4 拍加粗）、全部音符、Long/Slide 主体（跨列分段）、同时押线；列底打印时间，BPM 变化处打印 BPM。SV 不影响预览（按真实时间）。
+- **Preview**：原作没有谱面预览，版式参照 Sonolus 的 Bandori 引擎：从左到右的列，每列 2 s，lane 竖直、时间向上，按真实时间排列（SV 不改变位置）。列占满屏幕高度（不留上下空白，进度条与菜单叠在谱面上），lane 宽为屏幕高度的 1/20，列宽 12 个 lane（中间是轨道，两侧是标签区）。
+  - 轨道：每列画一条皮肤的 `notgarupa/preview/lane`，即条目自己的 `bg_line_rhythm` 沿原作透视反投影得到的平面条（`RESOURCE_CONTRACT.md`「Preview 轨道」），宽 7.572 个 lane（整张场图，含两侧边框）；HABAHIRO 关卡在 lane 变更时刻 + 0.41667 s 处换成 `habahiro/notgarupa/preview/lane`。
+  - 音符：与 Play 中停在判定线上的样子相同，即目标按钮缩放 `rate·N·P` 相对 lane 间距 `2.2·rate·M`；主体半宽为按住时的 `heldHalf`，同时押线与方向键背线用局部缩放（不含 P）；上滑与方向箭头的偏移取 Play 中 1/3 s 动画的中点。原作按 lane 区分的音符精灵（`note_*_<lane>`、HABAHIRO 的各段宽音符）是为透视场画的，越靠边越倾斜，只有中央的是正面；平面的 preview 一律用正面精灵：普通音符用 lane 3，HABAHIRO 用该宽度居中的一段（偶数宽度没有居中段，取靠近音符一侧的那段，同 Play 中按住的 Slide 头）。音符种类的选择（16 分音符色、技能、Slide 中间节点、宽方向终点）与 Play 相同。
+  - 横线：每个四分音符位置一条白色拍线，BPM 变化处一条深红色线（`@B41E28`），都只跨 7 条 lane，半粗 0.0025 屏幕单位（Next-RUSH 的 `PREVIEW_BAR_LINE_H`）。
+  - 标签：左侧为每整秒的时间（白色），右侧为每 50 combo 的计数（白色，沿 `firstScored → scoreNext` 计分链计数，位置为该计分单位的时刻；旧关卡没有这条链时不显示）与 BPM 值（红色：Sonolus 的 Print 没有深红色）。标签高一个 lane，垂直居中于对应时刻的高度，只在超出列的上下边缘时向内偏移。
+  - UI：菜单按钮放在 Play 暂停按钮的位置（与 Tutorial 相同，带背景，按玩家的菜单缩放 / 透明度），进度条沿底部（与 Watch 相同，按玩家的进度条缩放 / 透明度）。Preview 的 Runtime UI 初始值全为 0，不设置就不显示。
 - **Tutorial**：循环演示 Tap、Flick、Directional、Long、Slide 五段，带手势图标、说明文字、判定音效与粒子；上一个/下一个切换段落。
 
 ## 7.1 绘制与布局（GarupaEditor 算法检查后）

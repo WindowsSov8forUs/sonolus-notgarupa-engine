@@ -19,10 +19,10 @@ NotGarupa 分为六个独立项目：本引擎、`sonolus-notgarupa-server`（�
 
 ```sh
 sonolus-go vet -m all ./engine          # 四个模式的静态检查
-sonolus-go build -o notgarupa ./engine  # 输出到 dist/notgarupa/
+sonolus-go build -o ex-garupa ./engine  # 输出到 dist/ex-garupa/
 ```
 
-`sonolus-go` 命令行与 `go.mod` 中的 sonolus-go 版本需保持一致（编译器在命令行中）。`engine/dev-level.json` 是 sonolus-go 开发服务器（`sonolus-go dev`）使用的开发关卡，由 `sonolus-notgarupa-server` 的 `cmd/levelconv` 生成。完整的本地试玩（关卡、资源包）用 `sonolus-notgarupa-server` 的 `cmd/devserver`，它默认读取本项目的 `dist/notgarupa`。
+`sonolus-go` 命令行与 `go.mod` 中的 sonolus-go 版本需保持一致（编译器在命令行中）。`engine/dev-level.json` 是 sonolus-go 开发服务器（`sonolus-go dev`）使用的开发关卡，由 `sonolus-notgarupa-server` 的 `cmd/levelconv` 生成。完整的本地试玩（关卡、资源包）用 `sonolus-notgarupa-server` 的 `cmd/devserver`，它默认读取本项目的 `dist/ex-garupa`，引擎条目名为 `ex-garupa`（标题 Ex-Garupa、作者 notgarupa）。
 
 ## 设置项
 

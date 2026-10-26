@@ -1,0 +1,102 @@
+name: Build
+
+# Vets and tests the engine, then builds dist/ex-garupa with the sonolus-go
+# CLI of the version in go.mod (the compiler lives in the CLI) and uploads
+# ex-garupa-dist_<version>.tar.gz: the six Engine* files, resources.json and
+# manifest.json. A v* tag additionally publishes the archive and its checksums
+# as a GitHub Release, which the server's updater installs.
+#
+# To cut a release:
+#   git tag -a v0.1.0 -m "v0.1.0"
+#   git push origin v0.1.0
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+permissions:
+  contents: read
+
+env:
+  NAME: ex-garupa
+
+jobs:
+  build:
+    timeout-minutes: 20
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - name: Install sonolus-go
+        run: |
+          version="$(go list -m -f '{{.Version}}' github.com/WindowsSov8forUs/sonolus-go/v2)"
+          base="https://github.com/WindowsSov8forUs/sonolus-go/releases/download/$version"
+          archive="sonolus-go_${version#v}_linux_x86_64.tar.gz"
+          mkdir -p "$RUNNER_TEMP/sonolus-go" && cd "$RUNNER_TEMP/sonolus-go"
+          curl -fsSLO "$base/$archive"
+          curl -fsSLO "$base/checksums.txt"
+          sha256sum -c --ignore-missing checksums.txt
+          tar -xzf "$archive"
+          echo "$PWD" >> "$GITHUB_PATH"
+      - run: test -z "$(gofmt -l .)"
+      - run: sonolus-go vet -m all ./engine
+      - run: go test -count=1 ./...
+      - name: Build and package
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then version="$GITHUB_REF_NAME"; else version="${GITHUB_SHA::7}"; fi
+          sonolus-go build -o "$NAME" ./engine
+          cp resources.json "dist/$NAME/"
+          jq -n \
+            --arg name "$NAME" \
+            --arg version "$version" \
+            --arg commit "$GITHUB_SHA" \
+            --arg sonolusGo "$(sonolus-go version | awk '{print $2}')" \
+            --arg resources "sha256:$(sha256sum resources.json | cut -d' ' -f1)" \
+            '{component: "engine", name: $name, version: $version, commit: $commit, sonolusGo: $sonolusGo, resources: $resources}' \
+            > "dist/$NAME/manifest.json"
+          archive="${NAME}-dist_${version#v}.tar.gz"
+          mkdir -p out
+          tar -czf "out/$archive" -C "dist/$NAME" .
+          ls -l out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.NAME }}-dist
+          path: out/*
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.NAME }}-dist
+          path: dist
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd dist
+          sha256sum -- * > checksums.txt
+          {
+            echo "### 内容"
+            echo
+            echo "\`$NAME-dist_*.tar.gz\` 是 \`sonolus-go build\` 输出的引擎文件（EngineConfiguration、Engine{Play,Watch,Preview,Tutorial}Data、EngineRom），附引擎的资源名清单 \`resources.json\` 与 \`manifest.json\`（版本、提交、sonolus-go 版本、资源名清单的 sha256）。解压后的目录即 \`sonolus-notgarupa-server\` 的 \`-dist\`。"
+          } > ../notes.md
+          prerelease=""; [[ "$GITHUB_REF_NAME" == *-* ]] && prerelease="--prerelease"
+          gh release create "$GITHUB_REF_NAME" ./* --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" \
+            --notes-file ../notes.md --generate-notes $prerelease

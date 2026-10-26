@@ -24,6 +24,8 @@ sonolus-go build -o ex-garupa ./engine  # 输出到 dist/ex-garupa/
 
 `sonolus-go` 命令行与 `go.mod` 中的 sonolus-go 版本需保持一致（编译器在命令行中）。`engine/dev-level.json` 是 sonolus-go 开发服务器（`sonolus-go dev`）使用的开发关卡，由 `sonolus-notgarupa-server` 的 `cmd/levelconv` 生成。完整的本地试玩（关卡、资源包）用 `sonolus-notgarupa-server` 的 `cmd/devserver`，它默认读取本项目的 `dist/ex-garupa`，引擎条目名为 `ex-garupa`（标题 Ex-Garupa、作者 notgarupa）。
 
+`.github/workflows/build.yml` 用 `go.mod` 中版本的 sonolus-go 命令行（按其 Release 的 checksums 校验）检查、测试并构建，产物 `ex-garupa-dist_<版本>.tar.gz` 包含 `dist/ex-garupa/` 的六个文件、`resources.json` 与 `manifest.json`（版本、提交、sonolus-go 版本、`resources.json` 的 sha256）；推送 `v*` 标签时发布为 GitHub Release，`sonolus-notgarupa-server` 的 Docker 部署从这里安装引擎。
+
 ## 设置项
 
 `#SPEED`、`#NOTE_SPEED`（1–12，原作速度曲线）、`#NOTE_SIZE`（10%–200%）、`#SIMLINE`、16 分音符配色、`#LANE_EFFECT`、FAST/SLOW、AP 连击配色、连击位置、`#MIRROR`、`#EFFECT`、`#EFFECT_AUTO`、`#NOTE_EFFECT`、方向键特效（原作「左右フリックアイコンエフェクト」大 / 小）、Long 主体亮度（10–100）、Sudden（0–100）。

@@ -12,24 +12,25 @@ import (
 type EngineConfiguration struct {
 	sonolus.Configuration
 
-	Speed       float64
-	NoteSpeed   float64
-	NoteSize    float64
-	SyncLine    bool
-	NoteColor   bool
-	LaneEffect  bool
-	FastSlow    bool
-	ComboAP     bool
-	ComboPos    int
-	Mirror      bool
-	SFX         bool
-	AutoSFX     bool
-	NoteEffects bool
-	DirEffect   int
-	LineBright  float64
-	SuddenRate  float64
-	UI          sonolus.UIConfig
-	Replay      []string
+	Speed        float64
+	NoteSpeed    float64
+	NoteSize     float64
+	SyncLine     bool
+	NoteColor    bool
+	LaneEffect   bool
+	FastSlow     bool
+	ComboAP      bool
+	ComboPos     int
+	Mirror       bool
+	SFX          bool
+	AutoSFX      bool
+	NoteEffects  bool
+	DirEffect    int
+	LineBright   float64
+	SuddenRate   float64
+	IllustBright float64
+	UI           sonolus.UIConfig
+	Replay       []string
 }
 
 const scope = "ExGarupa"
@@ -61,6 +62,9 @@ const (
 	descLineAlpha  = `##LOCALIZE:{"en":"Opacity of Long and Slide bodies.","zhs":"长按与滑条主体的不透明度。","zht":"長壓與滑動主體的不透明度。","ja":"ロング・スライドのラインの不透明度。"}`
 	titleSudden    = `##LOCALIZE:{"en":"Note Position","zhs":"节奏图标的出现位置","zht":"節奏圖示的表示位置","ja":"リズムアイコンの表示位置"}`
 	descSudden     = `##LOCALIZE:{"en":"Covers the upper part of the lanes.","zhs":"遮住轨道的上方部分。","zht":"遮住軌跡的上方部分。","ja":"レーンの上側を隠します。"}`
+	// dialog_liveSetting_LightModeBrightness of each server's master
+	titleIllustBright = `##LOCALIZE:{"en":"Background Brightness","zhs":"背景亮度","zht":"佈景亮度","ja":"背景の明るさ"}`
+	descIllustBright  = `##LOCALIZE:{"en":"Brightness of a level's custom background.","zhs":"关卡自定义背景的亮度。","zht":"關卡自訂背景的亮度。","ja":"譜面のカスタム背景の明るさ。"}`
 )
 
 var Config = EngineConfiguration{
@@ -114,6 +118,12 @@ var Config = EngineConfiguration{
 	}),
 	SuddenRate: sonolus.SliderOption(sonolus.SliderOptionConfig{
 		Name: "Sudden", Title: titleSudden, Description: descSudden, Scope: scope, Default: 0, Min: 0, Max: 100, Step: 1,
+	}),
+	// the original Light mode brightness (LiveCoreSettingsLightModeBrightness:
+	// 30–100 in steps of 10, default 80)
+	IllustBright: sonolus.SliderOption(sonolus.SliderOptionConfig{
+		Name: "Background brightness", Title: titleIllustBright, Description: descIllustBright, Scope: scope,
+		Default: 80, Min: 30, Max: 100, Step: 10,
 	}),
 	UI: sonolus.UIConfig{
 		Scope:                         scope,

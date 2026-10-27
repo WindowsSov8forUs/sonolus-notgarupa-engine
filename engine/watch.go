@@ -32,6 +32,7 @@ type WatchInitialization struct {
 	Habahiro             bool                             `archetype:"imported,name=habahiro"`
 	LaneChangeBeat       float64                          `archetype:"imported,name=laneChangeBeat,default=-1"`
 	FullLength           bool                             `archetype:"imported,name=fullLength"`
+	IllustBackground     bool                             `archetype:"imported,name=illustBackground"`
 	FirstScored          sonolus.EntityRef[WatchNoteBase] `archetype:"imported,name=firstScored"`
 }
 
@@ -45,6 +46,7 @@ func (n *WatchInitialization) Preprocess() {
 	initFx()
 	initHud(n.NoteCount)
 	Hud.FullLength = n.FullLength
+	Hud.IllustBackground = n.IllustBackground
 	watch.Background.Set(backgroundQuad())
 	// Sonolus' arcade score (Level Score starts at 0); the HUD computes the
 	// same score (arcadeWeight)

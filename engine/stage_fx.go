@@ -29,8 +29,15 @@ func openingClock(now float64) float64 { return (now + 2) * 1.5 }
 // updateStagePose sets the Stage TRS of the opening and the 0.5 s fade-in
 // of the gameplay HUD layer (score, life, combo, judge, AddScore, Auto label,
 // pause button) that starts with it.
+//
+// With a custom background (the original Light mode) the Stage TRS keeps its
+// start pose: InGameStageManager.introAnimation returns before moveStageTRS,
+// and the clear outro moves it back to that same pose.
 func updateStagePose(now float64) {
 	Hud.HudAlpha = sonolus.Clamp(openingClock(now)/0.5, 0, 1)
+	if Hud.IllustBackground {
+		return
+	}
 	p := sonolus.Clamp((openingClock(now)-0.5)/3, 0, 1)
 	p = p * (2 - p)
 	Hud.StageS, Hud.StageY = 0.7+0.22*p, 111*(1-p)
@@ -41,14 +48,22 @@ func lineAlpha(now float64) float64 { return sonolus.Clamp(openingClock(now)-2.5
 
 // drawOpeningCovers draws BgCover (point_charactor_shadow tinted black,
 // 2000² at scale 2.5, x 80 under UI_Root_Back) over the stage, and the
-// backdrop's dimming (multiply by 0.5 + 0.5·progress) under the lights.
+// backdrop's dimming (multiply by 0.5 + 0.5·progress) under the lights. A
+// custom background brightens from 0.5 to the brightness option instead and
+// keeps it (the Light mode ColorFader.Play to LightModeIllustBrightness × 0.01
+// over 0.75 s).
 func drawOpeningCovers(now float64) {
 	o := openingClock(now)
 	k := Layout.UB
 	q := sonolus.Rect{T: 2500 * k, R: 2580 * k, B: -2500 * k, L: -2420 * k}.ToQuad()
-	if c := sonolus.Clamp((o-0.5)/0.75, 0, 1); c < 1 {
+	c := sonolus.Clamp((o-0.5)/0.75, 0, 1)
+	target := 1.0
+	if Hud.IllustBackground {
+		target = Config.IllustBright / 100
+	}
+	if b := 0.5 + (target-0.5)*c; b < 1 {
 		// a uniform tint of the backdrop (BgCover's sprite is a soft ellipse)
-		Skin.Black.Draw(q, 1, 0.5*(1-c))
+		Skin.Black.Draw(q, 1, 1-b)
 	}
 	// 0.0075 per 60 Hz frame of the opening clock
 	if a := 0.92 - 0.45*o; a > 0 {
@@ -72,11 +87,24 @@ func stagePoint(x, y float64) sonolus.Vec2 {
 // transform. Away from 0.92 the backdrop scales about its own centre, which
 // sits 170·scale below the root and follows the pose's y.
 func backgroundQuad() sonolus.Quad {
+	if Hud.IllustBackground {
+		return illustBackgroundQuad()
+	}
 	k := stageRoot() * Layout.UB
 	cy := 14 * Layout.HAR * Layout.UB
 	f := Hud.StageS / 0.92
 	c0, c := cy-170*0.92*k, cy+(Hud.StageY-170*Hud.StageS)*k
 	return sonolus.Rect{T: c + (cy+bgCanvasTop*k-c0)*f, R: 883.2 * k * f, B: c + (cy-820*k-c0)*f, L: -883.2 * k * f}.ToQuad()
+}
+
+// illustBackgroundQuad places a custom background as the original Light mode
+// places the card illustration: stretched over the bgImage widget (1920×1440
+// UI units), which BgManager.initLightMode moves to local y = −164 under the
+// Stage TRS (at its start pose here).
+func illustBackgroundQuad() sonolus.Quad {
+	c := stagePoint(0, -164)
+	w, h := 960*stageK()*Layout.UB, 720*stageK()*Layout.UB
+	return sonolus.Rect{T: c.Y + h, R: c.X + w, B: c.Y - h, L: c.X - w}.ToQuad()
 }
 
 // drawTrimmed draws a trimmed sprite so that its untrimmed full rect of
@@ -113,6 +141,9 @@ var whiteW = [12]float64{98.73, 98.73, 98.73, 99.72, 99.72, 99.72, 99.72, 99.72,
 var miniShineTrim = [4]float64{6, 4, 0, 3}
 
 func drawStageLights(now, z float64) {
+	if Hud.IllustBackground {
+		return // Light mode: RemoveStageBottomLight
+	}
 	// ColorFader.PlayColorTable cycles from the stage's creation (the level
 	// starts with the stage, 2 s before the music), not from chart time
 	t := now + 2
@@ -197,6 +228,9 @@ func curve(off, n, f float64) float64 {
 // overlay (rest alpha 0.03) and the two glows, driven by the original clips
 // speaker_normal / _exciting / _continuous.
 func drawSpeakers(now, z float64) {
+	if Hud.IllustBackground {
+		return // Light mode: StandardBackgroundModule.removeStageEffects
+	}
 	k := 1.3 * stageScale()
 	for side := 0; side < 2; side++ {
 		nodeX, m := 484.0, 1.0
@@ -384,6 +418,9 @@ func psylliumPose(tau float64) (float64, float64) {
 }
 
 func drawPsyllium(now, z float64) {
+	if Hud.IllustBackground {
+		return // Light mode: DestroyPsylliumManager
+	}
 	o := openingClock(now)
 	k := 1.0
 	if fade := o - 2.0; fade >= 0 { // the entrance starts at O = 0.5

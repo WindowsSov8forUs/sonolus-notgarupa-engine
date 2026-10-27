@@ -68,6 +68,9 @@ type HudState struct {
 	RankThreshold [5]float64
 	NoteCount     float64
 	FullLength    bool // level flag: halved life damage (original musicDataType "full")
+	// level flag: the level's custom background is shown as the original
+	// Light mode illustration background (stage_fx.go)
+	IllustBackground bool
 }
 
 var Hud = HudState{}

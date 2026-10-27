@@ -15,6 +15,7 @@ type PlayInitialization struct {
 	Habahiro            bool                            `archetype:"imported,name=habahiro"`
 	LaneChangeBeat      float64                         `archetype:"imported,name=laneChangeBeat,default=-1"`
 	FullLength          bool                            `archetype:"imported,name=fullLength"`
+	IllustBackground    bool                            `archetype:"imported,name=illustBackground"`
 	FirstScored         sonolus.EntityRef[PlayNoteBase] `archetype:"imported,name=firstScored"`
 }
 
@@ -28,6 +29,7 @@ func (n *PlayInitialization) Preprocess() {
 	initFx()
 	initHud(n.NoteCount)
 	Hud.FullLength = n.FullLength
+	Hud.IllustBackground = n.IllustBackground
 	initStageLights()
 	initCurves()
 	play.Background.Set(backgroundQuad())

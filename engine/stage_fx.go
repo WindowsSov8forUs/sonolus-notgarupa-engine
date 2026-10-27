@@ -107,6 +107,19 @@ func illustBackgroundQuad() sonolus.Quad {
 	return sonolus.Rect{T: c.Y + h, R: c.X + w, B: c.Y - h, L: c.X - w}.ToQuad()
 }
 
+// drawLetterBox draws Stage/TRSRoot/LetterBoxRoot: two bg_rhythm_iPX_black
+// bars (388×1440 at x ±875…±1263, y −164) that frame the backdrop. The
+// stage code never switches them: at the steady 0.92 pose they lie off a
+// 16:9 screen, at a custom background's start pose (0.7) their inner edges
+// are at ±612.5.
+func drawLetterBox(z float64) {
+	for _, side := range [2]float64{-1, 1} {
+		inner, outer := stagePoint(875*side, -164-720), stagePoint(1263*side, -164+720)
+		l, r := math.Min(inner.X, outer.X), math.Max(inner.X, outer.X)
+		Skin.Black.Draw(sonolus.Rect{T: outer.Y, R: r, B: inner.Y, L: l}.ToQuad(), z, 1)
+	}
+}
+
 // drawTrimmed draws a trimmed sprite so that its untrimmed full rect of
 // w×h UI units is centred on c (trim: px removed left, top, right, bottom).
 func drawTrimmed(sp sonolus.Sprite, c sonolus.Vec2, w, h, fullW, fullH float64, trim [4]float64, flipX bool, z, a float64) {

@@ -36,6 +36,7 @@
 - 舞台 TRS 保持开场的起始姿态（缩放 0.7、y 111）：原作 `InGameStageManager.introAnimation` 在轻量模式下不调用 `moveStageTRS`，结算时的 `outroAnimation` 移回的也是这一姿态；
 - 不绘制舞台灯光、音箱与荧光棒（`LightBackgroundModule` 加载后调用 `removeStageEffects`：`DestroyPsylliumManager`、`RemoveStageBottomLight`、`RemoveSpeaker`；SD 小人原本就不绘制）；BgCover 保留；
 - 背景亮度在开场时从 0.5 经 0.75 s 变为「背景亮度」选项（原作 `LightModeIllustBrightness × 0.01`，30–100、步长 10、默认 80）后保持；
-- 背景条目不叠加舞台的 DarkCover（原作轻量模式隐藏 DarkCover 贴图）。
+- 背景条目不叠加舞台的 DarkCover（原作轻量模式隐藏 DarkCover 贴图）；
+- `TRSRoot` 下的两条 LetterBox 黑边（388×1440、x ±875…±1263、y −164）始终绘制：普通模式（0.92）下在 16:9 屏幕外，自定义背景的起始姿态（0.7）下内缘在 ±612.5，卡面两侧各遮去约 54.5。
 
-依据：日服 10.2.0 `libil2cpp.so` 的 ARM64（`RhythmGameStartData.get_BackgroundModuleType`、`LightBackgroundModule`、`BgManager`、`InGameStageManager`、`InGameStageControllerBase`、`LiveCoreSettingsLightModeBrightness`）。
+依据：原作日服 10.2.0 的轻量模式卡面背景调查（`RhythmGameStartData.get_BackgroundModuleType`、`LightBackgroundModule`、`BgManager`、`InGameStageManager`、`InGameStageControllerBase`、`LiveCoreSettingsLightModeBrightness` 的 ARM64，舞台序列化层级）。

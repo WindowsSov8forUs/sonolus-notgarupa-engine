@@ -226,6 +226,7 @@ func (*WatchStage) UpdateSequential() {
 
 func (*WatchStage) UpdateParallel() {
 	now := watch.Time.Now()
+	drawLetterBox(1.5)
 	drawStageLights(now, 2)
 	drawSpeakers(now, 3)
 	drawPsyllium(now, 3.2) // StageFront, above the speakers, under BgCover

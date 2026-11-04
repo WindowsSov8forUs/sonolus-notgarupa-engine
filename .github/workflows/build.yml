@@ -9,6 +9,8 @@ name: Build
 # To cut a release:
 #   git tag -a v0.1.0 -m "v0.1.0"
 #   git push origin v0.1.0
+# A Release published on the web (creating its tag) gets the files attached
+# instead, keeping the notes written there.
 
 on:
   push:
@@ -97,6 +99,11 @@ jobs:
             echo
             echo "\`$NAME-dist_*.tar.gz\` 是 \`sonolus-go build\` 输出的引擎文件（EngineConfiguration、Engine{Play,Watch,Preview,Tutorial}Data、EngineRom），附引擎的资源名清单 \`resources.json\` 与 \`manifest.json\`（版本、提交、sonolus-go 版本、资源名清单的 sha256）。解压后的目录即 \`sonolus-notgarupa-server\` 的 \`-dist\`。"
           } > ../notes.md
-          prerelease=""; [[ "$GITHUB_REF_NAME" == *-* ]] && prerelease="--prerelease"
-          gh release create "$GITHUB_REF_NAME" ./* --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" \
-            --notes-file ../notes.md --generate-notes $prerelease
+          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            # published on the web (which pushed the tag): attach the files, keep its notes
+            gh release upload "$GITHUB_REF_NAME" ./* --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            prerelease=""; [[ "$GITHUB_REF_NAME" == *-* ]] && prerelease="--prerelease"
+            gh release create "$GITHUB_REF_NAME" ./* --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" \
+              --notes-file ../notes.md --generate-notes $prerelease
+          fi

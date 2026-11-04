@@ -1070,8 +1070,10 @@ func (n *PlaySlideBase) drawBody(now float64) {
 			ah = heldHalf(a.Width)
 		}
 		if front > n.Broken {
-			// the first segment is the one a held finger is on
-			drawBeltLit(fp, fh, ap, ah, n.Curve, z, alpha, k == 0 && n.Feedback)
+			// the first segment is the one a held finger is on; NoteAfterBase.Touch
+			// (pick-up and every passed node) does not depend on the feedback, so
+			// after a Miss the finger still holding lights it again
+			drawBeltLit(fp, fh, ap, ah, n.Curve, z, alpha, k == 0 && n.Finger >= 0)
 		}
 		if pr < 0 {
 			return

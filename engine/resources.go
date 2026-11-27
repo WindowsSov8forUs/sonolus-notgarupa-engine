@@ -108,7 +108,7 @@ var Particles = &ParticlesData{
 const (
 	durTap, durGood, durGreat, durPerfect = 0.8, 0.8, 0.85, 1
 	durSwipe, durKeep, durKeepPlane       = 1, 1, 18
-	durDir1, durDir23, durFinger          = 0.7, 1.1, 0.35
+	durDir1, durDir23, durFinger          = 0.7, 1.1, 0.5 // finger: mainland skin_bilicat(01) 0.5 s; other skins 0.35 s, within it
 	planeCos46, planeCos48, planeCos50    = 0.694658, 0.669131, 0.642788
 )
 

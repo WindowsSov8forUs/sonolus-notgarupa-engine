@@ -4,14 +4,14 @@
 
 | 资源包 | 生成器 | 条目数 |
 |---|---|---|
-| Skin | `sonolus-notgarupa-skin-generator` | 782 |
-| Effect | `sonolus-notgarupa-effect-generator` | 15 |
-| Particle | `sonolus-notgarupa-particle-generator` | 154 |
-| Background | `sonolus-notgarupa-background-generator` | 44（无清单，见下文） |
+| Skin | `sonolus-notgarupa-skin-generator` | 793 |
+| Effect | `sonolus-notgarupa-effect-generator` | 16 |
+| Particle | `sonolus-notgarupa-particle-generator` | 87 |
+| Background | `sonolus-notgarupa-background-generator` | 27（无清单，见下文） |
 
 ## 条目集合与命名
 
-生成器默认运行即生成完整资源，没有选择单个条目的参数。条目集合由原作 JP 10.1.4 的皮肤主数据决定（各生成器 `internal/master/skins.json`，规则在同目录的 `master.go`）：
+生成器默认运行即生成完整资源，没有选择单个条目的参数。条目集合由原作的皮肤主数据决定（各生成器 `internal/master/skins.json`，规则在同目录的 `master.go`）：JP 主数据（JP 10.1.4 的各行，加上 10.2.0 新增的 Limited 5「魔法少女ノ魔女裁判コラボ」`skin_collabo_2026`），以及只存在于大陆服主数据的 Collaboration 100001（`skin10001`）与 Limited 10001 / 10002（`skin_bilicat` / `skin_bilicat01`）。大陆服的行带 `"server": "cn"`，其组件的资源取自大陆服（见「素材来源」）。
 
 - 原作的直播设置可独立选择音符皮肤（7）、lane 皮肤（15）、打击特效（5）、打击音效（4）、方向键皮肤（5）与方向键特效 normal / light；判定皮肤固定 skin00，方向键音效固定 `directionalflickskin00`，背景由活动决定（不是玩家设置）。普通设置按资源类型取相关轴的全部排列组合。
 - Collaboration / Limited 特殊组合：该行替换的组件固定，其余轴照常排列；组件的单独开关（「不适用」）不另外生成。
@@ -33,8 +33,8 @@ HABAHIRO 条目不是与普通条目并列的皮肤：服务器不在条目列�
 
 ## 素材来源
 
-- **Bestdori**（`https://bestdori.com/assets/<region>/<bundle>_rip/<file>`；各服有独占素材，每个 bundle 按服务器优先级 jp → en → tw → cn → kr 取自第一个拥有它的服务器）：note / directional / field / judge 皮肤、打击音效（`sound/tapseskin/*`、`sound/common`）、背景（`ingameskin/bgskin/*`）。
-- **原作官方资源 CDN**（`https://content.garupa.jp/Release/<版本>/Android/<bundle>`，资源版本固定）：判定粒子 bundle（`ingameskin/tapeffect/skin00`、`directionalflickskin00normal`、`habahiro`），粒子生成器直接解析其中的 ParticleSystem 与贴图。
+- **Bestdori**（`https://bestdori.com/assets/<region>/<bundle>_rip/<file>`；各服有独占素材，每个 bundle 按服务器优先级 jp → en → tw → cn → kr 取自第一个拥有它的服务器；大陆服主数据行的 bundle 先在 cn 查找）：note / directional / field / judge 皮肤、打击音效（`sound/tapseskin/*`、`sound/common`）、背景（`ingameskin/bgskin/*`）。
+- **原作官方资源 CDN**（资源版本固定）：JP `https://content.garupa.jp/Release/10.2.0.190_b3da1643…aad9d/Android/<bundle>`，大陆服主数据行的 bundle 取自大陆服 `https://line3-prod-patch-bd.bilibiligame.net/assetbundle/10.1.3.0/Android/<bundle>`（bundle 依赖的其他 bundle 也取自同一服）。判定粒子 bundle（`ingameskin/tapeffect/*`，粒子生成器直接解析其中的 ParticleSystem 与贴图）、打击音效的 cue sheet（`sound/tapseskin/*` 的 `TapSE.acb`）、背景的舞台特效 prefab（`ingameskin/bgskin/*`）。
 - **原作 APK 内置资源**（不在 AssetBundle 中，无法联网获取）：HUD 图集与其 atlas 行、`sgm` 字体、lane tap 光柱、Sudden 线、分数槽高分段贴图、舞台灯光/音箱/荧光棒、DarkCover、开场信息、`decide_1`。随各生成器放在其 `assets/apk/` 下并编入程序。
 
 生成器不依赖任何第三方工程。所有下载写入 `-cache`（默认 `.cache`），之后可用 `-offline` 完全离线重建。
@@ -102,7 +102,7 @@ Sonolus 精灵不能着色，也没有加法混合，因此：
 
 ## Effect
 
-片段名 = 原作 cue 名。格式 WAV：先按 MP3 的 LAME 标签去掉编码延迟与填充，解码长度与原作 HCA 采样数完全一致（例如 perfect 33001、SE_RHYTHM_TAP_LONG 23253），保证判定音与时间轴对齐（Sonolus 客户端是否接受 WAV 尚未在真机确认）。循环点与同时发声上限取自各打击音效皮肤原作的 cue sheet（官方 CDN 上的 `TapSE.acb`）。
+片段名 = 原作 cue 名。格式 WAV：先按 MP3 的 LAME 标签去掉编码延迟与填充，解码长度与原作 HCA 采样数完全一致（例如 perfect 33001、SE_RHYTHM_TAP_LONG 23253），保证判定音与时间轴对齐（Sonolus 客户端是否接受 WAV 尚未在真机确认）。循环点与同时发声上限取自各打击音效皮肤原作的 cue sheet（官方 CDN 上的 `TapSE.acb`；大陆服独占的 `skin10001` 取自大陆服 CDN）。
 
 | 片段 | 用途 |
 |---|---|
@@ -112,7 +112,7 @@ Sonolus 精灵不能着色，也没有加法混合，因此：
 | `game_button` | 空点（未命中音符的触摸） |
 | `SE_RHYTHM_TAP_LONG` | 长按音效完整 cue |
 | `SE_RHYTHM_TAP_LONG#loop` | 原作循环区间 `[LoopStart, LoopEnd)`（skin00 为 0–22997 采样），`PlayLooped` 用；cue 不循环的条目（`skin_april2019`）没有 |
-| `SE_RHYTHM_TAP_LONG#intro` | 循环起点不为 0 时的前奏 `[0, LoopStart)`（`skin_maid`、`skin_coin`、`skinapril2021`、`skin_stage`、`skin_delta`） |
+| `SE_RHYTHM_TAP_LONG#intro` | 循环起点不为 0 时的前奏 `[0, LoopStart)`（`skin_maid`、`skin_coin`、`skinapril2021`、`skin_stage`、`skin_delta`、`skin10001`） |
 | `SE_RHYTHM_TAP_LONG#release` | 停止循环时播放的 0.3 s 线性淡出尾音（Sonolus 无法淡出循环） |
 | `notgarupa/hold/introUsBit<k>`、`onceUsBit<k>`、`noCueLimit` | 存在标记（1 采样静音）：前奏时长、不循环 cue 的时长（µs 的第 k 位），以及按住 cue 没有发声上限（`skin_delta`） |
 | `SE_RHYTHM_TAP_SKILL` | 技能音符（Great 以上，与判定音同时） |
@@ -129,7 +129,7 @@ Sonolus 精灵不能着色，也没有加法混合，因此：
 
 原作的方向键特效设置（左右フリックアイコンエフェクト 大 / 小）选用 `directionalflick<方向键>normal` 或 `…light`。它不分条目：每个粒子条目同时含两者，normal 用 prefab 原名，light 加前缀 `light/`（`light/effect_tap_directional_flick_l`、`_2`、`_3`、`light/effect_tap_directional_flick_l_finger` 及其 lane 平面部件，`r` 同），引擎的选项「Directional flick effect」（大 / 小）选择其中一组。
 
-每个打击特效（`ingameskin/tapeffect/<id>`）与方向键特效（`directionalflick<方向键><normal|light>`）的 prefab 由官方 CDN 上原作 bundle 中的 Unity ParticleSystem 序列化数据逐系统转换（发射、形状、速度 / 力随寿命变化、速度限制与阻力、重力、角速度与随速度旋转、大小 / 颜色随寿命变化、贴图序列帧、拉伸 billboard、Quad 与 3D 网格）。原作中处于 inactive 状态、`Play` 不会播放的子系统不转换。转换细节与近似见粒子生成器的 README。
+每个打击特效（`ingameskin/tapeffect/<id>`）与方向键特效（`directionalflick<方向键><normal|light>`）的 prefab 由官方 CDN 上原作 bundle 中的 Unity ParticleSystem 序列化数据逐系统转换（大陆服的 `skin_bilicat*`、`directionalflick{skin10001,skin_bilicat*}*` 取自大陆服 CDN；`directionalflickskin10001*` 的部分材质在其依赖的大陆服 `directionalflickskin00*` 中，一并读取）（发射、形状、速度 / 力随寿命变化、速度限制与阻力、重力、角速度与随速度旋转、大小 / 颜色随寿命变化、贴图序列帧、拉伸 billboard、Quad 与 3D 网格）。原作中处于 inactive 状态、`Play` 不会播放的子系统不转换。转换细节与近似见粒子生成器的 README。
 
 ### 坐标约定
 
@@ -149,9 +149,9 @@ Sonolus 精灵不能着色，也没有加法混合，因此：
 | `effect_TapKeep#plane<度>` | 18 | 是 | cos(度) |
 | `effect_tap_directional_flick_{l,r}` | 0.7 | 否 | 1 |
 | `effect_tap_directional_flick_{l,r}_2` / `_3` | 1.1 | 否 | 1 |
-| `effect_tap_directional_flick_{l,r}_finger` / `#plane46` | 0.35 | 否 | 1 / 0.6947 |
+| `effect_tap_directional_flick_{l,r}_finger` / `#plane46` / `#plane62` | 0.5 | 否 | 1 / 0.6947 / 0.4695 |
 
-TapKeep 平面部分的周期为 1、6 或 9 s（skin00 为 6 s，使旋转环在循环边界处角度连续），统一为 18 s。循环特效按稳态生成，开始时已包含上一周期遗留的粒子。
+方向键 finger 的 0.5 s 来自大陆服 `directionalflickskin_bilicat*`（其余皮肤为 0.35 s，较短的效果提前结束）。TapKeep 平面部分的周期为 1、6 或 9 s（skin00 为 6 s，使旋转环在循环边界处角度连续），统一为 18 s。循环特效按稳态生成，开始时已包含上一周期遗留的粒子。
 
 ### 与原作的差异（平台限制）
 

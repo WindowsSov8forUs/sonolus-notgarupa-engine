@@ -1,6 +1,6 @@
 # 未生成的资源
 
-资源生成器按原作 JP 10.1.4（230）的皮肤主数据生成全部条目：普通设置（音符、lane、打击特效、打击音效、方向键与其特效 normal / light）的排列组合，Collaboration / Limited 特殊组合（固定其组件，其余轴照常排列），以及谱面强制的 HABAHIRO 组合（规则见 `RESOURCE_CONTRACT.md`）。主数据快照在各生成器的 `internal/master/skins.json`，排除表在同目录的 `master.go`（`Excluded`）。
+资源生成器按原作的皮肤主数据生成全部条目（JP 主数据的 Limited 1–5，以及只存在于大陆服主数据的 Collaboration 100001 与 Limited 10001 / 10002，见下文「大陆服独占的特殊组合」）：普通设置（音符、lane、打击特效、打击音效、方向键与其特效 normal / light）的排列组合，Collaboration / Limited 特殊组合（固定其组件，其余轴照常排列），以及谱面强制的 HABAHIRO 组合（规则见 `RESOURCE_CONTRACT.md`）。主数据快照在各生成器的 `internal/master/skins.json`，排除表在同目录的 `master.go`（`Excluded`）。
 
 下列内容目前没有任何途径可以取得完整的原始资源，因此整体不生成：不做部分生成，也不用其他资源顶替缺失的部分。取得途径出现后，从排除表中删去对应项即可。
 
@@ -13,20 +13,25 @@
 | 活动背景 `skin04`（Live Try 活动） | `ingameskin/bgskin/skin04` | 同上 |
 | 活动背景 `skin_teamlivefestival`（团队 Live 祭） | `ingameskin/bgskin/skin_teamlivefestival` | bundle 中没有 liveBG 贴图：只有团队 Live 祭的多人模式用各队的舞台物件拼出背景，单人 Live 不会显示它 |
 
-## 不在范围内的服务器独占内容
+## 大陆服独占的特殊组合
 
-生成范围是 JP 主数据。大陆服的特殊组合只存在于大陆服主数据中，并且缺少原始资源：
+以下特殊组合只存在于大陆服主数据，主数据快照中带 `"server": "cn"`，现已全部生成：Bestdori 的拆包先在 cn 服查找，原始 bundle 取自大陆服的资源 CDN（`https://line3-prod-patch-bd.bilibiligame.net/assetbundle/10.1.3.0/Android/<bundle>`，CN 10.1.3 客户端的 bundle 版本，URL 中没有哈希段）。
 
-| 条目 | 组件 | 缺少的资源 |
+| 条目 | 组件 | 原始资源 |
 |---|---|---|
-| Limited 10001「小豆泥联动①」、10002「小豆泥联动②」，Collaboration 100014 | `skin_bilicat` / `skin_bilicat01`：背景、打击特效、lane、音符、判定、方向键 | 打击特效与方向键特效（`tapeffect/skin_bilicat*`、`directionalflickskin_bilicat*{normal,light}`）：JP CDN 没有（403），Bestdori 只有 JSON 导出与 PNG，没有可转换的 ParticleSystem 原始数据 |
-| Collaboration 100001「彩虹节拍」 | `skin10001`：背景、lane、音符、打击音效、方向键 | 打击音效的 ACB（循环点与发音上限）：JP CDN 没有（403），Bestdori 不提供 ACB |
+| Limited 10001「小豆泥联动演出皮肤①」、10002「小豆泥联动演出皮肤②」 | `skin_bilicat` / `skin_bilicat01`：背景、打击特效、lane、音符、判定、方向键（打击音效不变） | 打击特效与方向键特效 `tapeffect/skin_bilicat*`、`directionalflickskin_bilicat*{normal,light}` 的 UnityFS 取自大陆服 CDN，字节数与 SHA-256 与 GarupaEditor 大陆服皮肤目录记录的官方 UnityFS 一致 |
+| Collaboration 100001「彩虹节拍」 | `skin10001`：背景、lane、音符、打击音效、方向键 | 方向键特效 `directionalflickskin10001{normal,light}` 取自大陆服 CDN（SHA-256 同上一致；材质在其依赖的大陆服 `directionalflickskin00{normal,light}` 中，一并读取）；打击音效的 `TapSE.acb` 在大陆服 CDN 的 `sound/tapseskin/skin10001` 中，循环点与发音上限按原作 cue sheet 读取（按住音 48 kHz、循环 `[6346, 63270)`，各 cue 上限 4） |
+
+此前的排除理由（「Bestdori 只有 JSON 导出与 PNG，没有可转换的 ParticleSystem 原始数据」「打击音效没有 ACB」）只对 JP CDN 与 Bestdori 成立，大陆服 CDN 提供这些原始数据。
+
+大陆服的 Collaboration 100002（`seasonSpecialId` 100014，`skin_bilicat`）的组件与 Limited 10001 完全相同，不产生新的条目，主数据快照不收录。
 
 ## 原作有、但引擎不使用的组件
 
 这些不是资源缺失，而是 Ex-Garupa 引擎没有对应的功能，所以生成器不输出：
 
 - 技能 cut-in 皮肤（只有已排除的 Collaboration 3 带有）。
+- 背景的 Fever 贴图 `liveBG_fever`（如 Limited 5 的 `skin_collabo_2026`、`skin_bilicat*`、`skin10001`）：只在协力 Live 与团队 Live 祭的 Fever 时间显示，单人 Live 不加载，见背景生成器 README 的「Fever 背景」。
 - 舞台结构皮肤 `stageskin/normal|challenge|versus`：只用于 Live2D 演出路线。
 - 判定线的技能叠加层 `game_play_line_skill_adjust_effect`，以及开场歌曲信息页的美术 `startup_line_star`、`startup_title_base`（引擎无法显示关卡封面与曲名，信息页不实现）。
 - 菜单预览用的 `noteskin/*sample`、`bgskin/*preview`。

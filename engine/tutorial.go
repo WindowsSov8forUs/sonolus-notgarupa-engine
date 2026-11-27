@@ -169,7 +169,7 @@ func Update() {
 		end := h + 1.2
 		held := t >= h && t < end
 		if c := tutCurve(t, h, true); c >= 0 && t < end {
-			drawLong(noteLook{SpriteLane: 3, Lane: 3, Width: 1, SpanStart: 3}, c, 3, 1, math.Max(tutCurve(t, end, true), 0), held, t-h, z, lineZ(zBelt, 0))
+			drawLong(noteLook{SpriteLane: 3, Lane: 3, Width: 1, SpanStart: 3}, c, math.Max(tutCurve(t, end, true), 0), held, t-h, z, lineZ(zBelt, 0))
 		}
 		if c := tutCurve(t, end, true); c >= 0 && t < end {
 			drawTerminal(noteLook{SpriteLane: 3, Lane: 3, Width: 1, SpanStart: 3}, NodePlain, 1, 3, c, t, subZ(z, 1))

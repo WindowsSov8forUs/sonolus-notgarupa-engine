@@ -239,24 +239,29 @@ func heldPos(lane float64) sonolus.Vec2 {
 // Body mesh half widths: moving, held / stopped on the line, waiting at the
 // spawn row (calculateNoteMeshHalfWidth: local·width·safe).
 // HABAHIRO widens wide bodies (the original grid width rate from HighAspectRatio).
-func bodyHalf(y, width float64) float64 {
-	return noteLocalScale(y, width) * width * Layout.Safe * widthRate(width)
-}
-func heldHalf(width float64) float64 {
-	return Layout.TargetLocal * width * Layout.Safe * widthRate(width)
-}
-func waitHalf(width float64) float64 {
-	return Layout.WaitLocal * width * Layout.Safe * widthRate(width)
-}
+func bodyHalf(y, width float64) float64 { return bodyHalfAt(y, width, widthRate(width)) }
+func heldHalf(width float64) float64    { return heldHalfAt(width, widthRate(width)) }
+func waitHalf(width float64) float64    { return waitHalfAt(width, widthRate(width)) }
 
+// The *At forms take the width rate explicitly: NoteMeshAdvanced.OnUpdate
+// takes one rate from the segment's front node and applies it to both ends
+// (each end keeps its own button count), and a Long's body uses its root's.
+func bodyHalfAt(y, width, rate float64) float64 {
+	return noteLocalScale(y, width) * width * Layout.Safe * rate
+}
+func heldHalfAt(width, rate float64) float64 { return Layout.TargetLocal * width * Layout.Safe * rate }
+func waitHalfAt(width, rate float64) float64 { return Layout.WaitLocal * width * Layout.Safe * rate }
+
+// widthRate is GetMeshWidthRate on a HABAHIRO chart: width 2 is 1.05, widths
+// 3..7 add 0.03·HighAspectRatio, every other width (1 and wider than 7) is 1.
 func widthRate(width float64) float64 {
 	switch {
-	case !Layout.Habahiro || width <= 1:
+	case !Layout.Habahiro || width <= 1 || width > 7:
 		return 1
 	case width == 2:
 		return 1.0499999523162842
 	}
-	return 1.05 + 0.03000009059906006*Layout.HAR
+	return 1.0499999523162842 + 0.03000009059906006*Layout.HAR
 }
 
 // spriteQuad returns an axis-aligned quad of a pixel sprite centred on p.

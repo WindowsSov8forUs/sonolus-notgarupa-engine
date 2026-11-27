@@ -40,6 +40,10 @@ type WatchNoteBase struct {
 	// WatchStage schedules them in chain order under the cue limit
 	HoldUntil float64 `archetype:"shared"`
 	JSlide    bool    `archetype:"shared"`
+	// JSpkStart/JSpkWidth: the lanes of the judgement's OneFrameData (stage
+	// speakers), as Play's judgement.withSpk
+	JSpkStart float64 `archetype:"shared"`
+	JSpkWidth float64 `archetype:"shared"`
 	// JClass: 0 an end or node, 1 a Long or visible Slide head, 2 a single
 	// note (tap, flick, directional; as PlayNoteBase.Single). A replay lights
 	// the lane at a front (≥ 1) judgement, as Play's touch does.
@@ -96,6 +100,7 @@ func (n *WatchNoteBase) prepare(sweet, jt float64, scored bool, bucket sonolus.B
 	n.JTiming = timingNone
 	n.JType = jt
 	n.JLane = receiverLane(n.SpanStart, n.Width)
+	n.JSpkStart, n.JSpkWidth = n.SpanStart, n.Width
 	n.JCount = 1
 	n.JDivisor = 1
 	n.ALaneOff, n.ALanePulse = -1, -1
@@ -112,7 +117,7 @@ func (n *WatchNoteBase) prepare(sweet, jt float64, scored bool, bucket sonolus.B
 
 func (n *WatchNoteBase) judgement() judgement {
 	return judgement{Width: n.Width, Grade: n.JGrade, Type: n.JType, Timing: n.JTiming, Skill: n.Skill, X: laneX(n.JLane), Lane: n.JLane,
-		Count: n.JCount, Direction: n.Direction, Key: n.Time, Divisor: n.JDivisor, Auto: isAuto(), Mid: n.JMid, Slide: n.JSlide}
+		Count: n.JCount, Direction: n.Direction, Key: n.Time, Divisor: n.JDivisor, Auto: isAuto(), Mid: n.JMid, Slide: n.JSlide}.withSpk(n.JSpkStart, n.JSpkWidth)
 }
 
 func (n *WatchNoteBase) progress(now float64) float64 {
@@ -221,6 +226,10 @@ func (n *WatchDirectionalNote) Preprocess() {
 		left -= n.Count - 1 // the leader is the group's first (leftmost) member
 	}
 	n.JLane = dirBodyLane(left, n.Count, n.Direction)
+	// speakers: Auto Live packs the group's getEffectButton lane (its
+	// flick-start end); a replay cannot tell the member Play's touch decided
+	// on, so it takes the same lane
+	n.JSpkStart, n.JSpkWidth = n.JLane, 1
 	if n.JGrade == gradeMiss {
 		n.JType = jtNormal
 	}
@@ -313,6 +322,10 @@ func (n *WatchLongTail) UpdateParallel() {
 
 func (n *WatchLongHead) Preprocess() {
 	n.prepare(0, jtLongFront, true, Buckets.LongHead)
+	// as Play: the end's speakers read the root's own lanes (the tail
+	// preprocesses first, so the head hands them over)
+	t := n.Tail.Get()
+	t.JSpkStart, t.JSpkWidth = n.SpanStart, n.Width
 	if n.JGrade == gradeMiss {
 		n.JType = jtLongMiss
 		n.JDivisor = 2
@@ -357,7 +370,7 @@ func (n *WatchLongHead) UpdateParallel() {
 	tc := math.Max(tail.curve(now, true), 0)
 	l := n.look()
 	l.Skill = n.Skill
-	drawLong(l, c, tail.Lane, tail.Width, tc, held, now-n.JTime, n.z(), lineZ(zBelt, n.Time))
+	drawLong(l, c, tc, held, now-n.JTime, n.z(), lineZ(zBelt, n.Time))
 }
 
 // ---------------------------------------------------------------- slide ----
@@ -660,9 +673,36 @@ func (n *WatchSlideBase) Terminate() {
 	n.Keep.ID, n.KeepPlane.ID, n.KeepPlane2.ID = 0, 0, 0
 }
 
+// trail is PlaySlideBase's tail handling of a Hidden-tail Slide, from the
+// replay: once its last visible node (front: its order, head 0) is judged,
+// only the geometry goes on; lit: that node was passed with the hold on, so
+// the segment out of it keeps its touched colour.
+func (n *WatchSlideBase) trail(now float64) (trailing bool, front float64, lit bool) {
+	if n.AllHidden || !n.Last.Get().Hidden {
+		return false, 0, false
+	}
+	last := sonolus.EntityRef[WatchSlideNodeBase]{Index: 0}
+	node := n.First
+	for k := 0; k < 4096 && node.Index > 0; k++ {
+		d := node.Get()
+		if !d.Hidden {
+			last = node
+		}
+		node = d.Next
+	}
+	if last.Index <= 0 {
+		// only the head is visible: Play's pick-up of a plain head
+		return !n.Hidden && now >= n.JTime, 0, n.JGrade != gradeMiss
+	}
+	d := last.Get()
+	held := n.HoldStart < n.HoldEnd && n.HoldEnd >= d.JTime && d.JGrade != gradeMiss
+	return now >= d.JTime, d.Index, held
+}
+
 func (n *WatchSlideBase) UpdateParallel() {
 	now := watch.Time.Now()
-	n.drawBody(now)
+	trailing, trailFront, trailLit := n.trail(now)
+	n.drawBody(now, trailing && trailLit, trailFront)
 	if !n.Hidden && now < n.JTime {
 		if c := n.curve(now, true); c >= 0 {
 			// an unheld head snaps onto the line at the target-button scale
@@ -681,6 +721,9 @@ func (n *WatchSlideBase) UpdateParallel() {
 		}
 	}
 	chain, passed := n.chainSprite(now)
+	if trailing {
+		chain = chainNone // tail handling took the last visible node off the line
+	}
 	if chain == chainPassed && n.HasContact {
 		// as Play: a passed node rides also after a Miss ended the hold
 		// feedback (it was passed, so the finger was down)
@@ -753,7 +796,9 @@ func (n *WatchSlideNodeBase) stopTime() float64 {
 	return n.Time
 }
 
-func (n *WatchSlideBase) drawBody(now float64) {
+// drawBody is PlaySlideBase.drawBody; trailLit lights the segment out of
+// the trailing front (see trail).
+func (n *WatchSlideBase) drawBody(now float64, trailLit bool, trailFront float64) {
 	alpha := bodyAlpha()
 	if n.AllHidden {
 		alpha *= 0.5
@@ -763,7 +808,9 @@ func (n *WatchSlideBase) drawBody(now float64) {
 	var fh float64
 	next := n.First
 	front := 0.0
+	fw := n.Width // as Play: the front node's width rate at both ends
 	if n.HasContact {
+		fw = n.ContactWidth
 		fp, fh = heldPos(n.ContactLane), heldHalf(n.ContactWidth)
 		if !n.SegHead {
 			next = n.Seg.Get().Next
@@ -784,21 +831,26 @@ func (n *WatchSlideBase) drawBody(now float64) {
 		a := next.Get()
 		c := a.curve(now, true)
 		ap := notePos(a.Lane, math.Max(c, 0))
-		ah := bodyHalf(ap.Y, a.Width)
+		rate := widthRate(fw)
+		ah := bodyHalfAt(ap.Y, a.Width, rate)
 		switch {
 		case c < 0:
-			ah = waitHalf(a.Width)
+			ah = waitHalfAt(a.Width, rate)
 		case c >= 1:
-			ah = heldHalf(a.Width)
+			ah = heldHalfAt(a.Width, rate)
 		}
 		if front > n.Broken {
 			// the first segment is the one a held finger is on
-			drawBeltLit(fp, fh, ap, ah, n.Curve, z, alpha, k == 0 && n.holding(now))
+			lit := n.holding(now) || trailLit && front == trailFront
+			drawBeltLit(fp, fh, ap, ah, n.Curve, z, alpha, k == 0 && lit)
 		}
 		if c < 0 {
 			return
 		}
-		fp, fh = notePos(a.Lane+a.Exit, c), ah
+		fp, fh, fw = notePos(a.Lane+a.Exit, c), bodyHalf(ap.Y, a.Width), a.Width
+		if c >= 1 {
+			fh = heldHalf(a.Width)
+		}
 		front = a.Index
 		next = a.Next
 	}

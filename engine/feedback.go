@@ -25,7 +25,11 @@ type judgement struct {
 	FingerX   float64
 	HasFinger bool    // a manual directional group: finger particle on the touched member
 	Width     float64 // note width (HABAHIRO width-variant particles)
-	Slide     bool    // a Slide judgement: never skill particles
+	// SpkFrom..SpkTo: the lanes of OneFrameData.buttonTypes (the stage
+	// speakers read lanes 0 and 6) when HasSpk; otherwise Lane ± (Width−1)/2
+	SpkFrom, SpkTo float64
+	HasSpk         bool
+	Slide          bool // a Slide judgement: never skill particles
 	// Frame: now is the judging update's own time (Play), so one OneFrame
 	// batch is exactly the judgements at that time; Watch preprocess groups
 	// replay times by 1/60 s instead
@@ -384,17 +388,29 @@ func playJudgementParticles(j judgement) {
 	}
 }
 
-// triggerSpeaker drives the stage speakers from outer-lane judgements.
+// triggerSpeaker drives the stage speakers from outer-lane judgements: any
+// judgement whose OneFrameData lanes contain lane 0 / 6 (both for a note
+// covering both). A projected span off 0..6 has no button there.
 func triggerSpeaker(j judgement, now float64) {
-	// any judgement whose lane span contains lane 0 / 6 (both for a note
-	// covering both)
-	half := (math.Max(j.Width, 1) - 1) / 2
-	if j.Lane-half <= 0 {
+	from, to := j.SpkFrom, j.SpkTo
+	if !j.HasSpk {
+		half := (math.Max(j.Width, 1) - 1) / 2
+		from, to = j.Lane-half, j.Lane+half
+	}
+	if from <= 0 && to >= 0 {
 		speakerClip(0, j, now)
 	}
-	if j.Lane+half >= 6 {
+	if from <= 6 && to >= 6 {
 		speakerClip(1, j, now)
 	}
+}
+
+// withSpk sets a judgement's OneFrameData lanes to the span of width lanes
+// from start (originalJudgementButtons, GarupaEditor 4464abc6 / 5d3e6e4c /
+// 5143b357).
+func (j judgement) withSpk(start, width float64) judgement {
+	j.SpkFrom, j.SpkTo, j.HasSpk = start, start+math.Max(width, 1)-1, true
+	return j
 }
 
 func speakerClip(side int, j judgement, now float64) {

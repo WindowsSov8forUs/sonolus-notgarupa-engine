@@ -218,8 +218,10 @@ func (n *PlayLongHead) endHold(now, grade, timing, err, jt float64) {
 	if tail.Kind == NodeDirectional || tail.Kind == NodeMultiDir {
 		lane = dirBodyLane(tail.SpanStart, tail.Width, tail.Direction)
 	}
+	// the speakers read the root's own lanes (NoteLong.judgeAfterNote and the
+	// timeout Miss alike), never a wide Directional end's Add members
 	applyJudgement(now, judgement{Width: tail.Width, Grade: grade, Type: jt, Timing: timing, Skill: tail.Skill,
-		X: laneX(lane), Lane: lane, Key: n.TailTime, Direction: tail.Direction, Count: gestureCount(tail.Kind, tail.Width), Divisor: 1})
+		X: laneX(lane), Lane: lane, Key: n.TailTime, Direction: tail.Direction, Count: gestureCount(tail.Kind, tail.Width), Divisor: 1}.withSpk(n.SpanStart, n.Width))
 	n.finishTail(grade, err)
 	n.stopFeedback()
 }
@@ -268,5 +270,5 @@ func (n *PlayLongHead) UpdateParallel() {
 	}
 	l := n.look()
 	l.Skill = n.Skill
-	drawLong(l, c, tail.Lane, tail.Width, tc, held, now-n.HoldStart, n.z(), lineZ(zBelt, n.Time))
+	drawLong(l, c, tc, held, now-n.HoldStart, n.z(), lineZ(zBelt, n.Time))
 }

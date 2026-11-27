@@ -177,11 +177,17 @@ type PlaySlideBase struct {
 	// Passed is the last middle node the hold has judged; the original keeps
 	// its sprite riding at the front (ExecTouchMoved hides only the note
 	// before it), so the held head body shows only until the first one.
-	Passed     sonolus.EntityRef[PlaySlideNodeBase] `archetype:"memory"`
-	Loop       sonolus.LoopedEffectHandle           `archetype:"memory"`
-	Keep       sonolus.ParticleHandle               `archetype:"memory"`
-	KeepPlane  sonolus.ParticleHandle               `archetype:"memory"`
-	KeepPlane2 sonolus.ParticleHandle               `archetype:"memory"`
+	Passed sonolus.EntityRef[PlaySlideNodeBase] `archetype:"memory"`
+	// Trailing: a Hidden-tail Slide past its last visible node (TrailFront,
+	// head 0), only geometry left; TrailLit: the finger was on it then, so
+	// the segment out of that node keeps its touched colour.
+	Trailing   bool                       `archetype:"memory"`
+	TrailFront float64                    `archetype:"memory"`
+	TrailLit   bool                       `archetype:"memory"`
+	Loop       sonolus.LoopedEffectHandle `archetype:"memory"`
+	Keep       sonolus.ParticleHandle     `archetype:"memory"`
+	KeepPlane  sonolus.ParticleHandle     `archetype:"memory"`
+	KeepPlane2 sonolus.ParticleHandle     `archetype:"memory"`
 }
 
 type PlaySlideHead struct {
@@ -402,7 +408,7 @@ func (n *PlaySlideBase) headTimeout(now float64) {
 		n.State = stDone
 		lane := n.headLane()
 		applyJudgement(now, judgement{Width: n.Width, Grade: gradeMiss, Type: jtSlide, X: laneX(lane), Lane: lane,
-			Key: n.Time, Count: gestureCount(n.Kind, n.KindWidth), Direction: n.Direction, Divisor: 1, Mid: true, Slide: true})
+			Key: n.Time, Count: gestureCount(n.Kind, n.KindWidth), Direction: n.Direction, Divisor: 1, Mid: true, Slide: true}.withSpk(n.SpanStart, n.Width))
 		n.stopFeedback()
 		n.Broken = 0
 		n.leaveHead()
@@ -415,8 +421,28 @@ func (n *PlaySlideBase) leaveHead() {
 	n.Cursor = firstVisible(n.First)
 	if n.Cursor.Index <= 0 {
 		n.JudgeDone = true
-		n.stopFeedback()
+		n.enterTrailing(0)
 	}
+}
+
+// enterTrailing is the tail handling of a Hidden-tail Slide once its last
+// visible node (front: its order, head 0) is judged
+// (enterTrailingGeometryIfFinished): that node leaves the judge line, the
+// hold sound fades, the flash goes off, the tap-lane target takes
+// OffReserve and the finger is released. Only the geometry goes on, its
+// segments drawn as before; the one out of that node keeps the touched
+// colour it took when the node was passed (NoteAfterBase.Touch), the later
+// ones are never touched.
+func (n *PlaySlideBase) enterTrailing(front float64) {
+	n.Trailing = true
+	n.TrailFront = front
+	n.TrailLit = n.Finger >= 0
+	n.stopFeedback()
+	if n.LaneTarget >= 0 {
+		laneOffReserve(n.LaneTarget)
+		n.LaneTarget = -1
+	}
+	n.Finger = -1
 }
 
 // nodeTimeout is NoteSlideAfter.StopState for the current node.
@@ -502,7 +528,7 @@ func (n *PlaySlideBase) judgeNode(ref sonolus.EntityRef[PlaySlideNodeBase], grad
 		lane = dirBodyLane(c.SpanStart, c.Width, c.Direction)
 	}
 	applyJudgement(now, judgement{Width: c.Width, Grade: grade, Type: jt, Timing: timing, Skill: c.Skill, X: laneX(lane), Lane: lane,
-		Count: gestureCount(c.Kind, c.KindWidth), Direction: c.Direction, Key: c.Time, Divisor: divisor, Mid: !c.Terminal, Slide: true})
+		Count: gestureCount(c.Kind, c.KindWidth), Direction: c.Direction, Key: c.Time, Divisor: divisor, Mid: !c.Terminal, Slide: true}.withSpk(c.SpanStart, c.Width))
 	if c.Terminal {
 		n.JudgeDone = true
 		n.Ended = true
@@ -513,7 +539,7 @@ func (n *PlaySlideBase) judgeNode(ref sonolus.EntityRef[PlaySlideNodeBase], grad
 	n.Cursor = firstVisible(c.Next)
 	if n.Cursor.Index <= 0 {
 		n.JudgeDone = true
-		n.stopFeedback()
+		n.enterTrailing(c.Index)
 	}
 }
 
@@ -728,7 +754,7 @@ func (n *PlaySlideBase) held(p sonolus.Vec2, now float64) bool {
 			n.State = stDone
 			lane := n.headLane()
 			applyJudgement(now, judgement{Width: n.Width, Grade: g, Type: endType(n.Kind), Timing: timing, Skill: n.Skill, X: laneX(lane), Lane: lane,
-				Key: n.Time, Count: gestureCount(n.Kind, n.KindWidth), Direction: n.Direction, Divisor: 1, Mid: true, Slide: true})
+				Key: n.Time, Count: gestureCount(n.Kind, n.KindWidth), Direction: n.Direction, Divisor: 1, Mid: true, Slide: true}.withSpk(n.SpanStart, n.Width))
 			n.leaveHead()
 			n.OX, n.OY = p.X, p.Y
 		}
@@ -886,7 +912,7 @@ func (n *PlaySlideBase) release(p sonolus.Vec2, t, now float64) {
 		n.State = stDone
 		lane := n.headLane()
 		applyJudgement(now, judgement{Width: n.Width, Grade: gradeMiss, Type: jtSlide, X: laneX(lane), Lane: lane,
-			Key: n.Time, Count: gestureCount(n.Kind, n.KindWidth), Direction: n.Direction, Divisor: 1, Mid: true, Slide: true})
+			Key: n.Time, Count: gestureCount(n.Kind, n.KindWidth), Direction: n.Direction, Divisor: 1, Mid: true, Slide: true}.withSpk(n.SpanStart, n.Width))
 		n.Broken = 0
 		n.leaveHead()
 		return
@@ -991,6 +1017,9 @@ func (n *PlaySlideBase) anchorLane() float64 {
 // so the held head body shows until the first middle node is passed, then
 // the last passed node rides until the next visible node stops.
 func (n *PlaySlideBase) chainSprite(now float64) float64 {
+	if n.Trailing {
+		return chainNone // tail handling took the last visible node off the line
+	}
 	from, chain := n.First, chainHead
 	if n.Passed.Index > 0 {
 		from, chain = n.Passed.Get().Next, chainPassed
@@ -1037,7 +1066,10 @@ func (n *PlaySlideBase) drawBody(now float64) {
 	var fh float64
 	next := n.First
 	front := 0.0 // order of the segment's front node
+	// a segment's HABAHIRO width rate is its front node's, at both ends
+	fw := n.Width
 	if n.HasContact {
+		fw = n.ContactWidth
 		fp, fh = heldPos(n.ContactLane), heldHalf(n.ContactWidth)
 		if !n.SegHead {
 			next = n.Seg.Get().Next
@@ -1062,23 +1094,30 @@ func (n *PlaySlideBase) drawBody(now float64) {
 			c = math.Min(curveOf(pr), 1)
 		}
 		ap := notePos(a.Lane, c)
-		ah := bodyHalf(ap.Y, a.Width)
+		rate := widthRate(fw)
+		ah := bodyHalfAt(ap.Y, a.Width, rate)
 		switch {
 		case pr < 0:
-			ah = waitHalf(a.Width) // not appeared yet: pinned at the spawn row
+			ah = waitHalfAt(a.Width, rate) // not appeared yet: pinned at the spawn row
 		case pr >= 1:
-			ah = heldHalf(a.Width)
+			ah = heldHalfAt(a.Width, rate)
 		}
 		if front > n.Broken {
 			// the first segment is the one a held finger is on; NoteAfterBase.Touch
 			// (pick-up and every passed node) does not depend on the feedback, so
-			// after a Miss the finger still holding lights it again
-			drawBeltLit(fp, fh, ap, ah, n.Curve, z, alpha, k == 0 && n.Finger >= 0)
+			// after a Miss the finger still holding lights it again. Past a
+			// Hidden tail's last visible node only the segment out of it stays lit.
+			lit := n.Finger >= 0 || n.Trailing && n.TrailLit && front == n.TrailFront
+			drawBeltLit(fp, fh, ap, ah, n.Curve, z, alpha, k == 0 && lit)
 		}
 		if pr < 0 {
 			return
 		}
-		fp, fh = notePos(a.Lane+a.Exit, c), ah
+		// the next segment starts from this node with its own rate
+		fp, fh, fw = notePos(a.Lane+a.Exit, c), bodyHalf(ap.Y, a.Width), a.Width
+		if pr >= 1 {
+			fh = heldHalf(a.Width)
+		}
 		front = a.Index
 		next = a.Next
 	}

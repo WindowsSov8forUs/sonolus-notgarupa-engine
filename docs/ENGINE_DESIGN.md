@@ -19,12 +19,12 @@
 | Long 与 Slide 的区分 | 原作（NoteLong 与 NoteSlide 是两种音符） | 只由谱面的 `long` 标记决定，不再按形状规整 |
 | 同位置排序 | 原作 | 转换器按 GarupaEditor 批记录（含 BPM 记录与 Slide 宽方向尾 / 手势的 Add 成员）建批，批内用原作 .NET IntroSort（不稳定）按 buttonType 排序（投影音符用跨度中心）；该顺序决定方向键成组、同时押线与实体次序 |
 | Slide 族 A/B 交替 | 影响同时押线与方向键连线的同组判断 | 转换器按 slideOrdinal 奇偶记录并参与配对 |
-| 已触摸未滑动的 Flick 7 帧后判 **Perfect** | **GarupaEditor 错误**（已确认）：原作 WaitState 超时调用的是 onMiss 槽，不是 forcePerfect | 按原作：7 帧后 **Miss** |
+| 已触摸未滑动的 Flick 7 帧后的结果 | 原作（WaitState 超时调用 onMiss 槽，不是 forcePerfect）；GarupaEditor 早期判 Perfect，现已改为 Miss | 按原作：7 帧后 **Miss** |
 | 触摸 → 最近 lane，无纵向限制、无相邻 lane 回退 | **不是扩展** | 按原作：判定圆半径 √0.23136（宽屏 1.168 × lane 间距），最近 lane 无可判音符时依次试第二、第三近 lane |
 | 分数归一化为 10 000 000 + N、无连击倍率 | **不是扩展**（产品计分） | 采用 Sonolus 百万分（§6），倍率保留原作结构；评级比例与 GarupaEditor 相同 |
-| Long 头超时两次 Miss 被视为错误 | **不是扩展** | 按原作：两次 Miss，各半伤害 |
-| 未触碰的宽方向键组没有 Miss 路径 | **不是扩展** | 按原作：整组一次 Miss |
-| 第二根手指触碰已被占有的方向键组 → 完整性错误 | **不是扩展** | 按原作：各成员各自绑定手指，先完成者判定全组 |
+| Long 头超时 | 原作（GarupaEditor 早期视为错误，现已同原作） | 两次 Miss，各半伤害 |
+| 未触碰的宽方向键组超时 | 原作（GarupaEditor 早期没有 Miss 路径，现已同原作） | 整组一次 Miss |
+| 第二根手指触碰已被占有的方向键组 | 原作（GarupaEditor 早期为完整性错误，现已同原作：只清除该触摸的绑定） | 各成员各自绑定手指，先完成者判定全组 |
 | HUD 全部在最上层 | **不是扩展** | 按原作：Combo/判定文字/AddScore 在音符之下，分数/生命/暂停在最上 |
 | HABAHIRO（宽音符、换道） | 原作 | Garupa JSON 直接给出宽度，无需 BMS 的宽音符合并；实现见 §9 |
 | Bezier 预处理、fever 等其他指令 | 原作 BMS 专有 | Garupa JSON 不产生，不实现 |
@@ -74,6 +74,7 @@ Archetype、数据字段与计分链见 [LEVEL_DATA.md](LEVEL_DATA.md)。转换�
 - 扩展（GarupaEditor）：
   - Slide 头与中间的手势节点：原作没有这种节点，因此原作按结构决定的行为都不看“是否手势”。只有手势本身的判定按原作 Slide 尾族：成功类型 5/6/7（Flick / Directional / 宽 Directional），接触范围与对应的尾相同（宽 Directional 为整个跨度）；按下即原作尾的 ExecTouchBegan 缓存：记下这次按下的等级与 timing，手指自按下点移动够 Flick 距离即按缓存判定，不看方向、grace 与 VPL；按下后手势精灵照常显示（头部放到判定线上并有 flash），直到判定；按住到达时沿尾的按住路径：节点自己的 grace 在判定范围内恢复为 8、离开则每帧递减，到达 VPL 前原点跟随手指，到达且 grace > 0 时完成手势判 Perfect。手势的原点、grace 与缓存是节点自己的状态，不重置原作尾部的共享状态。其余与该位置的普通节点完全相同：停下后随接触点前进；超时 Miss 为类型 8（中间 ÷5）；松手是 onMiss（类型 8）；成功的中间节点移动点亮的 lane；按住时的尾部手势块照常进行；判定后按普通中间节点的链路显示（只剩 `note_slide_among`，没有 Flick 图标或箭头）。宽 Directional 的出口偏移让主体从箭头远端继续：节点停下起主体前端就在远端，判定前箭头（及与之同位的按住头）保持在前端减去偏移处，不跳动；判定后与普通节点一样位于前端。
   - Hidden 头 Slide 的第一个可见节点不是按钮候选，而是在常规处理后对所有未结束的触摸检查：普通节点在判定圆内且 `τ ≤ 1` 判 Perfect，手势节点在 `τ ≤ 8` 时绑定；同一手指可同时登记多个 Slide。
+  - Hidden 尾 Slide 的最后一个可见节点（只有头可见时为头）判定后立即按尾处理（GarupaEditor enterTrailingGeometryIfFinished）：该节点及之前的精灵离开判定线（判定线上不再显示任何东西），按住音淡出，flash 与 TapKeep 停止，光柱目标 OffReserve，释放手指；之后只剩几何部分：接触点照常沿线段前进，线段照常绘制直到最后一个 Hidden 节点到达，不再判定、不影响超时。从该节点出发的一段保留经过它时 NoteAfterBase.Touch 设的白色（之后不恢复），其后的段从未被 Touch，为普通颜色。Watch 按回放中该节点的判定时刻同样处理。
   - 仅剩 Hidden 节点的中间节点按 13/60 s 超时：原作没有“后面只剩不可见节点”的中间节点，按原作“无可见后继”的规则会立即 Miss，扩展沿用 13/60 s。
 - 同一帧内按下又松开的触摸：先按 Began 处理（点亮 lane、绑定 Long/Slide），再按 Ended 处理（lane 渐灭、松手判定）。
 - 等待手势的 Flick / Directional 与保持中的 Long 头仍参加按钮仲裁；被选中时该触摸被消耗。投影（非整数 lane）音符与 lane 音符在同一轮竞争。
@@ -111,7 +112,7 @@ Sonolus 自身的生命值只能在 preprocess 中静态配置（`AddLifeSchedul
 - 开场：原作在歌曲信息页之后按开场时钟 O 进行：BgCover（`point_charactor_shadow` 着黑，2000² × 2.5，x 80）从 0.92 每帧减 0.0075；O = 0.5 起舞台 TRS 以 OutQuad 在 3 s 内由（缩放 0.7、y 111）到（0.92、0），舞台背景亮度 0.75 s 内 0.5 → 1；O = 2.5 起 lane、判定线与 Sudden 线 1 s 淡入；O = 0 起 HUD 层 0.5 s 淡入；O = 3 起播放音乐。Sonolus 的关卡从音乐前 2 s 开始（实测首帧关卡时刻 −2.000），因此开场整体加速 1.5 倍、O = 3 对齐关卡时刻 0：舞台与 lane 与原作一样在音乐开始后约 0.33 s 完成。背景四边形、舞台灯光与音箱随舞台姿态绘制；背景亮度用黑色 BgCover 精灵按 0.5·(1 − 进度) 叠在背景之上、灯光之下近似。歌曲信息页（封面、曲名、乐队与作词作曲编曲）不实现：引擎无法读取关卡封面与文字，Sonolus 在开始前的关卡详情中已展示这些信息（Next-RUSH 同样不还原原作的封面开场，只在 −2 → −1 s 淡入 UI）；SD 角色不实现。HUD 层（分数、生命、连击、判定文字、AddScore、Auto 标签、暂停按钮与 SS 特效）按原作在开场起点 0.5 s 内淡入（加速后为 −2.00 → −1.67 s）；它位于 BgCover 之前，不被遮住。
 - 保持循环音（SE_RHYTHM_TAP_LONG）同时最多 4 个，新的开始会停止最早的一个（原作 cue 上限），被停止的那一个松手时也不再播放释放音。Play 在关卡内存中记录 4 个句柄；Watch 与 #EFFECT_AUTO 由 Stage 的 preprocess 沿计分链按开始顺序排程（音符在 preprocess 中把持续结束时间记在开始的计分单位上）；旧转换器生成、没有计分链的关卡仍由音符直接排程，不受上限约束。单次音效无法中止，不受此限。
 - 开场背景的亮度压暗为均匀着色（0.5 + 0.5·进度）。
-- 舞台：舞台根缩放 `0.92·(1 − 0.23·HAR)`（背景 UI 根，整数 activeHeight，无安全区系数）、上移 14·HAR；背景四边形按同一变换放置。12 盏灯按 7 项色表每 0.2 s 插值，浅色项每盏灯在预处理时随机选取一次。音箱按判定跨度含 lane 0 / 6 触发，使用原作 `speaker_normal` / `_exciting` / `_continuous` 动画片段（Root 缩放与跳动、半透明叠加层、两个发光的位置 / 缩放 / 透明度；按原 clip 的三次分段曲线在 60 Hz 取样）。灯光色表从舞台创建（关卡开始）起循环。音箱主体在 DarkCover（RevSubtraction）之下，其减色已烘焙进皮肤。舞台灯光、音箱与荧光棒始终绘制：原作没有单独关闭它们的设置（「ステージ演出」只是设置页的分组标题，其下的开关是团队 Live 的规则效果显示），只有把背景换成卡面的「軽量モード」，Sonolus 无法在关卡中更换背景条目，不实现。
+- 舞台：舞台根缩放 `0.92·(1 − 0.23·HAR)`（背景 UI 根，整数 activeHeight，无安全区系数）、上移 14·HAR；背景四边形按同一变换放置。12 盏灯按 7 项色表每 0.2 s 插值，浅色项每盏灯在预处理时随机选取一次。音箱在判定的 OneFrameData.buttonTypes 含 lane 0 / 6 时触发（只计 0..6 内的 lane，场外的投影 lane 没有按钮），数组按原作（GarupaEditor originalJudgementButtons）：一般为判定跨度内的 lane；宽方向键组（前端）为决定该组的成员自己的 lane（Play：滑动完成或超时的成员；Auto Live 为组的滑动起始端，回放无法得知是哪个成员，也取滑动起始端）；Long 尾（含宽方向键尾与超时 Miss）为根（头）自己的 lane，不含尾的 Add 成员；Slide 宽方向键终点为终点跨度加 Add 成员；Slide 头与节点为该节点的跨度。使用原作 `speaker_normal` / `_exciting` / `_continuous` 动画片段（Root 缩放与跳动、半透明叠加层、两个发光的位置 / 缩放 / 透明度；按原 clip 的三次分段曲线在 60 Hz 取样）。灯光色表从舞台创建（关卡开始）起循环。音箱主体在 DarkCover（RevSubtraction）之下，其减色已烘焙进皮肤。舞台灯光、音箱与荧光棒始终绘制：原作没有单独关闭它们的设置（「ステージ演出」只是设置页的分组标题，其下的开关是团队 Live 的规则效果显示），只有把背景换成卡面的「軽量モード」，Sonolus 无法在关卡中更换背景条目，不实现。
 - SS 特效：kira 按原作旋转（静态与动画），在面板裁剪两端 20 单位内淡出（Flash 无法做软裁剪）。
 - 判定粒子：同一判定位置（半 lane）与同一预制体族的新判定先销毁旧粒子再生成（restartIfActive）。方向键的主体按数量变体（_1/_2/_3）与方向分开，手指粒子以被滑动的 lane 为自己的位置；空按的 effect_tap 也按 lane 重启。同一帧的判定文字代表在 Play 中按同一更新时刻分组（Watch 的 preprocess 按 1/60 s 分组）。
 - 曲线表（音箱、星、闪电）在预处理时写入关卡数据，运行时原地读取，避免每次动态下标复制整表。
@@ -136,7 +137,8 @@ Sonolus 自身的生命值只能在 preprocess 中静态配置（`AddLifeSchedul
 - 中间 Flick 节点保持 `note_slide_among` 并带上滑图标，判定后只剩 `note_slide_among`。
 - 技能音符的前端（单点、Flick、Long 头、Slide 头）用 `note_skill`（resolveFrontSpriteBinding 先看附加类型）；按住的 Long 保持该精灵，按住的 Slide 头换成居中的 `note_long_3`；终点不用技能精灵。
 - 同时押线在两端都处于 Move 时显示：单点、Flick、方向键在越过判定线后仍处于 Move，直到判定，连线随之下移；Long / Slide 的头与终点在判定线处离开 Move。
-- 宽方向键终点（Long 尾与 Slide 终点）的成员之间在移动中画方向连线（ConnectWithTheNextNote），终点停下时隐藏。
+- 宽方向键终点（Long 尾与 Slide 终点，含 Slide 手势节点）的成员之间在移动中画方向连线（ConnectWithTheNextNote），终点停下时隐藏。成员数不设上限：ExGarupa 超过 7 轨的终点按 GarupaEditor 每轨一个 Add 成员，全部绘制。
+- Long 主体两端都用头的 lane 与宽度（含 HABAHIRO 宽度率）：Long 是一个根加 Add 成员，网格两端都取根的按钮数（GarupaEditor ordinaryLongChildLifecycle），宽方向键尾的其余轨是 Add 成员，不加宽主体。
 - 主体颜色：NoteMesh.Activate 设为 meshColorNormal = (0.9, 0.9, 0.9, 1)（NoteAfterBase..ctor 0x3A751E4 从只读数据 0x1534E70 载入，libil2cpp.so 10.1.4/230 实读 `66 66 66 3F ×3, 00 00 80 3F`），手指所在的段（Long 按住时整段；Slide 按下或经过节点后通往下一节点的段）由 NoteAfterBase.Touch 设为 meshColorTouch（白），之后不恢复。Touch 在 ExecTouchBegan 与 ExecTouchMoved 经过节点时无条件调用（0x321BFDC、0x321CB3C），与 flash、TapKeep、按住音无关：节点 Miss（onMiss 停 flash 与粒子，onMissAfterNote 淡出按住音，都不改网格颜色）后手指仍按着，之后经过节点的段照样变白，flash、TapKeep 与按住音不恢复。Watch 在第一次 Miss 时结束按住表现，不画这种段。
 - HABAHIRO 谱面中按住的 Long 头按 NoteLong.StopState 在判定线的世界 Y 按按钮数取缩放（与移动中的缩放公式相同），普通谱面用目标按钮缩放。Slide 主体材质只看后续节点是否有 Hidden。
 - 按住中的 Slide 前端精灵按原作 hide-before（ExecTouchMoved 只隐藏前一个音符，不可见节点经 `killFromInvisibleNotesToVisibleNote` 同样计入）：按住头的主体只显示到经过第一个中间节点为止；之后最后经过的中间节点以 `note_slide_among` 随接触点前进，直到下一个可见节点停下（或经过不可见节点、Miss、松手）；flash 一直在前端。这些精灵只由隐藏请求去掉，与 flash 无关：Miss 后再经过的节点同样随连线前进（没有 flash），Miss 去掉的头部主体不会因重新按下终点而出现。随连线移动的头与中间节点在按钮局部空间，与 flash、主体前端同在 `(x, G)·P/M`；停下的终点按世界坐标吸附。
@@ -185,7 +187,7 @@ sonolus-go：上表没有一项受其阻碍。N8–N10 已在 v2.5.1 修复；N1
 ## 9. HABAHIRO
 
 - `Header #HABAHIRO` 的关卡强制使用 HABAHIRO 皮肤、粒子与背景条目（HABAHIRO 条目不在条目列表中；原作中方向键皮肤与方向键特效保留玩家设置，生成器为每种设置各生成一个 HABAHIRO 条目，devserver 按配置项 `habahiroDirectional` 为每个请求选出皮肤与粒子 `garupa-habahiro-<方向键>`，背景为 `garupa-habahiro`；方向键特效设置是引擎选项，粒子条目同时含两种设置）；引擎用 `Exists()` 检查，资源包缺少 HABAHIRO 精灵 / 粒子时回退普通资源。
-- 宽音符（宽度直接来自谱面）绘制在跨度中心（偶数宽在两 lane 之间），精灵为 `habahiro/note_<族>_<s>_…_<s+w−1>`，像素宽 308…1596；Slide 中间节点用 `note_slide_among_<w>`，上滑图标按宽度选 `note_flick_top` / `_2` / `_3`；Long 的按住闪光用真实 lane，Slide 的按住头与闪光用居中的 run。主体线使用 HABAHIRO 的 longNoteLine，网格半宽乘 widthRate（w = 2：1.05；w ≥ 3：1.05 + 0.03·HAR）。方向键不变。
+- 宽音符（宽度直接来自谱面）绘制在跨度中心（偶数宽在两 lane 之间），精灵为 `habahiro/note_<族>_<s>_…_<s+w−1>`，像素宽 308…1596；Slide 中间节点用 `note_slide_among_<w>`，上滑图标按宽度选 `note_flick_top` / `_2` / `_3`；Long 的按住闪光用真实 lane，Slide 的按住头与闪光用居中的 run。主体线使用 HABAHIRO 的 longNoteLine，网格半宽乘 widthRate（GetMeshWidthRate：w = 2：1.05；3 ≤ w ≤ 7：1.05 + 0.03·HAR；其余宽度 1）。每段的 widthRate 取该段前端节点的宽度，用于两端（NoteMeshAdvanced.OnUpdate；两端各保留自己的按钮数）；Long 用根的宽度。方向键不变。
 - 判定与按钮不变；lane 光柱关闭；音符大小钳制 80%–150%。
 - 换道（最晚的 `#LANE_CHANGE`）：到点后 1 s 的闪光（4 张贴图，smoothstep 关键帧），0.4167 s 时场地与判定线（43 px）换成 HABAHIRO 版本；无换道时全程为 skin00 场地。
 - 判定粒子按音符宽度选 `_2…_7` 变体（Long 的 TapKeep 同样；Slide 的 TapKeep 用基础版），锚点为接收 lane（偶数宽在半 lane）。

@@ -48,6 +48,16 @@ func laneOnReserve(lane, now float64) {
 	LaneFx.Reserve[i] = 1
 }
 
+// laneOffReserve is OffReserve alone: the lane keeps its state (lit or not)
+// and starts its fade after one more update if it is still lit.
+func laneOffReserve(lane float64) {
+	i := laneIndex(lane)
+	if i < 0 {
+		return
+	}
+	LaneFx.Reserve[i] = 1
+}
+
 // laneAnimatedOff starts the 1/6 s fade (restarts it while fading); it does
 // nothing on a switched-off lane.
 func laneAnimatedOff(lane, now float64) {

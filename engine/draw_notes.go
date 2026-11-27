@@ -237,7 +237,8 @@ func drawBackLine(p, q sonolus.Vec2, direction, t float64) {
 
 // drawTerminal draws a Long / Slide end (or gesture node) sprite with its
 // flick icon at lane for motion curve c. A multiple directional node draws
-// one body per member lane and the arrow on the far member.
+// one body per member lane and the arrow on the far member: every member,
+// as GarupaEditor builds one Add per lane of an ExGarupa end wider than 7.
 func drawTerminal(l noteLook, kind, kindWidth, lane, c, iconT float64, z sonolus.ZIndex) {
 	shift := lane - l.Lane
 	switch kind {
@@ -249,7 +250,7 @@ func drawTerminal(l noteLook, kind, kindWidth, lane, c, iconT float64, z sonolus
 			members = math.Max(kindWidth, 1)
 		}
 		var p sonolus.Vec2
-		for k := 0.0; k < members && k < 7; k++ {
+		for k := 0.0; k < members; k++ {
 			ml := lane + l.Direction*k
 			body := lanePick(Skin.NoteFlickR, l.SpriteLane+ml-l.Lane)
 			if l.Direction < 0 {
@@ -381,10 +382,13 @@ func drawSimLine(p, q sonolus.Vec2, t float64, aNo, bNo bool) {
 }
 
 // drawLong draws a Long's head (held: with flash) and its straight body to
-// the tail at curve tc (0 = pinned at the spawn row).
-func drawLong(l noteLook, c, tailLane, tailWidth, tc float64, held bool, flashT float64, z, zb sonolus.ZIndex) {
+// the tail at curve tc (0 = pinned at the spawn row). The body keeps the
+// head's lane and width at both ends, a wide Directional end too: a Long is
+// one root whose mesh uses the root's button count (and its width rate) at
+// both ends; the end's other lanes are Add members.
+func drawLong(l noteLook, c, tc float64, held bool, flashT float64, z, zb sonolus.ZIndex) {
 	head := notePos(l.Lane, c)
-	tp := notePos(tailLane, tc)
+	tp := notePos(l.Lane, tc)
 	// the body exists only while the tail is above the line (an unheld head
 	// that moved on past the line leaves no body once the tail arrives)
 	// NoteLong.StopState re-places a held head every frame; on a HABAHIRO
@@ -395,7 +399,7 @@ func drawLong(l noteLook, c, tailLane, tailWidth, tc float64, held bool, flashT 
 		heldScale = noteScale(Layout.G, l.Width)
 	}
 	if tp.Y > head.Y && tc < 1 {
-		fh, ah := bodyHalf(head.Y, l.Width), bodyHalf(tp.Y, tailWidth)
+		fh, ah := bodyHalf(head.Y, l.Width), bodyHalf(tp.Y, l.Width)
 		if held {
 			fh = heldHalf(l.Width)
 			if Layout.Habahiro {
@@ -403,7 +407,7 @@ func drawLong(l noteLook, c, tailLane, tailWidth, tc float64, held bool, flashT 
 			}
 		}
 		if tc <= 0 {
-			ah = waitHalf(tailWidth) // the tail has not appeared yet
+			ah = waitHalf(l.Width) // the tail has not appeared yet
 		}
 		drawBeltLit(head, fh, tp, ah, false, zb, bodyAlpha(), held)
 	}

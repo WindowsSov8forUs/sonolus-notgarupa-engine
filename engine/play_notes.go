@@ -306,11 +306,14 @@ func groupFinish(leader sonolus.EntityRef[PlayDirectionalNote], grade, timing, e
 		left -= l.Count - 1 // the leader is the group's first (leftmost) member
 	}
 	body := dirBodyLane(left, l.Count, l.Direction)
+	// the speakers read the deciding member's own lane: the flicked one
+	// (judgeFrontNote packs the hit note's ButtonTypes) or the one that timed
+	// out (its onMiss packs its own)
 	applyJudgement(play.Time.Now(), judgement{
 		Grade: grade, Type: jt, Timing: timing, X: laneX(body), Lane: body,
 		Count: l.Count, Direction: l.Direction, Key: l.Time, Divisor: 1,
 		FingerX: laneX(lane), HasFinger: true,
-	})
+	}.withSpk(lane, 1))
 }
 
 func directionalUpdate(n *PlayNoteBase, leader sonolus.EntityRef[PlayDirectionalNote]) {

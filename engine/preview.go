@@ -14,8 +14,10 @@ import (
 // the Sonolus Bandori engine a column fills the screen height and a lane is
 // 1/20 of it. Each column shows the skin's lane image unprojected into a flat
 // strip; notes look as they do on the judge line in Play (target-button
-// scale). Left of the strip: whole seconds; right: every 50th combo and the
-// BPM changes.
+// scale). As in GarupaEditor's static preview: faint measure lines, one event
+// line per instant (BPM, SV and lane change merged) with its labels left of
+// the track, whole seconds on the left, every 50th combo on the right, and a
+// column holding a note outside lanes 0–6 widened by as many lanes each side.
 
 const (
 	pvColumnSeconds = 2.0
@@ -25,26 +27,72 @@ const (
 	// field image is 1160 UI units wide, a lane 2.2·S = 153.2 units.
 	pvStripHalf = 580 / (2.2 * 1334 / (2 * 9.578571319580078))
 	pvComboStep = 50.0
+	// The level data has no time signature: measures of 4 beats from beat 0.
+	pvBeatsPerMeasure = 4.0
+	// Capacities in PreviewData (4096 values): column edges (2000 s of
+	// chart), the BPM change table and the timing groups.
+	pvMaxColumns = 1000
+	pvMaxBPM     = 512
+	pvMaxGroups  = 32
+	pvMaxExtra   = 64.0 // extra lanes a column may get each side
+	// pvEventEps (seconds) merges events at the same instant: BPM change
+	// times come from the BPM timeline, SV times from the converter.
+	pvEventEps = 1e-3
 )
 
 type PreviewLayout struct {
 	sonolus.LevelDataResource
-	ColW       float64 // column width
-	W          float64 // lane spacing
-	Left       float64 // x of the first column's left edge
-	Bottom     float64
-	Top        float64
-	LastTime   float64
-	Columns    float64
-	LaneChange float64 // time the HABAHIRO lane image is swapped in (−1: none)
+	ColW         float64 // width of a column without extra lanes
+	W            float64 // lane spacing
+	Left         float64 // x of the first column's left edge
+	Bottom       float64
+	Top          float64
+	LastTime     float64
+	Columns      float64
+	LaneChange   float64 // time the HABAHIRO lane image is swapped in (−1: none)
+	LaneChangeAt float64 // time of the lane change event line (−1: none)
+	// ColX: during the notes' preprocess, column c's extra lanes each side;
+	// from the Stage's preprocess on, the x of its left edge from Left
+	// (ColX[Columns] is the right edge of the last column).
+	ColX [pvMaxColumns + 1]float64
+	// BPM changes sorted by time (entity index of each), and the timing
+	// groups (entity indices) in preprocess order.
+	BPMCount   float64
+	BPMTime    [pvMaxBPM]float64
+	BPMEntity  [pvMaxBPM]float64
+	GroupCount float64
+	Group      [pvMaxGroups]float64
 }
 
 var PL = PreviewLayout{}
 
 func pvColumn(t float64) float64 { return math.Max(math.Floor(t/pvColumnSeconds), 0) }
 
+// pvColLeft is the x of column col's left edge from PL.Left; columns past the
+// last one (events after the last note) follow at the plain width.
+func pvColLeft(col float64) float64 {
+	if col < PL.Columns {
+		return PL.ColX[int(col)]
+	}
+	return PL.ColX[int(PL.Columns)] + (col-PL.Columns)*PL.ColW
+}
+
+// pvColExtra is the number of lanes column col is widened by each side.
+func pvColExtra(col float64) float64 {
+	if col >= PL.Columns {
+		return 0
+	}
+	return math.Round((PL.ColX[int(col)+1] - PL.ColX[int(col)] - PL.ColW) / (2 * PL.W))
+}
+
 // pvCenter is the x of lane 3 in column col.
-func pvCenter(col float64) float64 { return PL.Left + (col+0.5)*PL.ColW }
+func pvCenter(col float64) float64 {
+	return PL.Left + pvColLeft(col) + PL.ColW/2 + pvColExtra(col)*PL.W
+}
+
+// pvPx is the editor's 1 px line width: the screen height over its design
+// height of 750.
+func pvPx() float64 { return (PL.Top - PL.Bottom) / 750 }
 
 // pvY is the height of time t inside column col.
 func pvY(t, col float64) float64 {
@@ -100,23 +148,28 @@ func pvTextH() float64 { return PL.W }
 func pvLabel(value float64, format sonolus.PrintFormat, decimals int, t, side float64, color sonolus.PrintColor) {
 	col := pvColumn(t)
 	h := pvTextH()
-	margin := (pvColumnLanes/2 - pvStripHalf) * PL.W
+	pvLabelAt(value, format, decimals, col, sonolus.Clamp(pvY(t, col), PL.Bottom+h/2, PL.Top-h/2), side, color)
+}
+
+// pvLabelEdge is the lane offset from the column centre that labels keep
+// clear of: the lane art or, in a widened column, the lane range.
+func pvLabelEdge(col float64) float64 { return math.Max(pvStripHalf, 3.5+pvColExtra(col)) }
+
+// pvLabelAt prints a label beside column col's track, centred on height y.
+func pvLabelAt(value float64, format sonolus.PrintFormat, decimals int, col, y, side float64, color sonolus.PrintColor) {
+	edge := pvLabelEdge(col)
 	align, pivot := sonolus.HorizontalAlignLeft, 0.0
 	if side < 0 {
 		align, pivot = sonolus.HorizontalAlignRight, 1
 	}
 	preview.Canvas.Print(preview.PrintOptions{
 		Value: value, Format: format, DecimalPlaces: decimals,
-		Anchor: sonolus.Vec2{X: pvCenter(col) + side*(pvStripHalf+0.1)*PL.W, Y: sonolus.Clamp(pvY(t, col), PL.Bottom+h/2, PL.Top-h/2)},
+		Anchor: sonolus.Vec2{X: pvCenter(col) + side*(edge+0.1)*PL.W, Y: y},
 		Pivot:  sonolus.Vec2{X: pivot, Y: 0.5},
-		Size:   sonolus.Vec2{X: margin - 0.2*PL.W, Y: h},
+		Size:   sonolus.Vec2{X: (pvColumnLanes/2 + pvColExtra(col) - edge - 0.2) * PL.W, Y: pvTextH()},
 		Color:  color, Alpha: 1, HorizontalAlign: align,
 	})
 }
-
-// pvLineHalf is the half thickness of the beat and BPM lines in screen units
-// (Next-RUSH's PREVIEW_BAR_LINE_H).
-func pvLineHalf() float64 { return 0.0025 }
 
 // pvLine draws a horizontal line at time t from lane offset l to r (lanes
 // from the column centre, lane 3).
@@ -124,6 +177,201 @@ func pvLine(sp sonolus.Sprite, t, l, r, half float64, z sonolus.ZIndex, a float6
 	col := pvColumn(t)
 	c, y := pvCenter(col), pvY(t, col)
 	sp.DrawZ(sonolus.Rect{T: y + half, R: c + r*PL.W, B: y - half, L: c + l*PL.W}.ToQuad(), z, a)
+}
+
+// Measure lines and the widened columns' lane range guides: the editor's
+// rgba(220, 230, 255, 0.3), 1 px (the white line sprite at that alpha).
+const pvGuideAlpha = 0.3
+
+// pvBeatAlpha is the beat lines' alpha (1 px, the same sprite), fainter than
+// the measure lines.
+const pvBeatAlpha = 0.15
+
+// pvDashedGuide draws a vertical dashed line (4 px dashes, 4 px gaps) at x
+// over the column's height.
+func pvDashedGuide(x float64) {
+	px := pvPx()
+	z := sonolus.ZIndex{Z1: zPvGrid}
+	for y := PL.Bottom; y < PL.Top; y += 8 * px {
+		Skin.PreviewLine.DrawZ(sonolus.Rect{T: math.Min(y+4*px, PL.Top), R: x + px/2, B: y, L: x - px/2}.ToQuad(), z, pvGuideAlpha)
+	}
+}
+
+// ---------------------------------------------------------------- events ----
+
+// Event lines take the editor's event colour #FF3B72 at its alpha 0.8, 1 px;
+// the skin's only uniform #FF3B72 fill is the middle of the Auto Live pill.
+const pvEventAlpha = 0.8
+
+func pvEventSprite() sonolus.Sprite { return Skin.AutoPill[1] }
+
+// pvBPMFrom is the first entry of the BPM table at or after time t.
+func pvBPMFrom(t float64) float64 {
+	lo, hi := 0.0, PL.BPMCount
+	for lo < hi {
+		mid := math.Floor((lo + hi) / 2)
+		if PL.BPMTime[int(mid)] < t {
+			lo = mid + 1
+		} else {
+			hi = mid
+		}
+	}
+	return lo
+}
+
+// pvBPMAt is the first entry of the BPM table at time t, or −1.
+func pvBPMAt(t float64) float64 {
+	b := pvBPMFrom(t - pvEventEps)
+	if b < PL.BPMCount && PL.BPMTime[int(b)] <= t+pvEventEps {
+		return b
+	}
+	return -1
+}
+
+func pvGroup(i float64) *PreviewTimingGroup {
+	return sonolus.EntityRef[PreviewTimingGroup]{Index: PL.Group[int(i)]}.Get()
+}
+
+// pvGroupFrom is the first change of the i-th timing group at or after time
+// t. A group's changes are sorted by time, one per instant.
+func pvGroupFrom(i, t float64) float64 {
+	g := pvGroup(i)
+	lo, hi := 0.0, g.Count
+	for lo < hi {
+		mid := math.Floor((lo + hi) / 2)
+		if g.change(mid).Time < t {
+			lo = mid + 1
+		} else {
+			hi = mid
+		}
+	}
+	return lo
+}
+
+// pvGroupChange is the change of the i-th timing group at time t, or −1.
+func pvGroupChange(i, t float64) float64 {
+	k := pvGroupFrom(i, t-pvEventEps)
+	if k < pvGroup(i).Count && pvGroup(i).change(k).Time <= t+pvEventEps {
+		return k
+	}
+	return -1
+}
+
+// pvSVShown reports whether the i-th group's change at t prints its value:
+// every group carries the #Global changes, so a value an earlier group
+// already printed at t is not repeated.
+func pvSVShown(i, t float64) bool {
+	k := pvGroupChange(i, t)
+	if k < 0 {
+		return false
+	}
+	v := pvGroup(i).change(k).Speed
+	for j := 0.0; j < i; j++ {
+		if q := pvGroupChange(j, t); q >= 0 && math.Abs(pvGroup(j).change(q).Speed-v) < 1e-6 {
+			return false
+		}
+	}
+	return true
+}
+
+// pvSVBefore reports whether a timing group registered before the i-th one
+// has a change at t (i = GroupCount: any group).
+func pvSVBefore(i, t float64) bool {
+	for j := 0.0; j < i && j < PL.GroupCount; j++ {
+		if pvGroupChange(j, t) >= 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// pvEventLines is the number of label lines of the event at t: its BPM and
+// its distinct SV values (the lane change has no printable label).
+func pvEventLines(t float64) float64 {
+	n := 0.0
+	if pvBPMAt(t) >= 0 {
+		n++
+	}
+	for i := 0.0; i < PL.GroupCount; i++ {
+		if pvSVShown(i, t) {
+			n++
+		}
+	}
+	return n
+}
+
+// pvEventTop is the centre height of the first of n label lines of the event
+// at t: the stack centred on t's height, kept inside the column.
+func pvEventTop(t, n float64) float64 {
+	h := pvTextH()
+	y := pvY(t, pvColumn(t)) + h*(n-1)/2
+	return math.Max(math.Min(y, PL.Top-h/2), PL.Bottom+h*(n-0.5))
+}
+
+// pvEvent draws the event at t once for every event at that instant: one
+// line across the column's lane range and, left of the track, one label line
+// per event (BPM, then the SV values, in Print's red: it has no #FF3B72).
+func pvEvent(t float64) {
+	col := pvColumn(t)
+	r := 3.5 + pvColExtra(col)
+	pvLine(pvEventSprite(), t, -r, r, pvPx()/2, sonolus.ZIndex{Z1: zPvMarker}, pvEventAlpha)
+	n := pvEventLines(t)
+	if n == 0 {
+		return
+	}
+	h := pvTextH()
+	y := pvEventTop(t, n)
+	if b := pvBPMAt(t); b >= 0 {
+		bpm := sonolus.EntityRef[PreviewBPMChange]{Index: PL.BPMEntity[int(b)]}.Get().BPM
+		pvLabelAt(bpm, sonolus.PrintFormatBPM, -1, col, y, -1, sonolus.PrintColorRed)
+		y -= h
+	}
+	for i := 0.0; i < PL.GroupCount; i++ {
+		if pvSVShown(i, t) {
+			v := pvGroup(i).change(pvGroupChange(i, t)).Speed
+			pvLabelAt(v, sonolus.PrintFormatTimeScale, -1, col, y, -1, sonolus.PrintColorRed)
+			y -= h
+		}
+	}
+}
+
+// pvCoversLabel reports whether the labels of the event at te cover a label
+// centred on height y in column col.
+func pvCoversLabel(te, col, y float64) bool {
+	if pvColumn(te) != col {
+		return false
+	}
+	n := pvEventLines(te)
+	if n == 0 {
+		return false
+	}
+	h := pvTextH()
+	top := pvEventTop(te, n) + h/2
+	return y-h/2 < top && y+h/2 > top-n*h
+}
+
+// pvTimeLabelCovered reports whether an event label takes the place of the
+// time label of second s (the editor's rule: an event label wins).
+func pvTimeLabelCovered(s float64) bool {
+	col := pvColumn(s)
+	h := pvTextH()
+	y := sonolus.Clamp(pvY(s, col), PL.Bottom+h/2, PL.Top-h/2)
+	// an event stack reaches at most this far (seconds) from its time
+	reach := (PL.GroupCount + 2) * pvColumnSeconds / pvHeightLanes
+	for b := pvBPMFrom(s - reach); b < PL.BPMCount && PL.BPMTime[int(b)] <= s+reach; b++ {
+		if pvCoversLabel(PL.BPMTime[int(b)], col, y) {
+			return true
+		}
+	}
+	for i := 0.0; i < PL.GroupCount; i++ {
+		g := pvGroup(i)
+		for k := pvGroupFrom(i, s-reach); k < g.Count && g.change(k).Time <= s+reach; k++ {
+			if pvCoversLabel(g.change(k).Time, col, y) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func pvNote(sp sonolus.Sprite, lane, t float64, z sonolus.ZIndex) sonolus.Vec2 {
@@ -243,6 +491,7 @@ func (n *PreviewInitialization) Preprocess() {
 	if Layout.HabaSkin && laneChange >= 0 {
 		PL.LaneChange = laneChange + laneChangeSwap
 	}
+	PL.LaneChangeAt = laneChange
 
 	// The menu sits where Play's pause button is (as in Tutorial); the
 	// progress bar runs along the bottom as in Watch. Both lie over the
@@ -270,12 +519,22 @@ type PreviewStage struct {
 	preview.CallbackOrders `archetype:"preprocess=100"`
 }
 
+// Preprocess runs after every note has recorded its column's extra lanes in
+// ColX and turns them into the columns' left edges (a prefix sum of the
+// column widths).
 func (*PreviewStage) Preprocess() {
-	PL.Columns = pvColumn(PL.LastTime) + 1
+	PL.Columns = math.Min(pvColumn(PL.LastTime)+1, pvMaxColumns)
+	x := 0.0
+	for c := 0.0; c < PL.Columns; c++ {
+		extra := PL.ColX[int(c)]
+		PL.ColX[int(c)] = x
+		x += PL.ColW + 2*extra*PL.W
+	}
+	PL.ColX[int(PL.Columns)] = x
 	r := preview.Screen.Rect()
 	preview.Canvas.Set(preview.CanvasOptions{
 		Scroll: preview.ScrollLeftToRight,
-		Size:   math.Max(PL.Columns*PL.ColW, r.R-r.L),
+		Size:   math.Max(x, r.R-r.L),
 	})
 }
 
@@ -286,20 +545,37 @@ const (
 
 func (*PreviewStage) Render() {
 	end := PL.Columns * pvColumnSeconds
-	for c := 0.0; c < PL.Columns && c < 1000; c++ {
+	for c := 0.0; c < PL.Columns; c++ {
 		pvDrawStrip(c)
+		if extra := pvColExtra(c); extra > 0 {
+			// the widened column's lane range
+			pvDashedGuide(pvCenter(c) - (3.5+extra)*PL.W)
+			pvDashedGuide(pvCenter(c) + (3.5+extra)*PL.W)
+		}
 	}
-	// a beat line on every quarter note
-	for b := 0.0; b < 16384; b++ {
+	// across the seven lanes: a measure line every pvBeatsPerMeasure beats,
+	// a fainter beat line on the other beats
+	for b := 0.0; b < 65536; b++ {
 		t := preview.Time.BeatToTime(b)
 		if t >= end {
 			break
 		}
-		pvLine(Skin.PreviewLine, t, -3.5, 3.5, pvLineHalf(), sonolus.ZIndex{Z1: zPvGrid}, 0.5)
+		alpha := pvBeatAlpha
+		if math.Mod(b, pvBeatsPerMeasure) == 0 {
+			alpha = pvGuideAlpha
+		}
+		pvLine(Skin.PreviewLine, t, -3.5, 3.5, pvPx()/2, sonolus.ZIndex{Z1: zPvGrid}, alpha)
 	}
-	// whole seconds on the left
+	// the lane change, unless a BPM change or an SV change at the same
+	// instant draws its line
+	if t := PL.LaneChangeAt; t >= 0 && pvBPMAt(t) < 0 && !pvSVBefore(PL.GroupCount, t) {
+		pvEvent(t)
+	}
+	// whole seconds on the left, except where an event label is
 	for s := 1.0; s < end && s < 4096; s++ {
-		pvLabel(s, sonolus.PrintFormatTime, 0, s, -1, sonolus.PrintColorNeutral)
+		if !pvTimeLabelCovered(s) {
+			pvLabel(s, sonolus.PrintFormatTime, 0, s, -1, sonolus.PrintColorNeutral)
+		}
 	}
 	pvPrintCombo()
 }
@@ -346,16 +622,44 @@ type PreviewBPMChange struct {
 	preview.Archetype `archetype:"name=#BPM_CHANGE"`
 	Beat              float64 `archetype:"imported,name=#BEAT"`
 	BPM               float64 `archetype:"imported,name=#BPM"`
+	Listed            bool    `archetype:"data"` // in the BPM table
 }
 
-// Render marks the change with a dark red line across the lanes (as thick
-// as a beat line) and its BPM on the right in red (Print has no dark red).
+// Preprocess inserts the change into the BPM table, sorted by time (equal
+// times in preprocess order).
+func (n *PreviewBPMChange) Preprocess() {
+	if PL.BPMCount >= pvMaxBPM {
+		return
+	}
+	t := preview.Time.BeatToTime(n.Beat)
+	i := PL.BPMCount
+	for ; i > 0 && PL.BPMTime[int(i-1)] > t; i-- {
+		PL.BPMTime[int(i)] = PL.BPMTime[int(i-1)]
+		PL.BPMEntity[int(i)] = PL.BPMEntity[int(i-1)]
+	}
+	PL.BPMTime[int(i)] = t
+	PL.BPMEntity[int(i)] = preview.Entity.Info().Index
+	PL.BPMCount++
+	n.Listed = true
+}
+
+// Render draws the event at the change's time if it is the first BPM change
+// there (a BPM change draws the events it shares its instant with); one
+// past the table's capacity draws its own line and label.
 func (n *PreviewBPMChange) Render() {
 	t := preview.Time.BeatToTime(n.Beat)
-	pvLine(Skin.PreviewLineBPM, t, -3.5, 3.5, pvLineHalf(), sonolus.ZIndex{Z1: zPvMarker}, 1)
-	pvLabel(n.BPM, sonolus.PrintFormatBPM, -1, t, 1, sonolus.PrintColorRed)
+	if !n.Listed {
+		pvLine(pvEventSprite(), t, -3.5, 3.5, pvPx()/2, sonolus.ZIndex{Z1: zPvMarker}, pvEventAlpha)
+		pvLabel(n.BPM, sonolus.PrintFormatBPM, -1, t, -1, sonolus.PrintColorRed)
+		return
+	}
+	if PL.BPMEntity[int(pvBPMAt(t))] == preview.Entity.Info().Index {
+		pvEvent(t)
+	}
 }
 
+// PreviewTimingChange is one SV step; its time is in seconds (the
+// converter's tempo.Time of the SV beat, compared with Time.Now in Play).
 type PreviewTimingChange struct {
 	preview.Archetype `archetype:"name=TimingChange"`
 	Time              float64 `archetype:"imported,name=time"`
@@ -364,10 +668,42 @@ type PreviewTimingChange struct {
 	Max               float64 `archetype:"imported,name=max"`
 }
 
+// Render draws the event at the change's time unless a BPM change or an
+// earlier timing group's change at the same instant draws it: each group
+// carries the #Global changes as well as its own.
+func (c *PreviewTimingChange) Render() {
+	if pvBPMAt(c.Time) >= 0 {
+		return
+	}
+	self := preview.Entity.Info().Index
+	for i := 0.0; i < PL.GroupCount; i++ {
+		g := pvGroup(i)
+		if self >= g.First.Index && self < g.First.Index+g.Count {
+			break // its own group: no earlier group has this instant
+		}
+		if pvGroupChange(i, c.Time) >= 0 {
+			return
+		}
+	}
+	pvEvent(c.Time)
+}
+
 type PreviewTimingGroup struct {
 	preview.Archetype `archetype:"name=TimingGroup"`
 	First             sonolus.EntityRef[PreviewTimingChange] `archetype:"imported,name=first"`
 	Count             float64                                `archetype:"imported,name=count"`
+}
+
+func (g *PreviewTimingGroup) change(k float64) *PreviewTimingChange {
+	return sonolus.EntityRef[PreviewTimingChange]{Index: g.First.Index + k}.Get()
+}
+
+// Preprocess registers the group for the event lookups.
+func (*PreviewTimingGroup) Preprocess() {
+	if PL.GroupCount < pvMaxGroups {
+		PL.Group[int(PL.GroupCount)] = preview.Entity.Info().Index
+		PL.GroupCount++
+	}
 }
 
 // ----------------------------------------------------------------- notes ----
@@ -392,6 +728,13 @@ func (n *PreviewNoteBase) prepare() {
 	}
 	n.Time = preview.Time.BeatToTime(n.Beat)
 	PL.LastTime = math.Max(PL.LastTime, n.Time)
+	// a lane outside 0–6 (to the nearest lane) widens the note's column by
+	// as many lanes each side (ColX holds the extra lanes until the Stage's
+	// preprocess)
+	if outside := math.Min(math.Round(math.Max(0, math.Max(-n.Lane, n.Lane-6))), pvMaxExtra); outside > 0 {
+		c := int(math.Min(pvColumn(n.Time), pvMaxColumns-1))
+		PL.ColX[c] = math.Max(PL.ColX[c], outside)
+	}
 }
 
 func (n *PreviewNoteBase) z() sonolus.ZIndex { return noteZ(zNote, n.Time, n.Lane) }
